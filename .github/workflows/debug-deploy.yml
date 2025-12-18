@@ -1,0 +1,177 @@
+name: 🐛 Отладка развертывания
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: self-hosted
+    
+    steps:
+    - name: 📥 Получить код
+      uses: actions/checkout@v3
+      
+    - name: 🔍 Проверить состояние
+      run: |
+        echo "=== ИНФОРМАЦИЯ О СИСТЕМЕ ==="
+        echo "Пользователь: $(whoami)"
+        echo "Текущая папка: $(pwd)"
+        echo "Python версия: $(python3 --version)"
+        echo "Память:"
+        free -h
+        echo ""
+        
+        echo "=== ПРОВЕРКА ПРОЕКТА ==="
+        cd /home/admin1/warehouse/Dashboard
+        echo "Папка проекта: $(pwd)"
+        echo "Содержимое:"
+        ls -la
+        echo ""
+        
+        echo "=== ПРОВЕРКА VENV ==="
+        if [ -d "venv" ]; then
+          echo "✅ Venv существует"
+          source venv/bin/activate
+          echo "Python в venv: $(python --version)"
+          echo "Pip в venv: $(pip --version)"
+        else
+          echo "❌ Venv не существует"
+        fi
+        echo ""
+    
+    - name: 🛑 Остановить старые процессы
+      run: |
+        echo "=== ОСТАНОВКА СТАРЫХ ПРОЦЕССОВ ==="
+        cd /home/admin1/warehouse/Dashboard
+        
+        # Ищем и останавливаем старые процессы
+        echo "Поиск запущенных процессов python:"
+        ps aux | grep "python app.py" | grep -v grep || echo "Нет запущенных процессов"
+        
+        echo "Останавливаем..."
+        pkill -f "python app.py" || echo "Нечего останавливать"
+        sleep 3
+        echo ""
+    
+    - name: 🧪 Проверить импорты
+      run: |
+        echo "=== ПРОВЕРКА ИМПОРТОВ ==="
+        cd /home/admin1/warehouse/Dashboard
+        
+        # Создаем простой тестовый скрипт
+        cat > test_imports.py << 'EOF'
+print("=== ТЕСТ ИМПОРТОВ ===")
+
+try:
+    import dash
+    print("✅ dash:", dash.__version__)
+except Exception as e:
+    print("❌ dash:", e)
+
+try:
+    import dash_echarts
+    print("✅ dash_echarts")
+except Exception as e:
+    print("❌ dash_echarts:", e)
+
+try:
+    import pandas
+    print("✅ pandas:", pandas.__version__)
+except Exception as e:
+    print("❌ pandas:", e)
+
+try:
+    import numpy
+    print("✅ numpy:", numpy.__version__)
+except Exception as e:
+    print("❌ numpy:", e)
+
+try:
+    from data.clickhouse_client import ClickHouseClient
+    print("✅ ClickHouseClient")
+except Exception as e:
+    print("❌ ClickHouseClient:", e)
+
+print("=== ТЕСТ ЗАВЕРШЕН ===")
+EOF
+        
+        # Запускаем тест
+        if [ -d "venv" ]; then
+          source venv/bin/activate
+        fi
+        python3 test_imports.py
+        echo ""
+    
+    - name: 🚀 Запустить приложение с отладкой
+      run: |
+        echo "=== ЗАПУСК ПРИЛОЖЕНИЯ ==="
+        cd /home/admin1/warehouse/Dashboard
+        
+        # Останавливаем старые процессы
+        pkill -f "python app.py" || true
+        sleep 2
+        
+        # Активируем venv если есть
+        if [ -d "venv" ]; then
+          source venv/bin/activate
+          echo "Используем venv"
+        else
+          echo "Используем системный python"
+        fi
+        
+        echo "Текущий python: $(python --version)"
+        echo ""
+        
+        # Запускаем приложение с выводом логов в реальном времени
+        echo "Запускаем app.py с отладкой..."
+        echo "=== НАЧАЛО ЛОГОВ ==="
+        
+        # Вариант 1: Запуск с перенаправлением вывода
+        python -u app.py 2>&1 | tee debug.log &
+        APP_PID=$!
+        
+        echo "PID процесса: $APP_PID"
+        
+        # Ждем 10 секунд и проверяем
+        sleep 10
+        
+        if ps -p $APP_PID > /dev/null; then
+          echo "✅ Приложение запущено (PID: $APP_PID)"
+          echo "Проверяем порт 8055..."
+          
+          # Проверяем доступность
+          if curl -s --max-time 5 http://localhost:8055 > /dev/null; then
+            echo "🎉 Приложение работает на http://localhost:8055"
+            echo "Оставляем процесс работать..."
+          else
+            echo "⚠️ Приложение запущено, но порт не отвечает"
+            echo "Логи приложения:"
+            tail -20 debug.log
+            kill $APP_PID 2>/dev/null
+            exit 1
+          fi
+        else
+          echo "❌ Приложение завершилось"
+          echo "Логи приложения:"
+          cat debug.log
+          exit 1
+        fi
+        echo ""
+    
+    - name: 📋 Проверить запущенные процессы
+      run: |
+        echo "=== ЗАПУЩЕННЫЕ ПРОЦЕССЫ ==="
+        ps aux | grep -E "(python|app)" | grep -v grep || echo "Нет процессов python"
+        echo ""
+        
+        echo "=== ОТКРЫТЫЕ ПОРТЫ ==="
+        netstat -tlnp | grep :8055 || echo "Порт 8055 не слушает"
+        echo ""
+        
+        echo "=== ЛОГИ ПРИЛОЖЕНИЯ (последние 30 строк) ==="
+        cd /home/admin1/warehouse/Dashboard
+        if [ -f "debug.log" ]; then
+          tail -30 debug.log
+        else
+          echo "Файл логов не найден"
+        fi
