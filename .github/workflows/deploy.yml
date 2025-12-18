@@ -1,25 +1,35 @@
-name: Развертывание
+name: 🔧 Тест SSH подключения
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:  # Только ручной запуск
 
 jobs:
-  deploy:
+  test-ssh:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Загрузить код
-      uses: actions/checkout@v3
-    
-    - name: Настроить SSH
+    - name: 🔑 Настроить SSH
       uses: webfactory/ssh-agent@v0.5.4
       with:
-        ssh-private-key: ${{ secrets.SSH_KEY }}
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
     
-    - name: Копировать файлы на сервер
+    - name: 🌐 Добавить сервер в known_hosts
       run: |
-        rsync -avz --delete \
-          --exclude '.git' \
-          --exclude '.github' \
-          ./ admin1@10.7.0.30:/home/admin1/warehouse/Dashboard/
+        mkdir -p ~/.ssh
+        ssh-keyscan -H 10.7.0.30 >> ~/.ssh/known_hosts
+        echo "✅ Сервер добавлен в known_hosts"
+    
+    - name: 🔍 Проверить подключение
+      run: |
+        echo "🔄 Проверяем SSH подключение..."
+        ssh -o ConnectTimeout=5 admin1@10.7.0.30 "echo '✅ SSH подключение успешно!'" || echo "❌ Не удалось подключиться"
+    
+    - name: 📂 Проверить папку на сервере
+      run: |
+        echo "📂 Проверяем существование папки..."
+        ssh admin1@10.7.0.30 "
+          echo '👤 Пользователь: $(whoami)'
+          echo '📁 Домашняя папка: $(pwd)'
+          echo '📁 Содержимое /home/admin1/warehouse/:'
+          ls -la /home/admin1/warehouse/ || echo 'Папка не существует'
+        "
