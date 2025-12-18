@@ -1,0 +1,240 @@
+from dash import html, dcc
+import dash_echarts
+
+def create_analytics_modal():
+    """Создание модального окна аналитики"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Аналитика производительности", 
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕", 
+                    id="close-analytics-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                html.Div(id="analytics-employee-name", 
+                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#1976d2', 'textAlign': 'center'}),
+                html.Div([
+                    html.Div([
+                        html.Div("Всего операций", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="total-operations-kpi", style={'color': '#1976d2', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Заработок в час", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="earnings-per-hour-kpi", style={'color': '#2e7d32', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Операций в час", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="ops-per-hour-kpi", style={'color': '#ed6c02', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Время работы", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="work-time-kpi", style={'color': '#9c27b0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Общий заработок", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="total-earnings-kpi-modal", style={'color': '#9c27b0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card')
+                ], className="analytics-kpi-row", style={'gridTemplateColumns': '1fr 1fr 1fr 1fr 1fr'}),
+                
+                # ПЕРВЫЙ РЯД: Распределение операций по типам (на всю ширину)
+                html.Div([
+                    html.Div([
+                        html.H4("Распределение операций по типам", 
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        dash_echarts.DashECharts(
+                            id="operations-type-chart",
+                            option={},
+                            style={'height': '350px', 'width': '100%'},
+                            click_data=None
+                        )
+                    ], className='analytics-chart-card', style={'height': '400px', 'width': '100%'})
+                ], style={'marginBottom': '20px'}),
+                
+                # ВТОРОЙ РЯД: Периоды простоя (слева) + Распределение времени работы (справа)
+                html.Div([
+                    # ЛЕВАЯ ЧАСТЬ: Периоды простоя (кликабельная)
+                    html.Div([
+                        html.H4("Периоды простоя", 
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        dash_echarts.DashECharts(
+                            id="idle-intervals-chart",
+                            option={},
+                            style={'height': '350px', 'width': '100%'}
+                        )
+                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%', 'cursor': 'pointer'}),
+                    
+                    # ПРАВАЯ ЧАСТЬ: Распределение времени работы
+                    html.Div([
+                        html.H4("Распределение времени работы", 
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        dash_echarts.DashECharts(
+                            id="time-distribution-chart",
+                            option={},
+                            style={'height': '350px', 'width': '100%'}
+                        )
+                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'})
+                ], style={'display': 'flex', 'justifyContent': 'space-between'})
+                
+                # БЛОК "Ключевые метрики качества" УДАЛЕН
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="analytics-modal-content", className="modal-content")
+    ], id="analytics-modal", className="modal-hidden")
+
+def create_fines_modal():
+    """Создание модального окна штрафов"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детализация штрафов", 
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕", 
+                    id="close-fines-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                html.Div(id="fines-employee-name", 
+                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#B71C1C', 'textAlign': 'center'}),
+                html.Div([
+                    html.Div([
+                        html.Div("Количество штрафов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="fines-count-kpi-modal", style={'color': '#B71C1C', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Общая сумма", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="fines-total-kpi", style={'color': '#D32F2F', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Средний штраф", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="fines-avg-kpi", style={'color': '#F44336', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Дата последнего", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="fines-last-date", style={'color': '#666', 'fontSize': '24px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card')
+                ], className="analytics-kpi-row", style={'marginBottom': '25px'}),
+                dash_echarts.DashECharts(
+                    id="fines-employee-chart",
+                    option={},
+                    style={'height': '500px', 'width': '100%'}
+                )
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="fines-modal-content", className="modal-content")
+    ], id="fines-modal", className="modal-hidden")
+
+def create_idle_detail_modal():
+    """Создание модального окна детализации простоев"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детализация простоев сотрудника", 
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕", 
+                    id="close-idle-detail-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                html.Div(id="idle-detail-employee-name", 
+                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#F44336', 'textAlign': 'center'}),
+                html.Div(id="idle-detail-interval", 
+                        style={'fontSize': '18px', 'marginBottom': '20px', 'color': '#666', 'textAlign': 'center'}),
+                
+                # Фильтр выбора дня
+                html.Div([
+                    html.Label("Выберите день для детализации:", 
+                             style={'marginRight': '10px', 'fontSize': '14px', 'color': '#333'}),
+                    dcc.DatePickerSingle(
+                        id='idle-detail-day-picker',
+                        date=None,
+                        display_format='DD.MM.YYYY',
+                        style={'display': 'inline-block'}
+                    )
+                ], style={'marginBottom': '20px', 'padding': '15px', 'background': '#f8f9fa', 'borderRadius': '8px'}),
+                
+                # Timeline диаграмма
+                html.Div([
+                    html.H4("Распределение времени в течение дня", 
+                           style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                    dash_echarts.DashECharts(
+                        id="idle-timeline-chart",
+                        option={},
+                        style={'height': '500px', 'width': '100%'}
+                    )
+                ], className='analytics-chart-card', style={'height': '550px'}),
+                
+                # Информация о тестовых данных
+                html.Div([
+                    html.P("⚠️ Это демонстрационные данные. Реальные данные о временных интервалах простоев появятся в ближайшее время.",
+                          style={'color': '#666', 'fontSize': '14px', 'textAlign': 'center', 'padding': '15px',
+                                'background': '#fff3cd', 'borderRadius': '8px', 'border': '1px solid #ffeaa7'})
+                ], style={'marginTop': '20px'})
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="idle-detail-modal-content", className="modal-content")
+    ], id="idle-detail-modal", className="modal-hidden")

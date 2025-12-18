@@ -1,0 +1,25 @@
+name: Тестирование
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Загрузить код
+      uses: actions/checkout@v3
+    
+    - name: Установить Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Установить зависимости
+      run: |
+        pip install -r requirements.txt
+        pip install pytest
+    
+    - name: Запустить тесты
+      run: |
+        python -m pytest tests/ -v
