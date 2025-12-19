@@ -132,37 +132,30 @@ def get_total_earnings(start_date, end_date):
 
 def get_storage_cells_stats():
     """
-    Получение статистики по ячейкам хранения:
-    - Всего ячеек
-    - Занято ячеек
-    - Свободно ячеек
-    - Проценты
+    Получение статистики по ячейкам хранения с учетом LOCATION_STS
+    и всех фильтров из Power Query
     """
-    # Запрос для получения всех ячеек
-    all_cells_query = """
-    SELECT COUNT(DISTINCT LOCATION) as total_cells
+    query = """
+    SELECT 
+        COUNT(DISTINCT LOCATION) as total_cells,
+        SUM(CASE WHEN LOCATION_STS IN ('Storage', 'Picking') THEN 1 ELSE 0 END) as occupied_cells,
+        SUM(CASE WHEN LOCATION_STS = 'Empty' THEN 1 ELSE 0 END) as free_cells
     FROM olap.raw_location 
     WHERE LOCATION IS NOT NULL 
         AND LOCATION != ''
+        AND LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'  -- Исключаем замороженные
+        AND LOCATION_TYPE IS NOT NULL
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')  -- Исключаем типы
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)  -- Фильтр по классу или NULL
     """
     
-    # Запрос для получения занятых ячеек
-    occupied_cells_query = """
-    SELECT COUNT(DISTINCT LOCATION) as occupied_cells
-    FROM olap.raw_location_inventory 
-    WHERE LOCATION IS NOT NULL 
-        AND LOCATION != ''
-        AND ITEM IS NOT NULL 
-        AND ITEM != ''
-    """
+    result = execute_query_cached(query)
     
-    all_result = execute_query_cached(all_cells_query)
-    occupied_result = execute_query_cached(occupied_cells_query)
-    
-    if all_result and occupied_result:
-        total_cells = int(float(all_result[0][0])) if all_result[0][0] else 0
-        occupied_cells = int(float(occupied_result[0][0])) if occupied_result[0][0] else 0
-        free_cells = total_cells - occupied_cells
+    if result and result[0]:
+        total_cells = int(float(result[0][0])) if result[0][0] else 0
+        occupied_cells = int(float(result[0][1])) if result[0][1] else 0
+        free_cells = int(float(result[0][2])) if result[0][2] else 0
         
         # Рассчитываем проценты
         occupied_percent = 0
@@ -186,6 +179,127 @@ def get_storage_cells_stats():
             'occupied_percent': 0,
             'free_percent': 0
         }
+
+def get_storage_detailed_stats():
+    """
+    Получение детальной статистики по ячейкам хранения для модального окна
+    с группировкой по статусу, типам и зонам
+    """
+    # 1. Данные по статусам ячеек (Empty vs Storage+Picking)
+    status_query = """
+    SELECT 
+        CASE 
+            WHEN LOCATION_STS = 'Empty' THEN 'Свободные'
+            WHEN LOCATION_STS IN ('Storage', 'Picking') THEN 'Занятые'
+            ELSE 'Другие'
+        END as status_group,
+        COUNT(DISTINCT LOCATION) as cell_count
+    FROM olap.raw_location 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+        AND LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'
+        AND LOCATION_TYPE IS NOT NULL
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
+    GROUP BY status_group
+    HAVING status_group != 'Другие'
+    """
+    
+    # 2. Данные по типам ячеек (LOCATION_TYPE)
+    types_query = """
+    SELECT 
+        LOCATION_TYPE as cell_type,
+        COUNT(DISTINCT LOCATION) as total_cells,
+        SUM(CASE WHEN LOCATION_STS = 'Empty' THEN 1 ELSE 0 END) as free_cells,
+        SUM(CASE WHEN LOCATION_STS IN ('Storage', 'Picking') THEN 1 ELSE 0 END) as occupied_cells
+    FROM olap.raw_location 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+        AND LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'
+        AND LOCATION_TYPE IS NOT NULL
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
+        AND LOCATION_TYPE != ''
+    GROUP BY LOCATION_TYPE
+    HAVING COUNT(DISTINCT LOCATION) > 0
+    ORDER BY total_cells DESC
+    LIMIT 15  -- Ограничиваем количество типов для диаграммы
+    """
+    
+    # 3. Данные по зонам хранения (LOCATING_ZONE)
+    zones_query = """
+    SELECT 
+        LOCATING_ZONE as zone,
+        COUNT(DISTINCT LOCATION) as total_cells,
+        SUM(CASE WHEN LOCATION_STS = 'Empty' THEN 1 ELSE 0 END) as free_cells,
+        SUM(CASE WHEN LOCATION_STS IN ('Storage', 'Picking') THEN 1 ELSE 0 END) as occupied_cells
+    FROM olap.raw_location 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+        AND LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'
+        AND LOCATION_TYPE IS NOT NULL
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
+        AND LOCATING_ZONE IS NOT NULL
+        AND LOCATING_ZONE != ''
+    GROUP BY LOCATING_ZONE
+    HAVING COUNT(DISTINCT LOCATION) > 0
+    ORDER BY total_cells DESC
+    LIMIT 10  -- Ограничиваем количество зон для диаграммы
+    """
+    
+    status_result = execute_query_cached(status_query)
+    types_result = execute_query_cached(types_query)
+    zones_result = execute_query_cached(zones_query)
+    
+    # Обработка данных по статусам
+    status_data = {}
+    if status_result:
+        for row in status_result:
+            status_group = row[0] if row[0] else 'Неизвестно'
+            cell_count = int(float(row[1])) if row[1] else 0
+            status_data[status_group] = cell_count
+    
+    # Обработка данных по типам
+    types_data = []
+    if types_result:
+        for row in types_result:
+            cell_type = row[0] if row[0] else 'Неизвестно'
+            total_cells = int(float(row[1])) if row[1] else 0
+            free_cells = int(float(row[2])) if row[2] else 0
+            occupied_cells = int(float(row[3])) if row[3] else 0
+            
+            types_data.append({
+                'type': cell_type,
+                'total': total_cells,
+                'free': free_cells,
+                'occupied': occupied_cells
+            })
+    
+    # Обработка данных по зонам
+    zones_data = []
+    if zones_result:
+        for row in zones_result:
+            zone = row[0] if row[0] else 'Неизвестно'
+            total_cells = int(float(row[1])) if row[1] else 0
+            free_cells = int(float(row[2])) if row[2] else 0
+            occupied_cells = int(float(row[3])) if row[3] else 0
+            
+            zones_data.append({
+                'zone': zone,
+                'total': total_cells,
+                'free': free_cells,
+                'occupied': occupied_cells
+            })
+    
+    return {
+        'status_data': status_data,
+        'types_data': types_data,
+        'zones_data': zones_data
+    }
 
 # Получение данных для карточки "Точность заказов"
 def get_order_accuracy(start_date, end_date):

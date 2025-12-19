@@ -1196,3 +1196,327 @@ def create_timeline_chart(employee_name, selected_day, selected_interval):
         },
         "animationDuration": 1000
     }
+
+def create_storage_status_pie_chart(status_data):
+    """
+    Круговая диаграмма: Доля пустых и заполненных ячеек
+    Используем синие оттенки
+    """
+    # Цвета в синих оттенках
+    colors = [
+        '#0D2B4F', '#11345C', '#153D69', '#194676', '#1D4F83',
+        '#215890', '#25619D', '#296AAA', '#2D73B7', '#317CC4',
+        '#4A8BC9', '#6399CF', '#7CA8D5', '#95B7DB', '#AEC6E1'
+    ]
+    
+    data = []
+    for i, (status, count) in enumerate(status_data.items()):
+        if count > 0:
+            data.append({
+                "name": status,
+                "value": count,
+                "itemStyle": {"color": colors[i % len(colors)]}
+            })
+    
+    if not data:
+        data.append({
+            "name": "Нет данных",
+            "value": 1,
+            "itemStyle": {"color": "#CCCCCC"}
+        })
+    
+    return {
+        "title": {
+            "text": "Доля пустых и заполненных ячеек",
+            "left": "center",
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#333"
+            }
+        },
+        "tooltip": {
+            "trigger": "item",
+            "formatter": "{a}<br/>{b}: {c} ячеек ({d}%)"
+        },
+        "legend": {
+            "orient": "vertical",
+            "left": "left",
+            "top": "center",
+            "textStyle": {"fontSize": 9},
+            "itemHeight": 8,
+            "itemWidth": 8
+        },
+        "series": [{
+            "name": "Статус ячеек",
+            "type": "pie",
+            "radius": ["40%", "70%"],
+            "center": ["60%", "50%"],
+            "avoidLabelOverlap": True,
+            "itemStyle": {
+                "borderRadius": 6,
+                "borderColor": "#fff",
+                "borderWidth": 2
+            },
+            "label": {
+                "show": True,
+                "formatter": "{b}: {d}%",
+                "fontSize": 8
+            },
+            "emphasis": {
+                "itemStyle": {
+                    "shadowBlur": 10,
+                    "shadowOffsetX": 0,
+                    "shadowColor": "rgba(0, 0, 0, 0.5)"
+                },
+                "label": {
+                    "show": True,
+                    "fontSize": 10,
+                    "fontWeight": "bold"
+                }
+            },
+            "labelLine": {"show": True},
+            "data": data,
+            "animationType": "scale",
+            "animationEasing": "elasticOut"
+        }],
+        "animationDuration": 1500,
+        "animationEasing": "cubicInOut"
+    }
+
+def create_storage_types_pie_chart(types_data):
+    """
+    Круговая диаграмма: Доли типов ячеек
+    Используем синие оттенки
+    """
+    # Цвета в синих оттенках (другой набор для разнообразия)
+    colors = [
+        '#1A237E', '#283593', '#303F9F', '#3949AB', '#3F51B5',
+        '#5C6BC0', '#7986CB', '#9FA8DA', '#C5CAE9', '#E8EAF6',
+        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3'
+    ]
+    
+    data = []
+    total_all_cells = sum([item['total'] for item in types_data])
+    
+    for i, item in enumerate(types_data[:10]):  # Берем топ-10 типов
+        type_name = item['type'][:20]  # Обрезаем длинные названия
+        cell_count = item['total']
+        percentage = round((cell_count / total_all_cells) * 100, 1) if total_all_cells > 0 else 0
+        
+        data.append({
+            "name": type_name,
+            "value": cell_count,
+            "percentage": percentage,
+            "itemStyle": {"color": colors[i % len(colors)]}
+        })
+    
+    if not data:
+        data.append({
+            "name": "Нет данных",
+            "value": 1,
+            "percentage": 0,
+            "itemStyle": {"color": "#CCCCCC"}
+        })
+    
+    # Исправленный тултип с правильным JavaScript
+    tooltip_js = """
+    function(params) {
+        return params.data.name + '<br/>' +
+               'Количество: ' + params.data.value + ' ячеек<br/>' +
+               'Доля: ' + params.data.percentage + '%';
+    }
+    """
+    
+    # Исправленная легенда - нужно сделать как строку JavaScript
+    legend_formatter_js = """
+    function(name) {
+        return name.length > 15 ? name.substr(0, 15) + '...' : name;
+    }
+    """
+    
+    return {
+        "title": {
+            "text": "Доли типов ячеек",
+            "left": "center",
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#333"
+            }
+        },
+        "tooltip": {
+            "trigger": "item",
+            "formatter": tooltip_js
+        },
+        "legend": {
+            "orient": "vertical",
+            "left": "left",
+            "top": "center",
+            "textStyle": {"fontSize": 8},
+            "itemHeight": 8,
+            "itemWidth": 8,
+            "formatter": legend_formatter_js
+        },
+        "series": [{
+            "name": "Типы ячеек",
+            "type": "pie",
+            "radius": ["40%", "70%"],
+            "center": ["60%", "50%"],
+            "avoidLabelOverlap": True,
+            "itemStyle": {
+                "borderRadius": 6,
+                "borderColor": "#fff",
+                "borderWidth": 2
+            },
+            "label": {
+                "show": True,
+                "formatter": "{b}\n{d}%",
+                "fontSize": 8,
+                "overflow": "break"
+            },
+            "emphasis": {
+                "itemStyle": {
+                    "shadowBlur": 10,
+                    "shadowOffsetX": 0,
+                    "shadowColor": "rgba(0, 0, 0, 0.5)"
+                },
+                "label": {
+                    "show": True,
+                    "fontSize": 10,
+                    "fontWeight": "bold"
+                }
+            },
+            "labelLine": {
+                "show": True,
+                "length": 10,
+                "length2": 5
+            },
+            "data": data,
+            "animationType": "scale",
+            "animationEasing": "elasticOut"
+        }],
+        "animationDuration": 1500,
+        "animationEasing": "cubicInOut"
+    }
+
+def create_storage_zones_bar_chart(zones_data):
+    """
+    Столбчатая диаграмма: Количество типов ячеек по зонам
+    С разбивкой на свободные и занятые
+    """
+    # Цвета для свободных и занятых ячеек (синие оттенки)
+    free_color = '#2196F3'  # Светло-синий для свободных
+    occupied_color = '#0D47A1'  # Темно-синий для занятых
+    
+    zones = []
+    free_data = []
+    occupied_data = []
+    
+    for item in zones_data[:8]:  # Берем топ-8 зон
+        zone_name = item['zone'][:15]  # Обрезаем длинные названия
+        zones.append(zone_name)
+        free_data.append(item['free'])
+        occupied_data.append(item['occupied'])
+    
+    if not zones:
+        zones = ["Нет данных"]
+        free_data = [1]
+        occupied_data = [1]
+    
+    # Исправленный тултип
+    tooltip_js = """
+    function(params) {
+        var result = params[0].name + '<br/>';
+        for (var i = 0; i < params.length; i++) {
+            result += params[i].seriesName + ': ' + params[i].value + ' ячеек<br/>';
+        }
+        return result;
+    }
+    """
+    
+    return {
+        "title": {
+            "text": "Количество ячеек по зонам хранения",
+            "left": "center",
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#333"
+            }
+        },
+        "tooltip": {
+            "trigger": "axis",
+            "axisPointer": {"type": "shadow"},
+            "formatter": tooltip_js
+        },
+        "legend": {
+            "data": ['Свободные', 'Занятые'],
+            "top": "30px",
+            "textStyle": {"fontSize": 11}
+        },
+        "xAxis": {
+            "type": "category",
+            "data": zones,
+            "axisLine": {"show": True},
+            "axisTick": {"show": True},
+            "axisLabel": {
+                "rotate": 45,
+                "fontSize": 9,
+                "interval": 0
+            }
+        },
+        "yAxis": {
+            "type": "value",
+            "name": "Количество ячеек",
+            "axisLine": {"show": True},
+            "axisTick": {"show": True},
+            "splitLine": {"show": True, "lineStyle": {"color": "#f0f0f0"}},
+            "axisLabel": {"formatter": "{value}", "fontSize": 9}
+        },
+        "series": [
+            {
+                "name": "Свободные",
+                "type": "bar",
+                "stack": "total",
+                "data": free_data,
+                "itemStyle": {
+                    "color": free_color,
+                    "borderRadius": [4, 4, 0, 0]
+                },
+                "label": {
+                    "show": True,
+                    "position": "inside",
+                    "formatter": "{c}",
+                    "fontSize": 8,
+                    "color": "#fff"
+                }
+            },
+            {
+                "name": "Занятые",
+                "type": "bar",
+                "stack": "total",
+                "data": occupied_data,
+                "itemStyle": {
+                    "color": occupied_color,
+                    "borderRadius": [4, 4, 0, 0]
+                },
+                "label": {
+                    "show": True,
+                    "position": "inside",
+                    "formatter": "{c}",
+                    "fontSize": 8,
+                    "color": "#fff"
+                }
+            }
+        ],
+        "grid": {
+            "left": "5%",
+            "right": "5%",
+            "bottom": "30%",
+            "top": "20%",
+            "containLabel": True
+        },
+        "animationDuration": 1000,
+        "animationEasing": "cubicInOut"
+    }

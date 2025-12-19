@@ -10,14 +10,15 @@ from data.queries import (
     get_order_timeliness, get_fines_data, get_employee_analytics,
     get_employee_operations_detail, get_employee_fines_details,
     get_employees_on_shift, refresh_data, get_error_hours_top_data,
-    get_storage_cells_stats
+    get_storage_cells_stats, get_storage_detailed_stats
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
     create_timeliness_chart, create_operations_type_chart,
     create_time_distribution_pie_echarts, create_idle_intervals_bar_echarts,
     create_fines_pie_chart, create_fines_amount_bar_chart,
-    create_employee_fines_chart
+    create_employee_fines_chart,
+    create_storage_status_pie_chart, create_storage_types_pie_chart, create_storage_zones_bar_chart
 )
 from components.tables import create_performance_table
 
@@ -449,3 +450,99 @@ def switch_table_view(prev_clicks, next_clicks, current_view):
             classes[i] = 'table-view active'
     
     return classes[0], classes[1], classes[2], new_view
+
+@callback(
+    [Output("storage-cells-modal", "className"),
+     Output("storage-modal-content", "className")],  # ДОБАВЛЕНО ВТОРОЙ OUTPUT
+    [Input("open-storage-modal", "n_clicks"),
+     Input("close-storage-modal", "n_clicks")],
+    [State("storage-cells-modal", "className"),
+     State("storage-modal-content", "className")],  # ДОБАВЛЕНО ВТОРОЕ STATE
+    prevent_initial_call=True
+)
+def toggle_storage_modal(open_clicks, close_clicks, modal_class, content_class):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return modal_class, content_class
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id == 'open-storage-modal':
+        print(f"DEBUG: Открытие модального окна")
+        return 'modal-visible', 'modal-content-visible'  # МЕНЯЕМ ОБА КЛАССА
+    elif button_id == 'close-storage-modal':
+        print(f"DEBUG: Закрытие модального окна")
+        return 'modal-hidden', 'modal-content'  # ВОЗВРАЩАЕМ ИСХОДНЫЕ КЛАССЫ
+    
+    return modal_class, content_class
+
+# Callback для загрузки данных в модальное окно ячеек хранения
+@callback(
+    [Output("storage-total-cells", "children"),
+     Output("storage-occupied-cells", "children"),
+     Output("storage-free-cells", "children"),
+     Output("storage-occupied-percent", "children"),
+     Output("storage-status-chart", "option"),
+     Output("storage-types-chart", "option"),
+     Output("storage-zones-chart", "option")],
+    [Input("storage-cells-modal", "className")]
+)
+def update_storage_modal(modal_class):
+    """Загрузка данных в модальное окно ячеек хранения"""
+    if modal_class != 'modal-visible':
+        raise dash.exceptions.PreventUpdate
+    
+    try:
+        # Получаем базовую статистику для KPI
+        storage_stats = get_storage_cells_stats()
+        
+        # Получаем детальные данные для диаграмм
+        detailed_stats = get_storage_detailed_stats()
+        
+        # Форматируем KPI
+        total_cells = f"{storage_stats['total_cells']:,}"
+        occupied_cells = f"{storage_stats['occupied_cells']:,}"
+        free_cells = f"{storage_stats['free_cells']:,}"
+        occupied_percent = f"{storage_stats['occupied_percent']}%"
+        
+        # Создаем диаграммы
+        status_chart = create_storage_status_pie_chart(detailed_stats['status_data'])
+        types_chart = create_storage_types_pie_chart(detailed_stats['types_data'])
+        zones_chart = create_storage_zones_bar_chart(detailed_stats['zones_data'])
+        
+        return (
+            total_cells,
+            occupied_cells,
+            free_cells,
+            occupied_percent,
+            status_chart,
+            types_chart,
+            zones_chart
+        )
+        
+    except Exception as e:
+        print(f"Error in update_storage_modal: {e}")
+        
+        # Возвращаем заглушки в случае ошибки
+        error_chart = {
+            "title": {
+                "text": "Ошибка загрузки данных",
+                "left": "center",
+                "textStyle": {"color": "#F44336"}
+            },
+            "graphic": {
+                "type": "text",
+                "left": "center",
+                "top": "middle",
+                "style": {
+                    "text": "Не удалось загрузить данные",
+                    "fontSize": 14,
+                    "fill": "#999"
+                }
+            }
+        }
+        
+        return (
+            "0", "0", "0", "0%",
+            error_chart, error_chart, error_chart
+        )

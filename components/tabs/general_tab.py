@@ -23,7 +23,27 @@ def create_general_tab():
                 html.Div(id="order-accuracy-detail", style={'color': '#ed6c02', 'fontSize': '14px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
             html.Div([
-                html.Div("Ячейки хранения своб/зан", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div([
+                    html.Span("Ячейки хранения своб/зан", 
+                             style={'verticalAlign': 'middle'}),
+                    html.Button(
+                        "📊",
+                        id="open-storage-modal",
+                        title="Подробная аналитика",
+                        style={
+                            'background': 'transparent',
+                            'border': 'none',
+                            'fontSize': '16px',
+                            'cursor': 'pointer',
+                            'color': '#9c27b0',
+                            'marginLeft': '8px',
+                            'padding': '2px 6px',
+                            'borderRadius': '4px',
+                            'transition': 'all 0.2s ease',
+                            'verticalAlign': 'middle'
+                        }
+                    )
+                ], style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="storage-cells-kpi", style={'color': '#9c27b0', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="storage-cells-detail", style={'color': '#9c27b0', 'fontSize': '14px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s'})

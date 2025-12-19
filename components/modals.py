@@ -238,3 +238,106 @@ def create_idle_detail_modal():
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
         ], id="idle-detail-modal-content", className="modal-content")
     ], id="idle-detail-modal", className="modal-hidden")
+
+def create_storage_cells_modal():
+    """Создание модального окна для детальной аналитики ячеек хранения"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детальная аналитика ячеек хранения", 
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕", 
+                    id="close-storage-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # Общая статистика
+                html.Div([
+                    html.Div([
+                        html.Div("Всего ячеек", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="storage-total-cells", style={'color': '#1976d2', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Занято ячеек", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="storage-occupied-cells", style={'color': '#0D47A1', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Свободно ячеек", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="storage-free-cells", style={'color': '#2196F3', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("% занятости", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="storage-occupied-percent", style={'color': '#1565C0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card')
+                ], className="analytics-kpi-row", style={'marginBottom': '25px', 'gridTemplateColumns': '1fr 1fr 1fr 1fr'}),
+                
+                # ПЕРВЫЙ РЯД: Доля пустых и заполненных ячеек
+                html.Div([
+                    html.Div([
+                        html.H4("Доля пустых и заполненных ячеек", 
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        dash_echarts.DashECharts(
+                            id="storage-status-chart",
+                            option={},
+                            style={'height': '350px', 'width': '100%'}
+                        )
+                    ], className='analytics-chart-card', style={'height': '400px', 'width': '100%'})
+                ], style={'marginBottom': '20px'}),
+                
+                # ВТОРОЙ РЯД: Доли типов ячеек + Количество по зонам
+                html.Div([
+                    # ЛЕВАЯ ЧАСТЬ: Доли типов ячеек
+                    html.Div([
+                        html.H4("Доли типов ячеек", 
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        dash_echarts.DashECharts(
+                            id="storage-types-chart",
+                            option={},
+                            style={'height': '350px', 'width': '100%'}
+                        )
+                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'}),
+                    
+                    # ПРАВАЯ ЧАСТЬ: Количество по зонам
+                    html.Div([
+                        html.H4("Количество ячеек по зонам", 
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        dash_echarts.DashECharts(
+                            id="storage-zones-chart",
+                            option={},
+                            style={'height': '350px', 'width': '100%'}
+                        )
+                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'})
+                ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginBottom': '20px'}),
+                
+                # Информация о фильтрах
+                html.Div([
+                    html.P("ℹ️ Данные отфильтрованы: исключены замороженные ячейки (Frozen) и ячейки типов 'Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP'",
+                          style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'padding': '10px',
+                                'background': '#e3f2fd', 'borderRadius': '6px', 'border': '1px solid #bbdefb'})
+                ], style={'marginTop': '10px'})
+                
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="storage-modal-content", className="modal-content")
+    ], id="storage-cells-modal", className="modal-hidden")
