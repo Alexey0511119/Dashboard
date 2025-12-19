@@ -130,6 +130,63 @@ def get_total_earnings(start_date, end_date):
     
     return total_earnings
 
+def get_storage_cells_stats():
+    """
+    Получение статистики по ячейкам хранения:
+    - Всего ячеек
+    - Занято ячеек
+    - Свободно ячеек
+    - Проценты
+    """
+    # Запрос для получения всех ячеек
+    all_cells_query = """
+    SELECT COUNT(DISTINCT LOCATION) as total_cells
+    FROM olap.raw_location 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+    """
+    
+    # Запрос для получения занятых ячеек
+    occupied_cells_query = """
+    SELECT COUNT(DISTINCT LOCATION) as occupied_cells
+    FROM olap.raw_location_inventory 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+        AND ITEM IS NOT NULL 
+        AND ITEM != ''
+    """
+    
+    all_result = execute_query_cached(all_cells_query)
+    occupied_result = execute_query_cached(occupied_cells_query)
+    
+    if all_result and occupied_result:
+        total_cells = int(float(all_result[0][0])) if all_result[0][0] else 0
+        occupied_cells = int(float(occupied_result[0][0])) if occupied_result[0][0] else 0
+        free_cells = total_cells - occupied_cells
+        
+        # Рассчитываем проценты
+        occupied_percent = 0
+        free_percent = 0
+        if total_cells > 0:
+            occupied_percent = round((occupied_cells / total_cells) * 100, 1)
+            free_percent = round((free_cells / total_cells) * 100, 1)
+        
+        return {
+            'total_cells': total_cells,
+            'occupied_cells': occupied_cells,
+            'free_cells': free_cells,
+            'occupied_percent': occupied_percent,
+            'free_percent': free_percent
+        }
+    else:
+        return {
+            'total_cells': 0,
+            'occupied_cells': 0,
+            'free_cells': 0,
+            'occupied_percent': 0,
+            'free_percent': 0
+        }
+
 # Получение данных для карточки "Точность заказов"
 def get_order_accuracy(start_date, end_date):
     query = """

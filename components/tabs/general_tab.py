@@ -23,9 +23,9 @@ def create_general_tab():
                 html.Div(id="order-accuracy-detail", style={'color': '#ed6c02', 'fontSize': '14px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
             html.Div([
-                html.Div("Общий заработок", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="total-earnings-kpi", style={'color': '#9c27b0', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="active-employees-kpi", style={'color': '#9c27b0', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div("Ячейки хранения своб/зан", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div(id="storage-cells-kpi", style={'color': '#9c27b0', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div(id="storage-cells-detail", style={'color': '#9c27b0', 'fontSize': '14px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s'})
         ], className="kpi-row"),
         
