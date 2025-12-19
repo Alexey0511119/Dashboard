@@ -10,15 +10,15 @@ from data.queries import (
     get_order_timeliness, get_fines_data, get_employee_analytics,
     get_employee_operations_detail, get_employee_fines_details,
     get_employees_on_shift, refresh_data, get_error_hours_top_data,
-    get_storage_cells_stats, get_storage_detailed_stats
+    get_storage_cells_stats, get_storage_complete_data  # ДОБАВЛЕНО
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
     create_timeliness_chart, create_operations_type_chart,
     create_time_distribution_pie_echarts, create_idle_intervals_bar_echarts,
     create_fines_pie_chart, create_fines_amount_bar_chart,
-    create_employee_fines_chart,
-    create_storage_status_pie_chart, create_storage_types_pie_chart, create_storage_zones_bar_chart
+    create_employee_fines_chart, create_timeline_chart,
+    create_storage_status_pie_chart, create_storage_types_chart, create_storage_zones_chart  # ДОБАВЛЕНО
 )
 from components.tables import create_performance_table
 
@@ -451,13 +451,14 @@ def switch_table_view(prev_clicks, next_clicks, current_view):
     
     return classes[0], classes[1], classes[2], new_view
 
+# Callback для открытия/закрытия модального окна ячеек хранения
 @callback(
     [Output("storage-cells-modal", "className"),
-     Output("storage-modal-content", "className")],  # ДОБАВЛЕНО ВТОРОЙ OUTPUT
+     Output("storage-modal-content", "className")],
     [Input("open-storage-modal", "n_clicks"),
      Input("close-storage-modal", "n_clicks")],
     [State("storage-cells-modal", "className"),
-     State("storage-modal-content", "className")],  # ДОБАВЛЕНО ВТОРОЕ STATE
+     State("storage-modal-content", "className")],
     prevent_initial_call=True
 )
 def toggle_storage_modal(open_clicks, close_clicks, modal_class, content_class):
@@ -469,14 +470,14 @@ def toggle_storage_modal(open_clicks, close_clicks, modal_class, content_class):
     
     if button_id == 'open-storage-modal':
         print(f"DEBUG: Открытие модального окна")
-        return 'modal-visible', 'modal-content-visible'  # МЕНЯЕМ ОБА КЛАССА
+        return 'modal-visible', 'modal-content-visible'
     elif button_id == 'close-storage-modal':
         print(f"DEBUG: Закрытие модального окна")
-        return 'modal-hidden', 'modal-content'  # ВОЗВРАЩАЕМ ИСХОДНЫЕ КЛАССЫ
+        return 'modal-hidden', 'modal-content'
     
     return modal_class, content_class
 
-# Callback для загрузки данных в модальное окно ячеек хранения
+# Callback для загрузки данных в модальное окно ячеек хранения с фильтрацией
 @callback(
     [Output("storage-total-cells", "children"),
      Output("storage-occupied-cells", "children"),
@@ -484,40 +485,106 @@ def toggle_storage_modal(open_clicks, close_clicks, modal_class, content_class):
      Output("storage-occupied-percent", "children"),
      Output("storage-status-chart", "option"),
      Output("storage-types-chart", "option"),
-     Output("storage-zones-chart", "option")],
-    [Input("storage-cells-modal", "className")]
+     Output("storage-zones-chart", "option"),
+     Output("storage-filters", "data")],
+    [Input("storage-cells-modal", "className"),
+     Input("storage-types-chart", "clickData"),
+     Input("storage-zones-chart", "clickData"),
+     Input("storage-status-chart", "clickData")],
+    [State("storage-filters", "data")]
 )
-def update_storage_modal(modal_class):
-    """Загрузка данных в модальное окно ячеек хранения"""
+def update_storage_modal(modal_class, types_click, zones_click, status_click, current_filters):
+    """Загрузка данных в модальное окно ячеек хранения с фильтрацией"""
     if modal_class != 'modal-visible':
         raise dash.exceptions.PreventUpdate
     
-    try:
-        # Получаем базовую статистику для KPI
-        storage_stats = get_storage_cells_stats()
+    ctx = dash.callback_context
+    filters = current_filters if current_filters else {}
+    
+    # Определяем какой элемент был кликнут
+    if ctx.triggered:
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
         
-        # Получаем детальные данные для диаграмм
-        detailed_stats = get_storage_detailed_stats()
+        # Обработка клика по диаграмме типов
+        if trigger_id == 'storage-types-chart' and types_click:
+            series_name = types_click.get('seriesName', '')
+            data_name = types_click.get('name', '')
+            component_type = types_click.get('componentType', '')
+            component_sub_type = types_click.get('componentSubType', '')
+            
+            # Если клик по легенде - игнорируем
+            if component_type == 'legend':
+                pass
+            # Если клик по столбцу диаграммы
+            elif component_type == 'series':
+                data_index = types_click.get('dataIndex', 0)
+                # Получаем все данные без фильтров чтобы определить тип
+                all_data = get_storage_complete_data({})
+                if all_data['by_storage_type'] and data_index < len(all_data['by_storage_type']):
+                    storage_type = all_data['by_storage_type'][data_index]['storage_type']
+                    # Если уже выбран этот тип - снимаем фильтр, иначе устанавливаем
+                    if filters.get('storage_type') == storage_type:
+                        filters.pop('storage_type', None)
+                    else:
+                        filters['storage_type'] = storage_type
+        
+        # Обработка клика по диаграмме зон
+        elif trigger_id == 'storage-zones-chart' and zones_click:
+            series_name = zones_click.get('seriesName', '')
+            data_name = zones_click.get('name', '')
+            component_type = zones_click.get('componentType', '')
+            component_sub_type = zones_click.get('componentSubType', '')
+            
+            # Если клик по легенде - игнорируем
+            if component_type == 'legend':
+                pass
+            # Если клик по столбцу диаграммы
+            elif component_type == 'series':
+                data_index = zones_click.get('dataIndex', 0)
+                # Получаем все данные без фильтров чтобы определить зону
+                all_data = get_storage_complete_data({})
+                if all_data['by_zone'] and data_index < len(all_data['by_zone']):
+                    zone = all_data['by_zone'][data_index]['zone']
+                    # Если уже выбрана эта зона - снимаем фильтр, иначе устанавливаем
+                    if filters.get('zone') == zone:
+                        filters.pop('zone', None)
+                    else:
+                        filters['zone'] = zone
+        
+        # Обработка клика по круговой диаграмме - сброс всех фильтров
+        elif trigger_id == 'storage-status-chart' and status_click:
+            # Сброс всех фильтров при клике на круговую диаграмму
+            filters = {}
+    
+    try:
+        # Получаем данные с учетом фильтров
+        storage_data = get_storage_complete_data(filters)
         
         # Форматируем KPI
-        total_cells = f"{storage_stats['total_cells']:,}"
-        occupied_cells = f"{storage_stats['occupied_cells']:,}"
-        free_cells = f"{storage_stats['free_cells']:,}"
-        occupied_percent = f"{storage_stats['occupied_percent']}%"
+        summary = storage_data['summary']
+        total_cells = f"{summary['total']:,}"
+        occupied_cells = f"{summary['occupied']:,}"
+        free_cells = f"{summary['empty']:,}"
         
-        # Создаем диаграммы
-        status_chart = create_storage_status_pie_chart(detailed_stats['status_data'])
-        types_chart = create_storage_types_pie_chart(detailed_stats['types_data'])
-        zones_chart = create_storage_zones_bar_chart(detailed_stats['zones_data'])
+        occupied_percent = 0
+        if summary['total'] > 0:
+            occupied_percent = round((summary['occupied'] / summary['total']) * 100, 1)
+        occupied_percent_str = f"{occupied_percent}%"
+        
+        # Создаем диаграммы с текущими фильтрами
+        status_chart = create_storage_status_pie_chart(storage_data, filters)
+        types_chart = create_storage_types_chart(storage_data, filters)
+        zones_chart = create_storage_zones_chart(storage_data, filters)
         
         return (
             total_cells,
             occupied_cells,
             free_cells,
-            occupied_percent,
+            occupied_percent_str,
             status_chart,
             types_chart,
-            zones_chart
+            zones_chart,
+            filters
         )
         
     except Exception as e:
@@ -544,5 +611,6 @@ def update_storage_modal(modal_class):
         
         return (
             "0", "0", "0", "0%",
-            error_chart, error_chart, error_chart
+            error_chart, error_chart, error_chart,
+            {}
         )

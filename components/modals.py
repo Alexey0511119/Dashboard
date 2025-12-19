@@ -249,6 +249,7 @@ def create_storage_cells_modal():
                 html.Button(
                     "✕", 
                     id="close-storage-modal",
+                    n_clicks=0,
                     style={
                         'background': '#f0f0f0',
                         'border': 'none',
