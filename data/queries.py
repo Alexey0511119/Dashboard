@@ -2289,6 +2289,6 @@ def filter_storage_data(all_data, filters):
             'occupied': occupied
         },
         'chart_data': {
-            'by_location_type': chart_data_by_type[:15]  # Топ-15 типов
+            'by_location_type': chart_data_by_type[:100]  # Топ-15 типов
         }
     }

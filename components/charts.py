@@ -1209,6 +1209,7 @@ def create_empty_pie_chart(summary_data, filters=None):
     # Цвета
     colors = ['#2196F3', '#0D47A1']
     
+    # Данные для диаграммы
     data = []
     if total > 0:
         empty_percent = round((empty / total) * 100, 1)
@@ -1226,8 +1227,15 @@ def create_empty_pie_chart(summary_data, filters=None):
                 "itemStyle": {"color": colors[1]}
             }
         ]
+        
+        # Легенда
+        legend_data = [
+            {"name": f"Пустые ({empty_percent}%)", "icon": "circle"},
+            {"name": f"Занятые ({occupied_percent}%)", "icon": "circle"}
+        ]
     else:
         data = [{"name": "Нет данных", "value": 1, "itemStyle": {"color": "#CCCCCC"}}]
+        legend_data = [{"name": "Нет данных", "icon": "circle"}]
     
     # Заголовок с информацией о фильтрах
     title_text = "Доля пустых ячеек"
@@ -1235,9 +1243,11 @@ def create_empty_pie_chart(summary_data, filters=None):
         active_filters = []
         for key, value in filters.items():
             if value and value != 'Все':
-                active_filters.append(f"{key}: {value}")
+                active_filters.append(f"{value}")
         if active_filters:
-            title_text += f"\n({', '.join(active_filters)})"
+            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
+            if len(active_filters) > 3:
+                title_text += "..."
     
     return {
         "title": {
@@ -1254,10 +1264,13 @@ def create_empty_pie_chart(summary_data, filters=None):
             "formatter": "{a}<br/>{b}: {c} ячеек"
         },
         "legend": {
+            "data": [item["name"] for item in legend_data],
             "orient": "horizontal",
-            "bottom": "bottom",
+            "bottom": 0,
+            "left": "center",
             "textStyle": {"fontSize": 10},
-            "data": ["Пустые", "Занятые"]
+            "itemHeight": 8,
+            "itemWidth": 8
         },
         "series": [{
             "name": "Статус ячеек",
@@ -1295,24 +1308,33 @@ def create_types_pie_chart(chart_data, filters=None):
     """
     types_data = chart_data.get('by_location_type', [])
     
+    # УБИРАЕМ ОГРАНИЧЕНИЕ на количество типов
+    # types_data = types_data[:10]  # УДАЛИТЬ ЭТУ СТРОКУ
+    
     # Цвета в синих оттенках
     colors = [
         '#1A237E', '#283593', '#303F9F', '#3949AB', '#3F51B5',
         '#5C6BC0', '#7986CB', '#9FA8DA', '#C5CAE9', '#E8EAF6',
-        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3'
+        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3',
+        '#64B5F6', '#90CAF9', '#BBDEFB', '#E3F2FD', '#F5F5F5'
     ]
     
     # Подготавливаем данные
     data = []
     total_all = sum(item['total'] for item in types_data)
     
-    for i, item in enumerate(types_data[:10]):  # Топ-10 типов
-        loc_type = item['location_type'][:15]  # Обрезаем длинные названия
+    for i, item in enumerate(types_data):  # УБРАЛИ [:10]
+        loc_type = item['location_type']
+        if len(loc_type) > 15:
+            display_name = loc_type[:15] + "..."
+        else:
+            display_name = loc_type
+            
         total = item['total']
         percentage = round((total / total_all) * 100, 1) if total_all > 0 else 0
         
         data.append({
-            "name": f"{loc_type} ({percentage}%)",
+            "name": f"{display_name} ({percentage}%)",
             "value": total,
             "itemStyle": {"color": colors[i % len(colors)]},
             "original_name": loc_type,
@@ -1323,8 +1345,15 @@ def create_types_pie_chart(chart_data, filters=None):
         data.append({
             "name": "Нет данных",
             "value": 1,
-            "itemStyle": {"color": "#CCCCCC"}
+            "itemStyle": {"color": "#CCCCCC"},
+            "original_name": "Нет данных",
+            "percentage": 0
         })
+    
+    # Создаем легенду
+    legend_data = []
+    for item in data[:15]:  # В легенде показываем только топ-15
+        legend_data.append(item["name"])
     
     # Заголовок с информацией о фильтрах
     title_text = "Доли типов ячеек"
@@ -1332,10 +1361,13 @@ def create_types_pie_chart(chart_data, filters=None):
         active_filters = []
         for key, value in filters.items():
             if value and value != 'Все':
-                active_filters.append(f"{key}: {value}")
+                active_filters.append(f"{value}")
         if active_filters:
-            title_text += f"\n({', '.join(active_filters)})"
+            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
+            if len(active_filters) > 3:
+                title_text += "..."
     
+    # Простой тултип без JavaScript
     return {
         "title": {
             "text": title_text,
@@ -1348,33 +1380,23 @@ def create_types_pie_chart(chart_data, filters=None):
         },
         "tooltip": {
             "trigger": "item",
-            "formatter": """
-            function(params) {
-                return params.data.original_name + '<br/>' +
-                       'Количество: ' + params.data.value + ' ячеек<br/>' +
-                       'Доля: ' + params.data.percentage + '%';
-            }
-            """
+            "formatter": "{a}<br/>{b}: {c} ячеек ({d}%)"
         },
         "legend": {
+            "data": legend_data,
             "orient": "vertical",
-            "left": "left",
-            "top": "center",
-            "textStyle": {"fontSize": 9},
+            "right": 10,
+            "top": "middle",
+            "textStyle": {"fontSize": 8},
             "itemHeight": 8,
             "itemWidth": 8,
-            "formatter": """
-            function(name) {
-                // Убираем проценты из названия для легенды
-                return name.split(' (')[0];
-            }
-            """
+            "type": "scroll"  # Добавляем прокрутку если много элементов
         },
         "series": [{
             "name": "Типы ячеек",
             "type": "pie",
             "radius": ["40%", "70%"],
-            "center": ["60%", "50%"],
+            "center": ["40%", "50%"],  # Сдвигаем влево чтобы легенда поместилась
             "avoidLabelOverlap": True,
             "itemStyle": {
                 "borderRadius": 6,
@@ -1393,7 +1415,11 @@ def create_types_pie_chart(chart_data, filters=None):
                     "shadowColor": "rgba(0, 0, 0, 0.5)"
                 }
             },
-            "labelLine": {"show": True},
+            "labelLine": {
+                "show": True,
+                "length": 10,
+                "length2": 5
+            },
             "data": data
         }],
         "animationDuration": 1000
@@ -1407,6 +1433,9 @@ def create_types_bar_chart(chart_data, filters=None):
     """
     types_data = chart_data.get('by_location_type', [])
     
+    # УБИРАЕМ ОГРАНИЧЕНИЕ на количество типов
+    # types_data = types_data[:10]  # УДАЛИТЬ ЭТУ СТРОКУ
+    
     # Цвета
     total_color = '#0D47A1'    # Темно-синий для "Всего МХ"
     empty_color = '#2196F3'    # Светло-синий для "Пустые МХ"
@@ -1416,15 +1445,27 @@ def create_types_bar_chart(chart_data, filters=None):
     total_values = []
     empty_values = []
     
-    for item in types_data[:10]:  # Топ-10 типов
-        categories.append(item['location_type'][:12])  # Обрезаем длинные названия
-        total_values.append(item['total'])
-        empty_values.append(item['empty'])
+    for item in types_data:  # УБРАЛИ [:10]
+        loc_type = item['location_type']
+        if len(loc_type) > 12:
+            display_name = loc_type[:12] + "..."
+        else:
+            display_name = loc_type
+            
+        categories.append(display_name)
+        total_values.append({
+            "value": item['total'],
+            "itemStyle": {"color": total_color}
+        })
+        empty_values.append({
+            "value": item['empty'],
+            "itemStyle": {"color": empty_color}
+        })
     
     if not categories:
         categories = ["Нет данных"]
-        total_values = [1]
-        empty_values = [0]
+        total_values = [{"value": 1, "itemStyle": {"color": total_color}}]
+        empty_values = [{"value": 0, "itemStyle": {"color": empty_color}}]
     
     # Заголовок с информацией о фильтрах
     title_text = "Количество типов ячеек"
@@ -1432,10 +1473,13 @@ def create_types_bar_chart(chart_data, filters=None):
         active_filters = []
         for key, value in filters.items():
             if value and value != 'Все':
-                active_filters.append(f"{key}: {value}")
+                active_filters.append(f"{value}")
         if active_filters:
-            title_text += f"\n({', '.join(active_filters)})"
+            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
+            if len(active_filters) > 3:
+                title_text += "..."
     
+    # Простой тултип без JavaScript
     return {
         "title": {
             "text": title_text,
@@ -1449,15 +1493,7 @@ def create_types_bar_chart(chart_data, filters=None):
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
-            "formatter": """
-            function(params) {
-                var result = params[0].name + '<br/>';
-                for (var i = 0; i < params.length; i++) {
-                    result += params[i].seriesName + ': ' + params[i].value + ' ячеек<br/>';
-                }
-                return result;
-            }
-            """
+            "formatter": "{b}<br/>{a0}: {c0} ячеек<br/>{a1}: {c1} ячеек"
         },
         "legend": {
             "data": ['Всего МХ', 'Пустые МХ'],
@@ -1472,7 +1508,7 @@ def create_types_bar_chart(chart_data, filters=None):
             "axisLabel": {
                 "rotate": 45,
                 "fontSize": 9,
-                "interval": 0
+                "interval": 0  # Показывать все метки
             }
         },
         "yAxis": {
@@ -1489,7 +1525,6 @@ def create_types_bar_chart(chart_data, filters=None):
                 "type": "bar",
                 "data": total_values,
                 "itemStyle": {
-                    "color": total_color,
                     "borderRadius": [4, 4, 0, 0]
                 },
                 "label": {
@@ -1504,7 +1539,6 @@ def create_types_bar_chart(chart_data, filters=None):
                 "type": "bar",
                 "data": empty_values,
                 "itemStyle": {
-                    "color": empty_color,
                     "borderRadius": [4, 4, 0, 0]
                 },
                 "label": {

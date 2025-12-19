@@ -373,7 +373,7 @@ def create_storage_cells_modal():
                                 option={},
                                 style={'height': '300px', 'width': '100%'}
                             )
-                        ], className='analytics-chart-card', style={'height': '350px', 'width': '48%'}),
+                        ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'}),
                         
                         # Диаграмма 2: Доли типов ячеек
                         html.Div([
@@ -384,7 +384,7 @@ def create_storage_cells_modal():
                                 option={},
                                 style={'height': '300px', 'width': '100%'}
                             )
-                        ], className='analytics-chart-card', style={'height': '350px', 'width': '48%'})
+                        ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'})
                     ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginBottom': '20px'}),
                     
                     # ВТОРОЙ РЯД: Столбчатая диаграмма
