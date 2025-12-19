@@ -240,7 +240,7 @@ def create_idle_detail_modal():
     ], id="idle-detail-modal", className="modal-hidden")
 
 def create_storage_cells_modal():
-    """Создание модального окна для детальной аналитики ячеек хранения"""
+    """Создание модального окна для детальной аналитики ячеек хранения с фильтрами"""
     return html.Div([
         html.Div([
             html.Div([
@@ -274,7 +274,7 @@ def create_storage_cells_modal():
                 'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
             }),
             html.Div([
-                # Общая статистика
+                # Секция с KPI
                 html.Div([
                     html.Div([
                         html.Div("Всего ячеек", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
@@ -292,52 +292,119 @@ def create_storage_cells_modal():
                         html.Div("% занятости", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
                         html.Div(id="storage-occupied-percent", style={'color': '#1565C0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card')
-                ], className="analytics-kpi-row", style={'marginBottom': '25px', 'gridTemplateColumns': '1fr 1fr 1fr 1fr'}),
+                ], className="analytics-kpi-row", style={'marginBottom': '20px', 'gridTemplateColumns': '1fr 1fr 1fr 1fr'}),
                 
-                # ПЕРВЫЙ РЯД: Доля пустых и заполненных ячеек
+                # Секция с фильтрами
                 html.Div([
+                    html.H4("Фильтры", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
                     html.Div([
-                        html.H4("Доля пустых и заполненных ячеек", 
-                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        # Тип хранения
+                        html.Div([
+                            html.Label("Тип хранения:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
+                            dcc.Dropdown(
+                                id='filter-storage-type',
+                                options=[{'label': 'Все', 'value': 'Все'}],
+                                value='Все',
+                                clearable=False,
+                                style={'fontSize': '12px'}
+                            )
+                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        
+                        # Зона размещения
+                        html.Div([
+                            html.Label("Зона размещения:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
+                            dcc.Dropdown(
+                                id='filter-locating-zone',
+                                options=[{'label': 'Все', 'value': 'Все'}],
+                                value='Все',
+                                clearable=False,
+                                style={'fontSize': '12px'}
+                            )
+                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        
+                        # Зона резервирования
+                        html.Div([
+                            html.Label("Зона резервирования:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
+                            dcc.Dropdown(
+                                id='filter-allocation-zone',
+                                options=[{'label': 'Все', 'value': 'Все'}],
+                                value='Все',
+                                clearable=False,
+                                style={'fontSize': '12px'}
+                            )
+                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        
+                        # Тип МХ
+                        html.Div([
+                            html.Label("Тип МХ:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
+                            dcc.Dropdown(
+                                id='filter-location-type',
+                                options=[{'label': 'Все', 'value': 'Все'}],
+                                value='Все',
+                                clearable=False,
+                                style={'fontSize': '12px'}
+                            )
+                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        
+                        # Рабочая зона
+                        html.Div([
+                            html.Label("Рабочая зона:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
+                            dcc.Dropdown(
+                                id='filter-work-zone',
+                                options=[{'label': 'Все', 'value': 'Все'}],
+                                value='Все',
+                                clearable=False,
+                                style={'fontSize': '12px'}
+                            )
+                        ], style={'flex': '1'})
+                    ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '20px'})
+                ], style={'marginBottom': '20px', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px'}),
+                
+                # Секция с диаграммами
+                html.Div([
+                    # ПЕРВЫЙ РЯД: Две круговые диаграммы
+                    html.Div([
+                        # Диаграмма 1: Доля пустых ячеек
+                        html.Div([
+                            html.H4("Доля пустых ячеек", 
+                                   style={'color': '#333', 'marginBottom': '15px', 'fontSize': '16px', 'fontWeight': 'bold'}),
+                            dash_echarts.DashECharts(
+                                id="storage-empty-chart",
+                                option={},
+                                style={'height': '300px', 'width': '100%'}
+                            )
+                        ], className='analytics-chart-card', style={'height': '350px', 'width': '48%'}),
+                        
+                        # Диаграмма 2: Доли типов ячеек
+                        html.Div([
+                            html.H4("Доли типов ячеек", 
+                                   style={'color': '#333', 'marginBottom': '15px', 'fontSize': '16px', 'fontWeight': 'bold'}),
+                            dash_echarts.DashECharts(
+                                id="storage-types-pie-chart",
+                                option={},
+                                style={'height': '300px', 'width': '100%'}
+                            )
+                        ], className='analytics-chart-card', style={'height': '350px', 'width': '48%'})
+                    ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginBottom': '20px'}),
+                    
+                    # ВТОРОЙ РЯД: Столбчатая диаграмма
+                    html.Div([
+                        html.H4("Количество типов ячеек", 
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '16px', 'fontWeight': 'bold'}),
                         dash_echarts.DashECharts(
-                            id="storage-status-chart",
+                            id="storage-types-bar-chart",
                             option={},
                             style={'height': '350px', 'width': '100%'}
                         )
                     ], className='analytics-chart-card', style={'height': '400px', 'width': '100%'})
-                ], style={'marginBottom': '20px'}),
-                
-                # ВТОРОЙ РЯД: Доли типов ячеек + Количество по зонам
-                html.Div([
-                    # ЛЕВАЯ ЧАСТЬ: Доли типов ячеек
-                    html.Div([
-                        html.H4("Доли типов ячеек", 
-                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
-                        dash_echarts.DashECharts(
-                            id="storage-types-chart",
-                            option={},
-                            style={'height': '350px', 'width': '100%'}
-                        )
-                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'}),
-                    
-                    # ПРАВАЯ ЧАСТЬ: Количество по зонам
-                    html.Div([
-                        html.H4("Количество ячеек по зонам", 
-                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
-                        dash_echarts.DashECharts(
-                            id="storage-zones-chart",
-                            option={},
-                            style={'height': '350px', 'width': '100%'}
-                        )
-                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'})
-                ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginBottom': '20px'}),
+                ]),
                 
                 # Информация о фильтрах
                 html.Div([
-                    html.P("ℹ️ Данные отфильтрованы: исключены замороженные ячейки (Frozen) и ячейки типов 'Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP'",
+                    html.P("ℹ️ Фильтры взаимосвязаны: выбор значения в одном фильтре ограничивает доступные значения в других",
                           style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'padding': '10px',
                                 'background': '#e3f2fd', 'borderRadius': '6px', 'border': '1px solid #bbdefb'})
-                ], style={'marginTop': '10px'})
+                ], style={'marginTop': '20px'})
                 
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
         ], id="storage-modal-content", className="modal-content")

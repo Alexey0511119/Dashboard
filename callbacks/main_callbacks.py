@@ -10,16 +10,17 @@ from data.queries import (
     get_order_timeliness, get_fines_data, get_employee_analytics,
     get_employee_operations_detail, get_employee_fines_details,
     get_employees_on_shift, refresh_data, get_error_hours_top_data,
-    get_storage_cells_stats, get_storage_complete_data  # ДОБАВЛЕНО
+    get_storage_cells_stats, get_all_storage_data, filter_storage_data
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
     create_timeliness_chart, create_operations_type_chart,
     create_time_distribution_pie_echarts, create_idle_intervals_bar_echarts,
     create_fines_pie_chart, create_fines_amount_bar_chart,
-    create_employee_fines_chart, create_timeline_chart,
-    create_storage_status_pie_chart, create_storage_types_chart, create_storage_zones_chart  # ДОБАВЛЕНО
+    create_employee_fines_chart,
+    create_empty_pie_chart, create_types_pie_chart, create_types_bar_chart  # ИСПРАВЛЕННЫЙ ИМПОРТ
 )
+
 from components.tables import create_performance_table
 
 # Callback для обновления времени последнего обновления
@@ -476,141 +477,122 @@ def toggle_storage_modal(open_clicks, close_clicks, modal_class, content_class):
         return 'modal-hidden', 'modal-content'
     
     return modal_class, content_class
-
-# Callback для загрузки данных в модальное окно ячеек хранения с фильтрацией
+    
 @callback(
-    [Output("storage-total-cells", "children"),
+    Output("storage-all-data", "data"),
+    Input("storage-cells-modal", "className")
+)
+def load_storage_data(modal_class):
+    """Загрузка всех данных по ячейкам при открытии модального окна"""
+    if modal_class == 'modal-visible':
+        print("Загрузка данных по ячейкам хранения...")
+        all_data = get_all_storage_data()
+        return all_data
+    return dash.no_update
+
+# Callback для обновления фильтров и диаграмм
+@callback(
+    [Output("filter-storage-type", "options"),
+     Output("filter-locating-zone", "options"),
+     Output("filter-allocation-zone", "options"),
+     Output("filter-location-type", "options"),
+     Output("filter-work-zone", "options"),
+     Output("storage-total-cells", "children"),
      Output("storage-occupied-cells", "children"),
      Output("storage-free-cells", "children"),
      Output("storage-occupied-percent", "children"),
-     Output("storage-status-chart", "option"),
-     Output("storage-types-chart", "option"),
-     Output("storage-zones-chart", "option"),
-     Output("storage-filters", "data")],
-    [Input("storage-cells-modal", "className"),
-     Input("storage-types-chart", "clickData"),
-     Input("storage-zones-chart", "clickData"),
-     Input("storage-status-chart", "clickData")],
-    [State("storage-filters", "data")]
+     Output("storage-empty-chart", "option"),
+     Output("storage-types-pie-chart", "option"),
+     Output("storage-types-bar-chart", "option"),
+     Output("storage-current-filters", "data")],
+    [Input("filter-storage-type", "value"),
+     Input("filter-locating-zone", "value"),
+     Input("filter-allocation-zone", "value"),
+     Input("filter-location-type", "value"),
+     Input("filter-work-zone", "value"),
+     Input("storage-all-data", "data")]
 )
-def update_storage_modal(modal_class, types_click, zones_click, status_click, current_filters):
-    """Загрузка данных в модальное окно ячеек хранения с фильтрацией"""
-    if modal_class != 'modal-visible':
-        raise dash.exceptions.PreventUpdate
+def update_storage_filters_and_charts(storage_type_val, locating_zone_val, allocation_zone_val, 
+                                     location_type_val, work_zone_val, all_data):
+    """Обновление фильтров и диаграмм на основе выбранных значений"""
     
-    ctx = dash.callback_context
-    filters = current_filters if current_filters else {}
-    
-    # Определяем какой элемент был кликнут
-    if ctx.triggered:
-        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        
-        # Обработка клика по диаграмме типов
-        if trigger_id == 'storage-types-chart' and types_click:
-            series_name = types_click.get('seriesName', '')
-            data_name = types_click.get('name', '')
-            component_type = types_click.get('componentType', '')
-            component_sub_type = types_click.get('componentSubType', '')
-            
-            # Если клик по легенде - игнорируем
-            if component_type == 'legend':
-                pass
-            # Если клик по столбцу диаграммы
-            elif component_type == 'series':
-                data_index = types_click.get('dataIndex', 0)
-                # Получаем все данные без фильтров чтобы определить тип
-                all_data = get_storage_complete_data({})
-                if all_data['by_storage_type'] and data_index < len(all_data['by_storage_type']):
-                    storage_type = all_data['by_storage_type'][data_index]['storage_type']
-                    # Если уже выбран этот тип - снимаем фильтр, иначе устанавливаем
-                    if filters.get('storage_type') == storage_type:
-                        filters.pop('storage_type', None)
-                    else:
-                        filters['storage_type'] = storage_type
-        
-        # Обработка клика по диаграмме зон
-        elif trigger_id == 'storage-zones-chart' and zones_click:
-            series_name = zones_click.get('seriesName', '')
-            data_name = zones_click.get('name', '')
-            component_type = zones_click.get('componentType', '')
-            component_sub_type = zones_click.get('componentSubType', '')
-            
-            # Если клик по легенде - игнорируем
-            if component_type == 'legend':
-                pass
-            # Если клик по столбцу диаграммы
-            elif component_type == 'series':
-                data_index = zones_click.get('dataIndex', 0)
-                # Получаем все данные без фильтров чтобы определить зону
-                all_data = get_storage_complete_data({})
-                if all_data['by_zone'] and data_index < len(all_data['by_zone']):
-                    zone = all_data['by_zone'][data_index]['zone']
-                    # Если уже выбрана эта зона - снимаем фильтр, иначе устанавливаем
-                    if filters.get('zone') == zone:
-                        filters.pop('zone', None)
-                    else:
-                        filters['zone'] = zone
-        
-        # Обработка клика по круговой диаграмме - сброс всех фильтров
-        elif trigger_id == 'storage-status-chart' and status_click:
-            # Сброс всех фильтров при клике на круговую диаграмму
-            filters = {}
-    
-    try:
-        # Получаем данные с учетом фильтров
-        storage_data = get_storage_complete_data(filters)
-        
-        # Форматируем KPI
-        summary = storage_data['summary']
-        total_cells = f"{summary['total']:,}"
-        occupied_cells = f"{summary['occupied']:,}"
-        free_cells = f"{summary['empty']:,}"
-        
-        occupied_percent = 0
-        if summary['total'] > 0:
-            occupied_percent = round((summary['occupied'] / summary['total']) * 100, 1)
-        occupied_percent_str = f"{occupied_percent}%"
-        
-        # Создаем диаграммы с текущими фильтрами
-        status_chart = create_storage_status_pie_chart(storage_data, filters)
-        types_chart = create_storage_types_chart(storage_data, filters)
-        zones_chart = create_storage_zones_chart(storage_data, filters)
-        
+    if not all_data or 'all_data' not in all_data:
+        # Возвращаем пустые опции если данных нет
+        empty_options = [{'label': 'Все', 'value': 'Все'}]
+        empty_chart = {"title": {"text": "Нет данных", "left": "center"}}
         return (
-            total_cells,
-            occupied_cells,
-            free_cells,
-            occupied_percent_str,
-            status_chart,
-            types_chart,
-            zones_chart,
-            filters
+            empty_options, empty_options, empty_options, empty_options, empty_options,
+            "0", "0", "0", "0%", empty_chart, empty_chart, empty_chart,
+            {'storage_type': 'Все', 'locating_zone': 'Все', 'allocation_zone': 'Все', 
+             'location_type': 'Все', 'work_zone': 'Все'}
         )
-        
-    except Exception as e:
-        print(f"Error in update_storage_modal: {e}")
-        
-        # Возвращаем заглушки в случае ошибки
-        error_chart = {
-            "title": {
-                "text": "Ошибка загрузки данных",
-                "left": "center",
-                "textStyle": {"color": "#F44336"}
-            },
-            "graphic": {
-                "type": "text",
-                "left": "center",
-                "top": "middle",
-                "style": {
-                    "text": "Не удалось загрузить данные",
-                    "fontSize": 14,
-                    "fill": "#999"
-                }
-            }
-        }
-        
-        return (
-            "0", "0", "0", "0%",
-            error_chart, error_chart, error_chart,
-            {}
-        )
+    
+    # Текущие фильтры
+    current_filters = {
+        'storage_type': storage_type_val if storage_type_val != 'Все' else None,
+        'locating_zone': locating_zone_val if locating_zone_val != 'Все' else None,
+        'allocation_zone': allocation_zone_val if allocation_zone_val != 'Все' else None,
+        'location_type': location_type_val if location_type_val != 'Все' else None,
+        'work_zone': work_zone_val if work_zone_val != 'Все' else None
+    }
+    
+    # Фильтруем данные
+    filtered_result = filter_storage_data(all_data['all_data'], current_filters)
+    
+    # Формируем опции для фильтров
+    available_filters = filtered_result['available_filters']
+    
+    # Функция для создания опций dropdown
+    def create_options(values):
+        options = [{'label': 'Все', 'value': 'Все'}]
+        for value in values:
+            options.append({'label': value, 'value': value})
+        return options
+    
+    # Опции для каждого фильтра
+    storage_type_options = create_options(available_filters['storage_type'])
+    locating_zone_options = create_options(available_filters['locating_zone'])
+    allocation_zone_options = create_options(available_filters['allocation_zone'])
+    location_type_options = create_options(available_filters['location_type'])
+    work_zone_options = create_options(available_filters['work_zone'])
+    
+    # Форматируем KPI
+    summary = filtered_result['summary']
+    total_cells = f"{summary['total']:,}"
+    occupied_cells = f"{summary['occupied']:,}"
+    free_cells = f"{summary['empty']:,}"
+    
+    occupied_percent = 0
+    if summary['total'] > 0:
+        occupied_percent = round((summary['occupied'] / summary['total']) * 100, 1)
+    occupied_percent_str = f"{occupied_percent}%"
+    
+    # Создаем диаграммы
+    empty_chart = create_empty_pie_chart(summary, current_filters)
+    types_pie_chart = create_types_pie_chart(filtered_result['chart_data'], current_filters)
+    types_bar_chart = create_types_bar_chart(filtered_result['chart_data'], current_filters)
+    
+    # Текущие значения фильтров для сохранения
+    current_filter_values = {
+        'storage_type': storage_type_val,
+        'locating_zone': locating_zone_val,
+        'allocation_zone': allocation_zone_val,
+        'location_type': location_type_val,
+        'work_zone': work_zone_val
+    }
+    
+    return (
+        storage_type_options,
+        locating_zone_options,
+        allocation_zone_options,
+        location_type_options,
+        work_zone_options,
+        total_cells,
+        occupied_cells,
+        free_cells,
+        occupied_percent_str,
+        empty_chart,
+        types_pie_chart,
+        types_bar_chart,
+        current_filter_values
+    )

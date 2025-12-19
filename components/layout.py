@@ -49,6 +49,14 @@ def create_layout():
         dcc.Store(id='timeliness-period', data='week'),
         dcc.Store(id='timeliness-data', data={}),
         dcc.Store(id='fines-data', data={}),
+        dcc.Store(id='storage-all-data', data={}),
+        dcc.Store(id='storage-current-filters', data={
+            'storage_type': 'Все',
+             'locating_zone': 'Все', 
+            'allocation_zone': 'Все',
+            'location_type': 'Все',
+            'work_zone': 'Все'
+         }),
         dcc.Store(id='storage-filters', data={}),
         dcc.Store(id='fines-period', data='week'),
         dcc.Store(id='selected-fines-employee', data=''),

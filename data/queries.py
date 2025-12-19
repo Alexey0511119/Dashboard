@@ -180,212 +180,6 @@ def get_storage_cells_stats():
             'free_percent': 0
         }
 
-def get_storage_complete_data(filters=None):
-    """
-    Получение всех данных по ячейкам хранения с преобразованиями как в Power Query
-    Возвращает данные для всех 3 диаграмм с поддержкой фильтрации
-    
-    Parameters:
-    -----------
-    filters : dict, optional
-        Словарь фильтров: {'storage_type': 'Боксы для неликвидов', 'zone': 'ZX_WK1', ...}
-    """
-    # Базовый запрос с преобразованиями
-    base_query = """
-    SELECT 
-        -- Основные поля
-        LOCATION as location_id,
-        LOCATION_STS as status,
-        LOCATION_TYPE as location_type,
-        LOCATING_ZONE as zone,
-        WORK_ZONE as work_zone,
-        ALLOCATION_ZONE as allocation_zone,
-        LOCATION_CLASS as location_class,
-        -- Преобразование Тип хранения (как в Power Query)
-        CASE 
-            WHEN LOCATION_TYPE = 'Бокс большой' THEN 'Боксы для неликвидов'
-            WHEN LOCATING_ZONE = 'ZX_Gofra_BIG' THEN 'Ячейки для гофротрубы'
-            WHEN LOCATING_ZONE = 'ZX_Gofra' THEN 'Ячейки для гофротрубы'
-            WHEN LOCATING_ZONE = 'ZX_ST_E' THEN 'Ячейки для неликвидов'
-            WHEN WORK_ZONE = 'NG_WK' THEN 'Ячейки негабарита КНС'
-            WHEN LOCATING_ZONE = 'ZX_Kanal' THEN 'Ячейки негабарита КНС'
-            WHEN LOCATING_ZONE = 'ZX_Long < 2' THEN 'Ячейки негабарита ЭЛО'
-            WHEN LOCATING_ZONE = 'ZX_Volumetric' THEN 'Ячейки негабарита ЭЛО'
-            WHEN LOCATING_ZONE = 'ZX_Schit_etagniy' THEN 'Ячейки негабарита ЭЛО'
-            WHEN WORK_ZONE = 'ZX_WK1' THEN 'Ячейки отбора'
-            WHEN ALLOCATION_ZONE = 'ZX_подборщик 20-30' THEN 'Ячейки отбора'
-            WHEN WORK_ZONE = 'ZX_WK_K' THEN 'Ячейки отбора КПП'
-            WHEN WORK_ZONE = 'ZX_WK2' THEN 'Паллетное хранение'
-            WHEN LEFT(WORK_ZONE, 2) = 'ME' THEN 'Мезонин'
-            WHEN LOCATION_TYPE = 'Ячейки KP' THEN 'Ячейки отмотки КПП'
-            ELSE 'Остальное'
-        END as storage_type,
-        -- Для расчета
-        CASE WHEN LOCATION_STS = 'Empty' THEN 1 ELSE 0 END as is_empty,
-        CASE WHEN LOCATION_STS IN ('Storage', 'Picking') THEN 1 ELSE 0 END as is_occupied
-    FROM olap.raw_location 
-    WHERE LOCATION IS NOT NULL 
-        AND LOCATION != ''
-        AND LOCATION_STS IS NOT NULL
-        AND LOCATION_STS != 'Frozen'
-        AND LOCATION_TYPE IS NOT NULL
-        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
-        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
-    """
-    
-    # Добавляем фильтры если есть
-    where_conditions = []
-    params = {}
-    
-    if filters:
-        if 'storage_type' in filters and filters['storage_type']:
-            where_conditions.append("""
-            CASE 
-                WHEN LOCATION_TYPE = 'Бокс большой' THEN 'Боксы для неликвидов'
-                WHEN LOCATING_ZONE = 'ZX_Gofra_BIG' THEN 'Ячейки для гофротрубы'
-                WHEN LOCATING_ZONE = 'ZX_Gofra' THEN 'Ячейки для гофротрубы'
-                WHEN LOCATING_ZONE = 'ZX_ST_E' THEN 'Ячейки для неликвидов'
-                WHEN WORK_ZONE = 'NG_WK' THEN 'Ячейки негабарита КНС'
-                WHEN LOCATING_ZONE = 'ZX_Kanal' THEN 'Ячейки негабарита КНС'
-                WHEN LOCATING_ZONE = 'ZX_Long < 2' THEN 'Ячейки негабарита ЭЛО'
-                WHEN LOCATING_ZONE = 'ZX_Volumetric' THEN 'Ячейки негабарита ЭЛО'
-                WHEN LOCATING_ZONE = 'ZX_Schit_etagniy' THEN 'Ячейки негабарита ЭЛО'
-                WHEN WORK_ZONE = 'ZX_WK1' THEN 'Ячейки отбора'
-                WHEN ALLOCATION_ZONE = 'ZX_подборщик 20-30' THEN 'Ячейки отбора'
-                WHEN WORK_ZONE = 'ZX_WK_K' THEN 'Ячейки отбора КПП'
-                WHEN WORK_ZONE = 'ZX_WK2' THEN 'Паллетное хранение'
-                WHEN LEFT(WORK_ZONE, 2) = 'ME' THEN 'Мезонин'
-                WHEN LOCATION_TYPE = 'Ячейки KP' THEN 'Ячейки отмотки КПП'
-                ELSE 'Остальное'
-            END = %(storage_type)s
-            """)
-            params['storage_type'] = filters['storage_type']
-        
-        if 'zone' in filters and filters['zone']:
-            where_conditions.append("LOCATING_ZONE = %(zone)s")
-            params['zone'] = filters['zone']
-        
-        if 'location_type' in filters and filters['location_type']:
-            where_conditions.append("LOCATION_TYPE = %(location_type)s")
-            params['location_type'] = filters['location_type']
-    
-    # Собираем полный запрос
-    if where_conditions:
-        full_query = base_query + " AND " + " AND ".join(where_conditions)
-    else:
-        full_query = base_query
-    
-    # Выполняем запрос
-    result = execute_query_cached(full_query, params)
-    
-    if not result:
-        return {
-            'all_data': [],
-            'summary': {'total': 0, 'empty': 0, 'occupied': 0},
-            'by_storage_type': [],
-            'by_zone': []
-        }
-    
-    # Обрабатываем результаты
-    all_data = []
-    total_empty = 0
-    total_occupied = 0
-    storage_type_stats = {}
-    zone_stats = {}
-    
-    for row in result:
-        try:
-            location_id = row[0] if row[0] else ''
-            status = row[1] if row[1] else ''
-            location_type = row[2] if row[2] else ''
-            zone = row[3] if row[3] else ''
-            work_zone = row[4] if row[4] else ''
-            allocation_zone = row[5] if row[5] else ''
-            location_class = row[6] if row[6] else ''
-            storage_type = row[7] if row[7] else 'Остальное'
-            is_empty = int(float(row[8])) if row[8] else 0
-            is_occupied = int(float(row[9])) if row[9] else 0
-            
-            all_data.append({
-                'location_id': location_id,
-                'status': status,
-                'location_type': location_type,
-                'zone': zone,
-                'work_zone': work_zone,
-                'allocation_zone': allocation_zone,
-                'location_class': location_class,
-                'storage_type': storage_type,
-                'is_empty': is_empty,
-                'is_occupied': is_occupied
-            })
-            
-            # Считаем общую статистику
-            if is_empty:
-                total_empty += 1
-            if is_occupied:
-                total_occupied += 1
-            
-            # Статистика по типам хранения
-            if storage_type not in storage_type_stats:
-                storage_type_stats[storage_type] = {
-                    'total': 0,
-                    'empty': 0,
-                    'occupied': 0
-                }
-            storage_type_stats[storage_type]['total'] += 1
-            storage_type_stats[storage_type]['empty'] += is_empty
-            storage_type_stats[storage_type]['occupied'] += is_occupied
-            
-            # Статистика по зонам
-            if zone and zone != '':
-                if zone not in zone_stats:
-                    zone_stats[zone] = {
-                        'total': 0,
-                        'empty': 0,
-                        'occupied': 0
-                    }
-                zone_stats[zone]['total'] += 1
-                zone_stats[zone]['empty'] += is_empty
-                zone_stats[zone]['occupied'] += is_occupied
-                
-        except Exception as e:
-            print(f"Error processing storage data row: {e}")
-            continue
-    
-    # Преобразуем в списки для диаграмм
-    by_storage_type = []
-    for storage_type, stats in storage_type_stats.items():
-        by_storage_type.append({
-            'storage_type': storage_type,
-            'total': stats['total'],
-            'empty': stats['empty'],
-            'occupied': stats['occupied']
-        })
-    
-    by_zone = []
-    for zone, stats in zone_stats.items():
-        by_zone.append({
-            'zone': zone,
-            'total': stats['total'],
-            'empty': stats['empty'],
-            'occupied': stats['occupied']
-        })
-    
-    # Сортируем
-    by_storage_type.sort(key=lambda x: x['total'], reverse=True)
-    by_zone.sort(key=lambda x: x['total'], reverse=True)
-    
-    return {
-        'all_data': all_data,
-        'summary': {
-            'total': len(all_data),
-            'empty': total_empty,
-            'occupied': total_occupied
-        },
-        'by_storage_type': by_storage_type,
-        'by_zone': by_zone[:10]  # Ограничиваем топ-10 зон
-    }
-
 # Получение данных для карточки "Точность заказов"
 def get_order_accuracy(start_date, end_date):
     query = """
@@ -2276,3 +2070,225 @@ def refresh_data(start_date, end_date):
     employee_analytics_cache = {}
     employee_operations_detail_cache = {}
 
+def get_all_storage_data():
+    """
+    Получение ВСЕХ данных по ячейкам хранения со всеми преобразованиями
+    Возвращает полный набор данных для фильтров и диаграмм
+    """
+    query = """
+    SELECT 
+        -- Основные поля
+        LOCATION as location_id,
+        LOCATION_STS as status,
+        LOCATION_TYPE as location_type,
+        LOCATING_ZONE as locating_zone,
+        ALLOCATION_ZONE as allocation_zone,
+        WORK_ZONE as work_zone,
+        -- Преобразование Тип хранения (как в Power Query)
+        CASE 
+            WHEN LOCATION_TYPE = 'Бокс большой' THEN 'Боксы для неликвидов'
+            WHEN LOCATING_ZONE = 'ZX_Gofra_BIG' THEN 'Ячейки для гофротрубы'
+            WHEN LOCATING_ZONE = 'ZX_Gofra' THEN 'Ячейки для гофротрубы'
+            WHEN LOCATING_ZONE = 'ZX_ST_E' THEN 'Ячейки для неликвидов'
+            WHEN WORK_ZONE = 'NG_WK' THEN 'Ячейки негабарита КНС'
+            WHEN LOCATING_ZONE = 'ZX_Kanal' THEN 'Ячейки негабарита КНС'
+            WHEN LOCATING_ZONE = 'ZX_Long < 2' THEN 'Ячейки негабарита ЭЛО'
+            WHEN LOCATING_ZONE = 'ZX_Volumetric' THEN 'Ячейки негабарита ЭЛО'
+            WHEN LOCATING_ZONE = 'ZX_Schit_etagniy' THEN 'Ячейки негабарита ЭЛО'
+            WHEN WORK_ZONE = 'ZX_WK1' THEN 'Ячейки отбора'
+            WHEN ALLOCATION_ZONE = 'ZX_подборщик 20-30' THEN 'Ячейки отбора'
+            WHEN WORK_ZONE = 'ZX_WK_K' THEN 'Ячейки отбора КПП'
+            WHEN WORK_ZONE = 'ZX_WK2' THEN 'Паллетное хранение'
+            WHEN LEFT(WORK_ZONE, 2) = 'ME' THEN 'Мезонин'
+            WHEN LOCATION_TYPE = 'Ячейки KP' THEN 'Ячейки отмотки КПП'
+            ELSE 'Остальное'
+        END as storage_type
+    FROM olap.raw_location 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+        AND LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'
+        AND LOCATION_TYPE IS NOT NULL
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
+    """
+    
+    result = execute_query_cached(query)
+    
+    if not result:
+        return {
+            'all_data': [],
+            'filter_options': {
+                'storage_type': [],
+                'locating_zone': [],
+                'allocation_zone': [],
+                'location_type': [],
+                'work_zone': []
+            }
+        }
+    
+    # Обработка данных
+    all_data = []
+    filter_sets = {
+        'storage_type': set(),
+        'locating_zone': set(),
+        'allocation_zone': set(),
+        'location_type': set(),
+        'work_zone': set()
+    }
+    
+    for row in result:
+        try:
+            location_id = row[0] if row[0] else ''
+            status = row[1] if row[1] else ''
+            location_type = row[2] if row[2] else ''
+            locating_zone = row[3] if row[3] else ''
+            allocation_zone = row[4] if row[4] else ''
+            work_zone = row[5] if row[5] else ''
+            storage_type = row[6] if row[6] else 'Остальное'
+            
+            # Проверяем что статус правильный
+            if status not in ['Empty', 'Storage', 'Picking']:
+                continue
+            
+            data_item = {
+                'location_id': location_id,
+                'status': status,
+                'location_type': location_type,
+                'locating_zone': locating_zone,
+                'allocation_zone': allocation_zone,
+                'work_zone': work_zone,
+                'storage_type': storage_type,
+                'is_empty': 1 if status == 'Empty' else 0,
+                'is_occupied': 1 if status in ['Storage', 'Picking'] else 0
+            }
+            
+            all_data.append(data_item)
+            
+            # Добавляем значения в фильтры
+            if storage_type and storage_type != '':
+                filter_sets['storage_type'].add(storage_type)
+            if locating_zone and locating_zone != '':
+                filter_sets['locating_zone'].add(locating_zone)
+            if allocation_zone and allocation_zone != '':
+                filter_sets['allocation_zone'].add(allocation_zone)
+            if location_type and location_type != '':
+                filter_sets['location_type'].add(location_type)
+            if work_zone and work_zone != '':
+                filter_sets['work_zone'].add(work_zone)
+                
+        except Exception as e:
+            print(f"Error processing storage data row: {e}")
+            continue
+    
+    # Преобразуем множества в отсортированные списки
+    filter_options = {}
+    for key, value_set in filter_sets.items():
+        filter_options[key] = sorted(list(value_set))
+    
+    return {
+        'all_data': all_data,
+        'filter_options': filter_options
+    }
+
+def filter_storage_data(all_data, filters):
+    """
+    Фильтрация данных по выбранным фильтрам
+    и определение доступных значений для других фильтров
+    
+    Parameters:
+    -----------
+    all_data : list
+        Все данные полученные из get_all_storage_data()
+    filters : dict
+        Текущие активные фильтры
+    
+    Returns:
+    --------
+    dict:
+        - filtered_data: отфильтрованные данные
+        - available_filters: доступные значения для каждого фильтра
+        - summary: статистика для KPI
+        - chart_data: данные для диаграмм
+    """
+    # Сначала фильтруем данные
+    filtered_data = all_data.copy()
+    
+    # Применяем фильтры
+    for filter_key, filter_value in filters.items():
+        if filter_value and filter_value != 'Все':
+            filtered_data = [
+                item for item in filtered_data 
+                if item.get(filter_key) == filter_value
+            ]
+    
+    # Определяем доступные значения для каждого фильтра
+    available_filters = {
+        'storage_type': set(),
+        'locating_zone': set(),
+        'allocation_zone': set(),
+        'location_type': set(),
+        'work_zone': set()
+    }
+    
+    for item in filtered_data:
+        if item['storage_type'] and item['storage_type'] != '':
+            available_filters['storage_type'].add(item['storage_type'])
+        if item['locating_zone'] and item['locating_zone'] != '':
+            available_filters['locating_zone'].add(item['locating_zone'])
+        if item['allocation_zone'] and item['allocation_zone'] != '':
+            available_filters['allocation_zone'].add(item['allocation_zone'])
+        if item['location_type'] and item['location_type'] != '':
+            available_filters['location_type'].add(item['location_type'])
+        if item['work_zone'] and item['work_zone'] != '':
+            available_filters['work_zone'].add(item['work_zone'])
+    
+    # Преобразуем в списки и сортируем
+    for key in available_filters:
+        available_filters[key] = sorted(list(available_filters[key]))
+    
+    # Рассчитываем статистику для KPI
+    total = len(filtered_data)
+    empty = sum(1 for item in filtered_data if item['status'] == 'Empty')
+    occupied = sum(1 for item in filtered_data if item['status'] in ['Storage', 'Picking'])
+    
+    # Данные для диаграммы "Доли типов ячеек" (по location_type)
+    location_type_stats = {}
+    for item in filtered_data:
+        loc_type = item['location_type']
+        if loc_type not in location_type_stats:
+            location_type_stats[loc_type] = {
+                'total': 0,
+                'empty': 0,
+                'occupied': 0
+            }
+        location_type_stats[loc_type]['total'] += 1
+        if item['status'] == 'Empty':
+            location_type_stats[loc_type]['empty'] += 1
+        else:
+            location_type_stats[loc_type]['occupied'] += 1
+    
+    # Преобразуем в список и сортируем
+    chart_data_by_type = []
+    for loc_type, stats in location_type_stats.items():
+        chart_data_by_type.append({
+            'location_type': loc_type,
+            'total': stats['total'],
+            'empty': stats['empty'],
+            'occupied': stats['occupied']
+        })
+    
+    chart_data_by_type.sort(key=lambda x: x['total'], reverse=True)
+    
+    return {
+        'filtered_data': filtered_data,
+        'available_filters': available_filters,
+        'summary': {
+            'total': total,
+            'empty': empty,
+            'occupied': occupied
+        },
+        'chart_data': {
+            'by_location_type': chart_data_by_type[:15]  # Топ-15 типов
+        }
+    }

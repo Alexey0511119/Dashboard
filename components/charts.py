@@ -1197,49 +1197,47 @@ def create_timeline_chart(employee_name, selected_day, selected_interval):
         "animationDuration": 1000
     }
 
-def create_storage_status_pie_chart(storage_data, filters=None):
+def create_empty_pie_chart(summary_data, filters=None):
     """
-    Диаграмма 1: Доля пустых и заполненных ячеек
-    Соответствует 2-й сводной таблице
+    Диаграмма 1: Доля пустых ячеек
+    Показывает: Кол.МХ (все) vs Кол.Пустых МХ (пустые)
     """
-    summary = storage_data['summary']
+    total = summary_data.get('total', 0)
+    empty = summary_data.get('empty', 0)
+    occupied = summary_data.get('occupied', 0)
     
-    # Цвета в синих оттенках
-    colors = ['#2196F3', '#1976D2', '#0D47A1']
+    # Цвета
+    colors = ['#2196F3', '#0D47A1']
     
     data = []
-    
-    # Всего ячеек
-    total = summary['total']
-    empty = summary['empty']
-    occupied = summary['occupied']
-    
     if total > 0:
         empty_percent = round((empty / total) * 100, 1)
         occupied_percent = round((occupied / total) * 100, 1)
         
-        data.append({
-            "name": f"Пустые ({empty_percent}%)",
-            "value": empty,
-            "itemStyle": {"color": colors[0]}
-        })
-        
-        data.append({
-            "name": f"Занятые ({occupied_percent}%)",
-            "value": occupied,
-            "itemStyle": {"color": colors[1]}
-        })
+        data = [
+            {
+                "name": f"Пустые ({empty_percent}%)",
+                "value": empty,
+                "itemStyle": {"color": colors[0]}
+            },
+            {
+                "name": f"Занятые ({occupied_percent}%)",
+                "value": occupied,
+                "itemStyle": {"color": colors[1]}
+            }
+        ]
     else:
-        data.append({
-            "name": "Нет данных",
-            "value": 1,
-            "itemStyle": {"color": "#CCCCCC"}
-        })
+        data = [{"name": "Нет данных", "value": 1, "itemStyle": {"color": "#CCCCCC"}}]
     
-    # Добавляем информацию о фильтрах в заголовок
-    title_text = "Доля пустых и заполненных ячеек"
-    if filters and filters.get('storage_type'):
-        title_text += f"\nФильтр: {filters['storage_type']}"
+    # Заголовок с информацией о фильтрах
+    title_text = "Доля пустых ячеек"
+    if filters:
+        active_filters = []
+        for key, value in filters.items():
+            if value and value != 'Все':
+                active_filters.append(f"{key}: {value}")
+        if active_filters:
+            title_text += f"\n({', '.join(active_filters)})"
     
     return {
         "title": {
@@ -1258,7 +1256,8 @@ def create_storage_status_pie_chart(storage_data, filters=None):
         "legend": {
             "orient": "horizontal",
             "bottom": "bottom",
-            "textStyle": {"fontSize": 10}
+            "textStyle": {"fontSize": 10},
+            "data": ["Пустые", "Занятые"]
         },
         "series": [{
             "name": "Статус ячеек",
@@ -1284,43 +1283,58 @@ def create_storage_status_pie_chart(storage_data, filters=None):
                 }
             },
             "labelLine": {"show": True},
-            "data": data,
-            "animationType": "scale"
+            "data": data
         }],
         "animationDuration": 1000
     }
 
-def create_storage_types_chart(storage_data, filters=None):
+def create_types_pie_chart(chart_data, filters=None):
     """
     Диаграмма 2: Доли типов ячеек
-    Соответствует 1-й сводной таблице
-    Столбчатая диаграмма с группировкой
+    Показывает доли каждого Типа МХ (location_type)
     """
-    types_data = storage_data['by_storage_type']
+    types_data = chart_data.get('by_location_type', [])
     
     # Цвета в синих оттенках
-    empty_color = '#2196F3'    # Светло-синий для пустых
-    occupied_color = '#0D47A1' # Темно-синий для занятых
+    colors = [
+        '#1A237E', '#283593', '#303F9F', '#3949AB', '#3F51B5',
+        '#5C6BC0', '#7986CB', '#9FA8DA', '#C5CAE9', '#E8EAF6',
+        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3'
+    ]
     
     # Подготавливаем данные
-    categories = []
-    empty_values = []
-    occupied_values = []
+    data = []
+    total_all = sum(item['total'] for item in types_data)
     
-    for item in types_data[:10]:  # Топ-10 типов
-        categories.append(item['storage_type'][:15])  # Обрезаем длинные названия
-        empty_values.append(item['empty'])
-        occupied_values.append(item['occupied'])
+    for i, item in enumerate(types_data[:10]):  # Топ-10 типов
+        loc_type = item['location_type'][:15]  # Обрезаем длинные названия
+        total = item['total']
+        percentage = round((total / total_all) * 100, 1) if total_all > 0 else 0
+        
+        data.append({
+            "name": f"{loc_type} ({percentage}%)",
+            "value": total,
+            "itemStyle": {"color": colors[i % len(colors)]},
+            "original_name": loc_type,
+            "percentage": percentage
+        })
     
-    if not categories:
-        categories = ["Нет данных"]
-        empty_values = [1]
-        occupied_values = [1]
+    if not data:
+        data.append({
+            "name": "Нет данных",
+            "value": 1,
+            "itemStyle": {"color": "#CCCCCC"}
+        })
     
-    # Добавляем информацию о фильтрах в заголовок
-    title_text = "Распределение ячеек по типам хранения"
-    if filters and filters.get('zone'):
-        title_text += f"\nФильтр: зона {filters['zone']}"
+    # Заголовок с информацией о фильтрах
+    title_text = "Доли типов ячеек"
+    if filters:
+        active_filters = []
+        for key, value in filters.items():
+            if value and value != 'Все':
+                active_filters.append(f"{key}: {value}")
+        if active_filters:
+            title_text += f"\n({', '.join(active_filters)})"
     
     return {
         "title": {
@@ -1333,122 +1347,94 @@ def create_storage_types_chart(storage_data, filters=None):
             }
         },
         "tooltip": {
-            "trigger": "axis",
-            "axisPointer": {"type": "shadow"},
+            "trigger": "item",
             "formatter": """
             function(params) {
-                var result = params[0].name + '<br/>';
-                for (var i = 0; i < params.length; i++) {
-                    var value = params[i].value;
-                    var seriesName = params[i].seriesName;
-                    var total = value + (i === 0 ? params[1].value : params[0].value);
-                    var percent = total > 0 ? Math.round((value / total) * 100) : 0;
-                    result += seriesName + ': ' + value + ' (' + percent + '%)<br/>';
-                }
-                return result;
+                return params.data.original_name + '<br/>' +
+                       'Количество: ' + params.data.value + ' ячеек<br/>' +
+                       'Доля: ' + params.data.percentage + '%';
             }
             """
         },
         "legend": {
-            "data": ['Пустые', 'Занятые'],
-            "top": "30px",
-            "textStyle": {"fontSize": 11}
-        },
-        "xAxis": {
-            "type": "category",
-            "data": categories,
-            "axisLine": {"show": True},
-            "axisTick": {"show": True},
-            "axisLabel": {
-                "rotate": 45,
-                "fontSize": 9,
-                "interval": 0
+            "orient": "vertical",
+            "left": "left",
+            "top": "center",
+            "textStyle": {"fontSize": 9},
+            "itemHeight": 8,
+            "itemWidth": 8,
+            "formatter": """
+            function(name) {
+                // Убираем проценты из названия для легенды
+                return name.split(' (')[0];
             }
+            """
         },
-        "yAxis": {
-            "type": "value",
-            "name": "Количество ячеек",
-            "axisLine": {"show": True},
-            "axisTick": {"show": True},
-            "splitLine": {"show": True, "lineStyle": {"color": "#f0f0f0"}},
-            "axisLabel": {"formatter": "{value}", "fontSize": 9}
-        },
-        "series": [
-            {
-                "name": "Пустые",
-                "type": "bar",
-                "stack": "total",
-                "data": empty_values,
+        "series": [{
+            "name": "Типы ячеек",
+            "type": "pie",
+            "radius": ["40%", "70%"],
+            "center": ["60%", "50%"],
+            "avoidLabelOverlap": True,
+            "itemStyle": {
+                "borderRadius": 6,
+                "borderColor": "#fff",
+                "borderWidth": 2
+            },
+            "label": {
+                "show": True,
+                "formatter": "{b}",
+                "fontSize": 8
+            },
+            "emphasis": {
                 "itemStyle": {
-                    "color": empty_color,
-                    "borderRadius": [4, 4, 0, 0]
-                },
-                "label": {
-                    "show": True,
-                    "position": "inside",
-                    "formatter": "{c}",
-                    "fontSize": 8,
-                    "color": "#fff"
+                    "shadowBlur": 10,
+                    "shadowOffsetX": 0,
+                    "shadowColor": "rgba(0, 0, 0, 0.5)"
                 }
             },
-            {
-                "name": "Занятые",
-                "type": "bar",
-                "stack": "total",
-                "data": occupied_values,
-                "itemStyle": {
-                    "color": occupied_color,
-                    "borderRadius": [4, 4, 0, 0]
-                },
-                "label": {
-                    "show": True,
-                    "position": "inside",
-                    "formatter": "{c}",
-                    "fontSize": 8,
-                    "color": "#fff"
-                }
-            }
-        ],
-        "grid": {
-            "left": "5%",
-            "right": "5%",
-            "bottom": "25%",
-            "top": "20%",
-            "containLabel": True
-        },
+            "labelLine": {"show": True},
+            "data": data
+        }],
         "animationDuration": 1000
     }
 
-def create_storage_zones_chart(storage_data, filters=None):
+def create_types_bar_chart(chart_data, filters=None):
     """
-    Диаграмма 3: Количество ячеек по зонам хранения
-    Соответствует 3-й сводной таблице
+    Диаграмма 3: Количество типов ячеек
+    Ось X: Типы МХ (location_type)
+    Ряды: Всего МХ и Пустые МХ
     """
-    zones_data = storage_data['by_zone']
+    types_data = chart_data.get('by_location_type', [])
     
-    # Цвета в синих оттенках
-    empty_color = '#2196F3'    # Светло-синий для пустых
-    occupied_color = '#0D47A1' # Темно-синий для занятых
+    # Цвета
+    total_color = '#0D47A1'    # Темно-синий для "Всего МХ"
+    empty_color = '#2196F3'    # Светло-синий для "Пустые МХ"
     
     # Подготавливаем данные
     categories = []
+    total_values = []
     empty_values = []
-    occupied_values = []
     
-    for item in zones_data:
-        categories.append(item['zone'][:12])  # Обрезаем длинные названия
+    for item in types_data[:10]:  # Топ-10 типов
+        categories.append(item['location_type'][:12])  # Обрезаем длинные названия
+        total_values.append(item['total'])
         empty_values.append(item['empty'])
-        occupied_values.append(item['occupied'])
     
     if not categories:
         categories = ["Нет данных"]
-        empty_values = [1]
-        occupied_values = [1]
+        total_values = [1]
+        empty_values = [0]
     
-    # Добавляем информацию о фильтрах в заголовок
-    title_text = "Количество ячеек по зонам размещения"
-    if filters and filters.get('storage_type'):
-        title_text += f"\nФильтр: {filters['storage_type']}"
+    # Заголовок с информацией о фильтрах
+    title_text = "Количество типов ячеек"
+    if filters:
+        active_filters = []
+        for key, value in filters.items():
+            if value and value != 'Все':
+                active_filters.append(f"{key}: {value}")
+        if active_filters:
+            title_text += f"\n({', '.join(active_filters)})"
     
     return {
         "title": {
@@ -1466,22 +1452,15 @@ def create_storage_zones_chart(storage_data, filters=None):
             "formatter": """
             function(params) {
                 var result = params[0].name + '<br/>';
-                var total = 0;
                 for (var i = 0; i < params.length; i++) {
-                    total += params[i].value;
+                    result += params[i].seriesName + ': ' + params[i].value + ' ячеек<br/>';
                 }
-                for (var i = 0; i < params.length; i++) {
-                    var value = params[i].value;
-                    var percent = total > 0 ? Math.round((value / total) * 100) : 0;
-                    result += params[i].seriesName + ': ' + value + ' (' + percent + '%)<br/>';
-                }
-                result += 'Всего: ' + total + ' ячеек';
                 return result;
             }
             """
         },
         "legend": {
-            "data": ['Пустые', 'Занятые'],
+            "data": ['Всего МХ', 'Пустые МХ'],
             "top": "30px",
             "textStyle": {"fontSize": 11}
         },
@@ -1506,9 +1485,23 @@ def create_storage_zones_chart(storage_data, filters=None):
         },
         "series": [
             {
-                "name": "Пустые",
+                "name": "Всего МХ",
                 "type": "bar",
-                "stack": "total",
+                "data": total_values,
+                "itemStyle": {
+                    "color": total_color,
+                    "borderRadius": [4, 4, 0, 0]
+                },
+                "label": {
+                    "show": True,
+                    "position": "top",
+                    "formatter": "{c}",
+                    "fontSize": 8
+                }
+            },
+            {
+                "name": "Пустые МХ",
+                "type": "bar",
                 "data": empty_values,
                 "itemStyle": {
                     "color": empty_color,
@@ -1516,27 +1509,9 @@ def create_storage_zones_chart(storage_data, filters=None):
                 },
                 "label": {
                     "show": True,
-                    "position": "inside",
+                    "position": "top",
                     "formatter": "{c}",
-                    "fontSize": 8,
-                    "color": "#fff"
-                }
-            },
-            {
-                "name": "Занятые",
-                "type": "bar",
-                "stack": "total",
-                "data": occupied_values,
-                "itemStyle": {
-                    "color": occupied_color,
-                    "borderRadius": [4, 4, 0, 0]
-                },
-                "label": {
-                    "show": True,
-                    "position": "inside",
-                    "formatter": "{c}",
-                    "fontSize": 8,
-                    "color": "#fff"
+                    "fontSize": 8
                 }
             }
         ],
