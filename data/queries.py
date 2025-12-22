@@ -130,6 +130,56 @@ def get_total_earnings(start_date, end_date):
     
     return total_earnings
 
+def get_storage_cells_stats():
+    """
+    Получение статистики по ячейкам хранения с учетом LOCATION_STS
+    и всех фильтров из Power Query
+    """
+    query = """
+    SELECT 
+        COUNT(DISTINCT LOCATION) as total_cells,
+        SUM(CASE WHEN LOCATION_STS IN ('Storage', 'Picking') THEN 1 ELSE 0 END) as occupied_cells,
+        SUM(CASE WHEN LOCATION_STS = 'Empty' THEN 1 ELSE 0 END) as free_cells
+    FROM olap.raw_location 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+        AND LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'  -- Исключаем замороженные
+        AND LOCATION_TYPE IS NOT NULL
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')  -- Исключаем типы
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)  -- Фильтр по классу или NULL
+    """
+    
+    result = execute_query_cached(query)
+    
+    if result and result[0]:
+        total_cells = int(float(result[0][0])) if result[0][0] else 0
+        occupied_cells = int(float(result[0][1])) if result[0][1] else 0
+        free_cells = int(float(result[0][2])) if result[0][2] else 0
+        
+        # Рассчитываем проценты
+        occupied_percent = 0
+        free_percent = 0
+        if total_cells > 0:
+            occupied_percent = round((occupied_cells / total_cells) * 100, 1)
+            free_percent = round((free_cells / total_cells) * 100, 1)
+        
+        return {
+            'total_cells': total_cells,
+            'occupied_cells': occupied_cells,
+            'free_cells': free_cells,
+            'occupied_percent': occupied_percent,
+            'free_percent': free_percent
+        }
+    else:
+        return {
+            'total_cells': 0,
+            'occupied_cells': 0,
+            'free_cells': 0,
+            'occupied_percent': 0,
+            'free_percent': 0
+        }
+
 # Получение данных для карточки "Точность заказов"
 def get_order_accuracy(start_date, end_date):
     query = """
@@ -2019,3 +2069,438 @@ def refresh_data(start_date, end_date):
     problematic_hours_cache = get_problematic_hours(start_date, end_date)
     employee_analytics_cache = {}
     employee_operations_detail_cache = {}
+
+def get_all_storage_data():
+    """
+    Получение ВСЕХ данных по ячейкам хранения со всеми преобразованиями
+    Возвращает полный набор данных для фильтров и диаграмм
+    """
+    query = """
+    SELECT 
+        -- Основные поля
+        LOCATION as location_id,
+        LOCATION_STS as status,
+        LOCATION_TYPE as location_type,
+        LOCATING_ZONE as locating_zone,
+        ALLOCATION_ZONE as allocation_zone,
+        WORK_ZONE as work_zone,
+        -- Преобразование Тип хранения (как в Power Query)
+        CASE 
+            WHEN LOCATION_TYPE = 'Бокс большой' THEN 'Боксы для неликвидов'
+            WHEN LOCATING_ZONE = 'ZX_Gofra_BIG' THEN 'Ячейки для гофротрубы'
+            WHEN LOCATING_ZONE = 'ZX_Gofra' THEN 'Ячейки для гофротрубы'
+            WHEN LOCATING_ZONE = 'ZX_ST_E' THEN 'Ячейки для неликвидов'
+            WHEN WORK_ZONE = 'NG_WK' THEN 'Ячейки негабарита КНС'
+            WHEN LOCATING_ZONE = 'ZX_Kanal' THEN 'Ячейки негабарита КНС'
+            WHEN LOCATING_ZONE = 'ZX_Long < 2' THEN 'Ячейки негабарита ЭЛО'
+            WHEN LOCATING_ZONE = 'ZX_Volumetric' THEN 'Ячейки негабарита ЭЛО'
+            WHEN LOCATING_ZONE = 'ZX_Schit_etagniy' THEN 'Ячейки негабарита ЭЛО'
+            WHEN WORK_ZONE = 'ZX_WK1' THEN 'Ячейки отбора'
+            WHEN ALLOCATION_ZONE = 'ZX_подборщик 20-30' THEN 'Ячейки отбора'
+            WHEN WORK_ZONE = 'ZX_WK_K' THEN 'Ячейки отбора КПП'
+            WHEN WORK_ZONE = 'ZX_WK2' THEN 'Паллетное хранение'
+            WHEN LEFT(WORK_ZONE, 2) = 'ME' THEN 'Мезонин'
+            WHEN LOCATION_TYPE = 'Ячейки KP' THEN 'Ячейки отмотки КПП'
+            ELSE 'Остальное'
+        END as storage_type
+    FROM olap.raw_location 
+    WHERE LOCATION IS NOT NULL 
+        AND LOCATION != ''
+        AND LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'
+        AND LOCATION_TYPE IS NOT NULL
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
+    """
+    
+    result = execute_query_cached(query)
+    
+    if not result:
+        return {
+            'all_data': [],
+            'filter_options': {
+                'storage_type': [],
+                'locating_zone': [],
+                'allocation_zone': [],
+                'location_type': [],
+                'work_zone': []
+            }
+        }
+    
+    # Обработка данных
+    all_data = []
+    filter_sets = {
+        'storage_type': set(),
+        'locating_zone': set(),
+        'allocation_zone': set(),
+        'location_type': set(),
+        'work_zone': set()
+    }
+    
+    for row in result:
+        try:
+            location_id = row[0] if row[0] else ''
+            status = row[1] if row[1] else ''
+            location_type = row[2] if row[2] else ''
+            locating_zone = row[3] if row[3] else ''
+            allocation_zone = row[4] if row[4] else ''
+            work_zone = row[5] if row[5] else ''
+            storage_type = row[6] if row[6] else 'Остальное'
+            
+            # Проверяем что статус правильный
+            if status not in ['Empty', 'Storage', 'Picking']:
+                continue
+            
+            data_item = {
+                'location_id': location_id,
+                'status': status,
+                'location_type': location_type,
+                'locating_zone': locating_zone,
+                'allocation_zone': allocation_zone,
+                'work_zone': work_zone,
+                'storage_type': storage_type,
+                'is_empty': 1 if status == 'Empty' else 0,
+                'is_occupied': 1 if status in ['Storage', 'Picking'] else 0
+            }
+            
+            all_data.append(data_item)
+            
+            # Добавляем значения в фильтры
+            if storage_type and storage_type != '':
+                filter_sets['storage_type'].add(storage_type)
+            if locating_zone and locating_zone != '':
+                filter_sets['locating_zone'].add(locating_zone)
+            if allocation_zone and allocation_zone != '':
+                filter_sets['allocation_zone'].add(allocation_zone)
+            if location_type and location_type != '':
+                filter_sets['location_type'].add(location_type)
+            if work_zone and work_zone != '':
+                filter_sets['work_zone'].add(work_zone)
+                
+        except Exception as e:
+            print(f"Error processing storage data row: {e}")
+            continue
+    
+    # Преобразуем множества в отсортированные списки
+    filter_options = {}
+    for key, value_set in filter_sets.items():
+        filter_options[key] = sorted(list(value_set))
+    
+    return {
+        'all_data': all_data,
+        'filter_options': filter_options
+    }
+
+def filter_storage_data(all_data, filters):
+    """
+    Фильтрация данных по выбранным фильтрам
+    и определение доступных значений для других фильтров
+    
+    Parameters:
+    -----------
+    all_data : list
+        Все данные полученные из get_all_storage_data()
+    filters : dict
+        Текущие активные фильтры
+    
+    Returns:
+    --------
+    dict:
+        - filtered_data: отфильтрованные данные
+        - available_filters: доступные значения для каждого фильтра
+        - summary: статистика для KPI
+        - chart_data: данные для диаграмм
+    """
+    # Сначала фильтруем данные
+    filtered_data = all_data.copy()
+    
+    # Применяем фильтры
+    for filter_key, filter_value in filters.items():
+        if filter_value and filter_value != 'Все':
+            filtered_data = [
+                item for item in filtered_data 
+                if item.get(filter_key) == filter_value
+            ]
+    
+    # Определяем доступные значения для каждого фильтра
+    available_filters = {
+        'storage_type': set(),
+        'locating_zone': set(),
+        'allocation_zone': set(),
+        'location_type': set(),
+        'work_zone': set()
+    }
+    
+    for item in filtered_data:
+        if item['storage_type'] and item['storage_type'] != '':
+            available_filters['storage_type'].add(item['storage_type'])
+        if item['locating_zone'] and item['locating_zone'] != '':
+            available_filters['locating_zone'].add(item['locating_zone'])
+        if item['allocation_zone'] and item['allocation_zone'] != '':
+            available_filters['allocation_zone'].add(item['allocation_zone'])
+        if item['location_type'] and item['location_type'] != '':
+            available_filters['location_type'].add(item['location_type'])
+        if item['work_zone'] and item['work_zone'] != '':
+            available_filters['work_zone'].add(item['work_zone'])
+    
+    # Преобразуем в списки и сортируем
+    for key in available_filters:
+        available_filters[key] = sorted(list(available_filters[key]))
+    
+    # Рассчитываем статистику для KPI
+    total = len(filtered_data)
+    empty = sum(1 for item in filtered_data if item['status'] == 'Empty')
+    occupied = sum(1 for item in filtered_data if item['status'] in ['Storage', 'Picking'])
+    
+    # Данные для диаграммы "Доли типов ячеек" (по location_type)
+    location_type_stats = {}
+    for item in filtered_data:
+        loc_type = item['location_type']
+        if loc_type not in location_type_stats:
+            location_type_stats[loc_type] = {
+                'total': 0,
+                'empty': 0,
+                'occupied': 0
+            }
+        location_type_stats[loc_type]['total'] += 1
+        if item['status'] == 'Empty':
+            location_type_stats[loc_type]['empty'] += 1
+        else:
+            location_type_stats[loc_type]['occupied'] += 1
+    
+    # Преобразуем в список и сортируем
+    chart_data_by_type = []
+    for loc_type, stats in location_type_stats.items():
+        chart_data_by_type.append({
+            'location_type': loc_type,
+            'total': stats['total'],
+            'empty': stats['empty'],
+            'occupied': stats['occupied']
+        })
+    
+    chart_data_by_type.sort(key=lambda x: x['total'], reverse=True)
+    
+    return {
+        'filtered_data': filtered_data,
+        'available_filters': available_filters,
+        'summary': {
+            'total': total,
+            'empty': empty,
+            'occupied': occupied
+        },
+        'chart_data': {
+            'by_location_type': chart_data_by_type[:100]  # Топ-15 типов
+        }
+    }
+
+# Получение данных по ревизиям по событию
+def get_revision_stats(start_date=None, end_date=None):
+    """
+    Получение статистики по ревизиям по событию
+    В таблице нет поля date, поэтому используем все записи
+    """
+    print(f"[DEBUG] get_revision_stats вызвана")
+    
+    # Тестовый запрос: посмотреть все данные в таблице
+    query_test = """
+    SELECT 
+        WORK_TYPE,
+        INSTRUCTION_TYPE,
+        CONDITION,
+        COUNT(*) as count
+    FROM olap.raw_work_instruction_view2 
+    GROUP BY WORK_TYPE, INSTRUCTION_TYPE, CONDITION
+    ORDER BY count DESC
+    """
+    
+    try:
+        # Сначала выполняем тестовый запрос
+        test_result = execute_query_cached(query_test)
+        
+        print(f"[DEBUG] Всего найдено {len(test_result)} комбинаций данных:")
+        for row in test_result:
+            work_type = row[0] if row[0] else ''
+            instr_type = row[1] if row[1] else ''
+            condition = row[2] if row[2] else ''
+            count = int(float(row[3])) if row[3] else 0
+            
+            print(f"[DEBUG] WORK_TYPE='{work_type}', INSTRUCTION_TYPE='{instr_type}', CONDITION='{condition}': {count} шт.")
+        
+        # Основные запросы (БЕЗ ФИЛЬТРА ПО DATE - его нет в таблице!)
+        
+        # 1. Открытые ревизии (Detail + Open)
+        query_open = """
+        SELECT 
+            COUNT(*) as open_revisions
+        FROM olap.raw_work_instruction_view2 
+        WHERE WORK_TYPE = 'Ревизия по событию'
+            AND INSTRUCTION_TYPE = 'Detail'
+            AND CONDITION = 'Open'
+        """
+        
+        # 2. Ревизии на согласовании (Header + In Process)
+        query_in_process = """
+        SELECT 
+            COUNT(*) as in_process_revisions
+        FROM olap.raw_work_instruction_view2 
+        WHERE WORK_TYPE = 'Ревизия по событию'
+            AND INSTRUCTION_TYPE = 'Header'
+            AND CONDITION = 'In Process'
+        """
+        
+        # Выполняем запросы
+        open_result = execute_query_cached(query_open)
+        in_process_result = execute_query_cached(query_in_process)
+        
+        # Извлекаем значения
+        open_revisions = 0
+        in_process_revisions = 0
+        
+        if open_result and open_result[0] and open_result[0][0]:
+            open_revisions = int(float(open_result[0][0]))
+        
+        if in_process_result and in_process_result[0] and in_process_result[0][0]:
+            in_process_revisions = int(float(in_process_result[0][0]))
+        
+        # Общее количество (сумма открытых и на согласовании)
+        total_revisions = open_revisions + in_process_revisions
+        
+        print(f"[DEBUG] Статистика по ревизиям:")
+        print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Detail', CONDITION='Open': {open_revisions} шт.")
+        print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Header', CONDITION='In Process': {in_process_revisions} шт.")
+        print(f"[DEBUG] - Всего ревизий: {total_revisions}")
+        
+        return {
+            'total_revisions': total_revisions,
+            'open_revisions': open_revisions,
+            'in_process_revisions': in_process_revisions
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Ошибка в get_revision_stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'total_revisions': 0,
+            'open_revisions': 0,
+            'in_process_revisions': 0
+        }
+    
+def get_placement_errors():
+    """
+    Получение количества ошибок при размещении
+    
+    Логика:
+    1. Фильтруем записи: WORK_TYPE = 'Размещение KC', 
+                        INSTRUCTION_TYPE = 'Detail', 
+                        CONDITION = 'Closed'
+    2. Присоединяем таблицу raw_item для получения ITEM_CATEGORY9
+    3. Фильтруем по 2025 году из DATE_TIME_STAMP
+    4. Определяем статус "Верно"/"Ошибка" по правилам:
+       - Если ITEM_CATEGORY9 = "A" или "B" И LOCATING_ZONE = "KC_ST_A" или "KC_ST_B" → "Верно"
+       - Если ITEM_CATEGORY9 = "C" И LOCATING_ZONE = "KC_ST_C" → "Верно"
+       - В остальных случаях → "Ошибка"
+    5. Считаем количество ошибок и верных размещений
+    """
+    query = """
+    WITH placement_data AS (
+        SELECT 
+            w.COMPLETED_BY_USER,
+            w.ITEM,
+            w.LOCATING_ZONE,
+            i.ITEM_CATEGORY9,
+            w.DATE_TIME_STAMP
+        FROM olap.raw_work_instruction_view2 w
+        LEFT JOIN olap.raw_item i ON w.ITEM = i.ITEM
+        WHERE w.WORK_TYPE = 'Размещение KC'
+            AND w.INSTRUCTION_TYPE = 'Detail'
+            AND w.CONDITION = 'Closed'
+            AND w.DATE_TIME_STAMP IS NOT NULL
+            AND w.DATE_TIME_STAMP != ''
+            AND toYear(parseDateTimeBestEffortOrNull(w.DATE_TIME_STAMP)) = 2025
+    ),
+    categorized_data AS (
+        SELECT 
+            COMPLETED_BY_USER,
+            ITEM,
+            LOCATING_ZONE,
+            ITEM_CATEGORY9,
+            DATE_TIME_STAMP,
+            CASE 
+                WHEN (ITEM_CATEGORY9 IN ('A', 'B') AND LOCATING_ZONE IN ('KC_ST_A', 'KC_ST_B')) 
+                     OR (ITEM_CATEGORY9 = 'C' AND LOCATING_ZONE = 'KC_ST_C')
+                THEN 'Верно'
+                ELSE 'Ошибка'
+            END as placement_status
+        FROM placement_data
+        WHERE ITEM_CATEGORY9 IS NOT NULL
+            AND ITEM_CATEGORY9 != ''
+            AND LOCATING_ZONE IS NOT NULL
+            AND LOCATING_ZONE != ''
+    )
+    SELECT 
+        placement_status,
+        COUNT(*) as count,
+        COUNT(DISTINCT COMPLETED_BY_USER) as unique_users,
+        COUNT(DISTINCT ITEM) as unique_items
+    FROM categorized_data
+    GROUP BY placement_status
+    """
+    
+    try:
+        result = execute_query_cached(query)
+        
+        print(f"[DEBUG] get_placement_errors результат: {result}")
+        
+        # Извлекаем значения
+        correct_count = 0
+        error_count = 0
+        unique_users = 0
+        unique_items = 0
+        
+        if result:
+            for row in result:
+                status = row[0] if row[0] else ''
+                count = int(float(row[1])) if row[1] else 0
+                users = int(float(row[2])) if row[2] else 0
+                items = int(float(row[3])) if row[3] else 0
+                
+                if status == 'Верно':
+                    correct_count = count
+                elif status == 'Ошибка':
+                    error_count = count
+                
+                # Берем максимум из уникальных пользователей/предметов
+                unique_users = max(unique_users, users)
+                unique_items = max(unique_items, items)
+        
+        total_count = correct_count + error_count
+        
+        # Рассчитываем процент ошибок
+        error_percentage = 0
+        if total_count > 0:
+            error_percentage = round((error_count / total_count) * 100, 1)
+        
+        print(f"[DEBUG] Итог: Верно={correct_count}, Ошибок={error_count}, Всего={total_count}, % ошибок={error_percentage}%")
+        
+        return {
+            'correct_count': correct_count,
+            'error_count': error_count,
+            'total_count': total_count,
+            'error_percentage': error_percentage,
+            'unique_users': unique_users,
+            'unique_items': unique_items
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Ошибка в get_placement_errors: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'correct_count': 0,
+            'error_count': 0,
+            'total_count': 0,
+            'error_percentage': 0,
+            'unique_users': 0,
+            'unique_items': 0
+        }

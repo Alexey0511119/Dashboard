@@ -9,14 +9,17 @@ from data.queries import (
     get_problematic_hours, get_orders_table, get_arrival_timeliness,
     get_order_timeliness, get_fines_data, get_employee_analytics,
     get_employee_operations_detail, get_employee_fines_details,
-    get_employees_on_shift, refresh_data, get_error_hours_top_data
+    get_employees_on_shift, refresh_data, get_error_hours_top_data,
+    get_storage_cells_stats, get_all_storage_data, filter_storage_data,
+    get_revision_stats, get_placement_errors  # НОВЫЕ ИМПОРТЫ
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
     create_timeliness_chart, create_operations_type_chart,
     create_time_distribution_pie_echarts, create_idle_intervals_bar_echarts,
     create_fines_pie_chart, create_fines_amount_bar_chart,
-    create_employee_fines_chart
+    create_employee_fines_chart,
+    create_empty_pie_chart, create_types_pie_chart, create_types_bar_chart
 )
 from components.tables import create_performance_table
 
@@ -61,12 +64,15 @@ def update_global_date_range_and_data(start_date, end_date):
 
 # Callback для обновления KPI карточек на главной вкладке
 @callback(
-    [Output('orders-timely-kpi', 'children'),
-     Output('orders-percentage-kpi', 'children'),
-     Output('avg-operation-time-kpi', 'children'),
-     Output('avg-productivity-kpi', 'children'),
-     Output('total-earnings-kpi', 'children'),
-     Output('active-employees-kpi', 'children'),
+    [Output('total-revisions-kpi', 'children'),
+     Output('open-revisions-kpi', 'children'),
+     Output('in-process-revisions-kpi', 'children'),
+     Output('placement-errors-kpi', 'children'),
+     Output('placement-correct-kpi', 'children'),
+     Output('placement-errors-count-kpi', 'children'),
+     Output('placement-percentage-kpi', 'children'),
+     Output('storage-cells-kpi', 'children'),
+     Output('storage-cells-detail', 'children'),
      Output('order-accuracy-kpi', 'children'),
      Output('order-accuracy-detail', 'children')],
     [Input('global-date-range', 'data')]
@@ -74,31 +80,73 @@ def update_global_date_range_and_data(start_date, end_date):
 def update_main_kpi_cards(date_range):
     """Обновление KPI карточек на главной вкладке"""
     if not date_range:
-        return "0", "0%", "0 мин", "0 оп/ч", "0 ₽", "0 сотр.", "100%", "0 заказов без ошибок"
+        return ("0", "0", "0", "0%", "0", "0", "Нет данных", "0/0", 
+                "0% занято | 0% своб.", "100%", "0 заказов без ошибок")
     
     start_date = date_range['start_date']
     end_date = date_range['end_date']
     
     try:
-        timely_orders, delayed_orders, total_orders, percentage = get_orders_timely(start_date, end_date)
-        avg_time = get_avg_operation_time(start_date, end_date)
-        total_earnings = get_total_earnings(start_date, end_date)
+        # 1. Получаем данные по ревизиям
+        revision_stats = get_revision_stats()
+        
+        # 2. Получаем данные по ошибкам размещения
+        placement_stats = get_placement_errors()
+        
+        # 3. Получаем остальные данные
         accuracy, orders_without_errors, total_orders_accuracy, error_orders = get_order_accuracy(start_date, end_date)
-        avg_productivity, active_employees = get_avg_productivity(start_date, end_date)
+        storage_stats = get_storage_cells_stats()
+        
+        # 4. Форматируем KPI значения
+        
+        # Ревизии
+        total_revisions = f"{revision_stats['total_revisions']:,}"
+        open_revisions = f"{revision_stats['open_revisions']:,}"
+        in_process_revisions = f"{revision_stats['in_process_revisions']:,}"
+        
+        # Ошибки размещения
+        error_percentage = f"{placement_stats['error_percentage']}%"
+        correct_count = f"{placement_stats['correct_count']:,}"
+        error_count = f"{placement_stats['error_count']:,}"
+        
+        # Формируем детали для ошибок размещения
+        placement_detail = ""
+        if placement_stats['total_count'] > 0:
+            placement_detail = f"{placement_stats['total_count']:,} всего"
+            if placement_stats['unique_users'] > 0:
+                placement_detail += f" | {placement_stats['unique_users']} пользователей"
+            if placement_stats['unique_items'] > 0:
+                placement_detail += f" | {placement_stats['unique_items']} позиций"
+        else:
+            placement_detail = "Нет данных за 2025"
+        
+        # Ячейки хранения
+        storage_kpi = f"{storage_stats['occupied_cells']}/{storage_stats['free_cells']}"
+        storage_detail = f"{storage_stats['occupied_percent']}% занято | {storage_stats['free_percent']}% своб."
+        
+        # Точность заказов
+        accuracy_str = f"{accuracy:.1f}%"
+        accuracy_detail = f"↗ {orders_without_errors:,} заказов без ошибок"
         
         return (
-            f"{timely_orders:,}",
-            f"↗ {percentage}% ({total_orders} всего)",
-            f"{avg_time:.1f} мин",
-            f"↗ {avg_productivity} оп/ч",
-            f"{total_earnings:,.0f} ₽",
-            f"↗ {active_employees} активных сотр.",
-            f"{accuracy:.1f}%",
-            f"↗ {orders_without_errors:,} заказов без ошибок"
+            total_revisions,
+            open_revisions,
+            in_process_revisions,
+            error_percentage,
+            correct_count,
+            error_count,
+            placement_detail,
+            storage_kpi,
+            storage_detail,
+            accuracy_str,
+            accuracy_detail
         )
     except Exception as e:
         print(f"Error in update_main_kpi_cards: {e}")
-        return "0", "0%", "0 мин", "0 оп/ч", "0 ₽", "0 сотр.", "100%", "0 заказов без ошибок"
+        import traceback
+        traceback.print_exc()
+        return ("0", "0", "0", "0%", "0", "0", "Ошибка загрузки", "0/0", 
+                "0% занято | 0% своб.", "100%", "0 заказов без ошибок")
 
 # Callback для обновления таблицы сотрудников на смене
 @callback(
@@ -274,52 +322,52 @@ def update_shift_stats_info(date_range):
                 'time': emp.get('Время_первой_операции', '--:--')
             })
         
-        # Создаем визуализацию (ОТРЕГУЛИРОВАННЫЕ РАЗМЕРЫ - шрифт как в таблице)
+        # Создаем визуализацию
         position_cards = []
         for position, stats in position_analysis.items():
             if position != 'Не указана':
                 position_cards.append(
                     html.Div([
                         html.Div([
-                            html.Strong(position, style={'fontSize': '14px', 'color': '#333'}),  # ТАКОЙ ЖЕ как в таблице
-                            html.Span(f" ({stats['total']} чел.)", style={'fontSize': '12px', 'color': '#666'})  # Немного меньше
-                        ], style={'marginBottom': '6px'}),  # Немного отступа
+                            html.Strong(position, style={'fontSize': '14px', 'color': '#333'}),
+                            html.Span(f" ({stats['total']} чел.)", style={'fontSize': '12px', 'color': '#666'})
+                        ], style={'marginBottom': '6px'}),
                         
                         html.Div([
                             html.Div([
                                 html.Span("✅", style={'marginRight': '4px', 'fontSize': '12px'}),
                                 html.Span(f"{stats['on_work']} на работе", 
-                                        style={'color': '#4CAF50', 'fontWeight': 'bold', 'fontSize': '12px'})  # 12px для компактности
+                                        style={'color': '#4CAF50', 'fontWeight': 'bold', 'fontSize': '12px'})
                             ], style={'flex': '1', 'textAlign': 'center'}),
                             
                             html.Div([
                                 html.Span("❌", style={'marginRight': '4px', 'fontSize': '12px'}),
                                 html.Span(f"{stats['not_come']} не вышли", 
-                                        style={'color': '#F44336', 'fontWeight': 'bold', 'fontSize': '12px'})  # 12px для компактности
+                                        style={'color': '#F44336', 'fontWeight': 'bold', 'fontSize': '12px'})
                             ], style={'flex': '1', 'textAlign': 'center'})
                         ], style={'display': 'flex', 'justifyContent': 'space-between'})
                     ], style={
                         'background': '#fff',
                         'border': '1px solid #e0e0e0',
                         'borderRadius': '6px',
-                        'padding': '10px',  # Увеличено для лучшего отображения текста
+                        'padding': '10px',
                         'marginBottom': '8px',
                         'boxShadow': '0 1px 2px rgba(0,0,0,0.1)'
                     })
                 )
         
         return html.Div([
-            # Общая статистика (ШРИФТ КАК В ТАБЛИЦЕ)
+            # Общая статистика
             html.Div([
                 html.H4("Общая статистика смены", 
-                       style={'marginBottom': '12px', 'color': '#1976d2', 'fontSize': '18px', 'fontWeight': 'bold'}),  # Заголовок побольше
+                       style={'marginBottom': '12px', 'color': '#1976d2', 'fontSize': '18px', 'fontWeight': 'bold'}),
                 
                 html.Div([
                     html.Div([
                         html.Div(f"{len(employees)}", 
-                               style={'fontSize': '28px', 'fontWeight': 'bold', 'color': '#1976d2', 'textAlign': 'center'}),  # Увеличен
+                               style={'fontSize': '28px', 'fontWeight': 'bold', 'color': '#1976d2', 'textAlign': 'center'}),
                         html.Div("Всего сотрудников", 
-                               style={'fontSize': '12px', 'color': '#666', 'textAlign': 'center'})  # 12px как в таблице
+                               style={'fontSize': '12px', 'color': '#666', 'textAlign': 'center'})
                     ], style={'flex': '1', 'padding': '8px'}),
                     
                     html.Div([
@@ -343,7 +391,7 @@ def update_shift_stats_info(date_range):
                 html.H4("Анализ по должностям", 
                        style={'marginBottom': '12px', 'color': '#ed6c02', 'fontSize': '18px', 'fontWeight': 'bold'}),
                 
-                html.Div(position_cards, style={'maxHeight': '380px', 'overflowY': 'auto'})  # Оставили прокрутку на случай большого количества должностей
+                html.Div(position_cards, style={'maxHeight': '380px', 'overflowY': 'auto'})
             ])
         ], style={'height': '100%', 'overflow': 'hidden'})
         
@@ -442,3 +490,148 @@ def switch_table_view(prev_clicks, next_clicks, current_view):
             classes[i] = 'table-view active'
     
     return classes[0], classes[1], classes[2], new_view
+
+# Callback для открытия/закрытия модального окна ячеек хранения
+@callback(
+    [Output("storage-cells-modal", "className"),
+     Output("storage-modal-content", "className")],
+    [Input("open-storage-modal", "n_clicks"),
+     Input("close-storage-modal", "n_clicks")],
+    [State("storage-cells-modal", "className"),
+     State("storage-modal-content", "className")],
+    prevent_initial_call=True
+)
+def toggle_storage_modal(open_clicks, close_clicks, modal_class, content_class):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return modal_class, content_class
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id == 'open-storage-modal':
+        print(f"DEBUG: Открытие модального окна")
+        return 'modal-visible', 'modal-content-visible'
+    elif button_id == 'close-storage-modal':
+        print(f"DEBUG: Закрытие модального окна")
+        return 'modal-hidden', 'modal-content'
+    
+    return modal_class, content_class
+    
+@callback(
+    Output("storage-all-data", "data"),
+    Input("storage-cells-modal", "className")
+)
+def load_storage_data(modal_class):
+    """Загрузка всех данных по ячейкам при открытии модального окна"""
+    if modal_class == 'modal-visible':
+        print("Загрузка данных по ячейкам хранения...")
+        all_data = get_all_storage_data()
+        return all_data
+    return dash.no_update
+
+# Callback для обновления фильтров и диаграмм
+@callback(
+    [Output("filter-storage-type", "options"),
+     Output("filter-locating-zone", "options"),
+     Output("filter-allocation-zone", "options"),
+     Output("filter-location-type", "options"),
+     Output("filter-work-zone", "options"),
+     Output("storage-total-cells", "children"),
+     Output("storage-occupied-cells", "children"),
+     Output("storage-free-cells", "children"),
+     Output("storage-occupied-percent", "children"),
+     Output("storage-empty-chart", "option"),
+     Output("storage-types-pie-chart", "option"),
+     Output("storage-types-bar-chart", "option"),
+     Output("storage-current-filters", "data")],
+    [Input("filter-storage-type", "value"),
+     Input("filter-locating-zone", "value"),
+     Input("filter-allocation-zone", "value"),
+     Input("filter-location-type", "value"),
+     Input("filter-work-zone", "value"),
+     Input("storage-all-data", "data")]
+)
+def update_storage_filters_and_charts(storage_type_val, locating_zone_val, allocation_zone_val, 
+                                     location_type_val, work_zone_val, all_data):
+    """Обновление фильтров и диаграмм на основе выбранных значений"""
+    
+    if not all_data or 'all_data' not in all_data:
+        # Возвращаем пустые опции если данных нет
+        empty_options = [{'label': 'Все', 'value': 'Все'}]
+        empty_chart = {"title": {"text": "Нет данных", "left": "center"}}
+        return (
+            empty_options, empty_options, empty_options, empty_options, empty_options,
+            "0", "0", "0", "0%", empty_chart, empty_chart, empty_chart,
+            {'storage_type': 'Все', 'locating_zone': 'Все', 'allocation_zone': 'Все', 
+             'location_type': 'Все', 'work_zone': 'Все'}
+        )
+    
+    # Текущие фильтры
+    current_filters = {
+        'storage_type': storage_type_val if storage_type_val != 'Все' else None,
+        'locating_zone': locating_zone_val if locating_zone_val != 'Все' else None,
+        'allocation_zone': allocation_zone_val if allocation_zone_val != 'Все' else None,
+        'location_type': location_type_val if location_type_val != 'Все' else None,
+        'work_zone': work_zone_val if work_zone_val != 'Все' else None
+    }
+    
+    # Фильтруем данные
+    filtered_result = filter_storage_data(all_data['all_data'], current_filters)
+    
+    # Формируем опции для фильтров
+    available_filters = filtered_result['available_filters']
+    
+    # Функция для создания опций dropdown
+    def create_options(values):
+        options = [{'label': 'Все', 'value': 'Все'}]
+        for value in values:
+            options.append({'label': value, 'value': value})
+        return options
+    
+    # Опции для каждого фильтра
+    storage_type_options = create_options(available_filters['storage_type'])
+    locating_zone_options = create_options(available_filters['locating_zone'])
+    allocation_zone_options = create_options(available_filters['allocation_zone'])
+    location_type_options = create_options(available_filters['location_type'])
+    work_zone_options = create_options(available_filters['work_zone'])
+    
+    # Форматируем KPI
+    summary = filtered_result['summary']
+    total_cells = f"{summary['total']:,}"
+    occupied_cells = f"{summary['occupied']:,}"
+    free_cells = f"{summary['empty']:,}"
+    
+    occupied_percent = 0
+    if summary['total'] > 0:
+        occupied_percent = round((summary['occupied'] / summary['total']) * 100, 1)
+    occupied_percent_str = f"{occupied_percent}%"
+    
+    # Создаем диаграммы
+    empty_chart = create_empty_pie_chart(summary, current_filters)
+    types_pie_chart = create_types_pie_chart(filtered_result['chart_data'], current_filters)
+    types_bar_chart = create_types_bar_chart(filtered_result['chart_data'], current_filters)
+    
+    # Текущие значения фильтров для сохранения
+    current_filter_values = {
+        'storage_type': storage_type_val,
+        'locating_zone': locating_zone_val,
+        'allocation_zone': allocation_zone_val,
+        'location_type': location_type_val,
+        'work_zone': work_zone_val
+    }
+    
+    return (
+        storage_type_options,
+        locating_zone_options,
+        allocation_zone_options,
+        location_type_options,
+        work_zone_options,
+        total_cells,
+        occupied_cells,
+        free_cells,
+        occupied_percent_str,
+        empty_chart,
+        types_pie_chart,
+        types_bar_chart,
+        current_filter_values
+    )

@@ -1196,3 +1196,365 @@ def create_timeline_chart(employee_name, selected_day, selected_interval):
         },
         "animationDuration": 1000
     }
+
+def create_empty_pie_chart(summary_data, filters=None):
+    """
+    Диаграмма 1: Доля пустых ячеек
+    Показывает: Кол.МХ (все) vs Кол.Пустых МХ (пустые)
+    """
+    total = summary_data.get('total', 0)
+    empty = summary_data.get('empty', 0)
+    occupied = summary_data.get('occupied', 0)
+    
+    # Цвета
+    colors = ['#2196F3', '#0D47A1']
+    
+    # Данные для диаграммы
+    data = []
+    if total > 0:
+        empty_percent = round((empty / total) * 100, 1)
+        occupied_percent = round((occupied / total) * 100, 1)
+        
+        data = [
+            {
+                "name": f"Пустые ({empty_percent}%)",
+                "value": empty,
+                "itemStyle": {"color": colors[0]}
+            },
+            {
+                "name": f"Занятые ({occupied_percent}%)",
+                "value": occupied,
+                "itemStyle": {"color": colors[1]}
+            }
+        ]
+        
+        # Легенда
+        legend_data = [
+            {"name": f"Пустые ({empty_percent}%)", "icon": "circle"},
+            {"name": f"Занятые ({occupied_percent}%)", "icon": "circle"}
+        ]
+    else:
+        data = [{"name": "Нет данных", "value": 1, "itemStyle": {"color": "#CCCCCC"}}]
+        legend_data = [{"name": "Нет данных", "icon": "circle"}]
+    
+    # Заголовок с информацией о фильтрах
+    title_text = "Доля пустых ячеек"
+    if filters:
+        active_filters = []
+        for key, value in filters.items():
+            if value and value != 'Все':
+                active_filters.append(f"{value}")
+        if active_filters:
+            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
+            if len(active_filters) > 3:
+                title_text += "..."
+    
+    return {
+        "title": {
+            "text": title_text,
+            "left": "center",
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#333"
+            }
+        },
+        "tooltip": {
+            "trigger": "item",
+            "formatter": "{a}<br/>{b}: {c} ячеек"
+        },
+        "legend": {
+            "data": [item["name"] for item in legend_data],
+            "orient": "horizontal",
+            "bottom": 0,
+            "left": "center",
+            "textStyle": {"fontSize": 10},
+            "itemHeight": 8,
+            "itemWidth": 8
+        },
+        "series": [{
+            "name": "Статус ячеек",
+            "type": "pie",
+            "radius": ["40%", "70%"],
+            "center": ["50%", "45%"],
+            "avoidLabelOverlap": True,
+            "itemStyle": {
+                "borderRadius": 6,
+                "borderColor": "#fff",
+                "borderWidth": 2
+            },
+            "label": {
+                "show": True,
+                "formatter": "{b}: {d}%",
+                "fontSize": 10
+            },
+            "emphasis": {
+                "itemStyle": {
+                    "shadowBlur": 10,
+                    "shadowOffsetX": 0,
+                    "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+            },
+            "labelLine": {"show": True},
+            "data": data
+        }],
+        "animationDuration": 1000
+    }
+
+def create_types_pie_chart(chart_data, filters=None):
+    """
+    Диаграмма 2: Доли типов ячеек
+    Показывает доли каждого Типа МХ (location_type)
+    """
+    types_data = chart_data.get('by_location_type', [])
+    
+    # УБИРАЕМ ОГРАНИЧЕНИЕ на количество типов
+    # types_data = types_data[:10]  # УДАЛИТЬ ЭТУ СТРОКУ
+    
+    # Цвета в синих оттенках
+    colors = [
+        '#1A237E', '#283593', '#303F9F', '#3949AB', '#3F51B5',
+        '#5C6BC0', '#7986CB', '#9FA8DA', '#C5CAE9', '#E8EAF6',
+        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3',
+        '#64B5F6', '#90CAF9', '#BBDEFB', '#E3F2FD', '#F5F5F5'
+    ]
+    
+    # Подготавливаем данные
+    data = []
+    total_all = sum(item['total'] for item in types_data)
+    
+    for i, item in enumerate(types_data):  # УБРАЛИ [:10]
+        loc_type = item['location_type']
+        if len(loc_type) > 15:
+            display_name = loc_type[:15] + "..."
+        else:
+            display_name = loc_type
+            
+        total = item['total']
+        percentage = round((total / total_all) * 100, 1) if total_all > 0 else 0
+        
+        data.append({
+            "name": f"{display_name} ({percentage}%)",
+            "value": total,
+            "itemStyle": {"color": colors[i % len(colors)]},
+            "original_name": loc_type,
+            "percentage": percentage
+        })
+    
+    if not data:
+        data.append({
+            "name": "Нет данных",
+            "value": 1,
+            "itemStyle": {"color": "#CCCCCC"},
+            "original_name": "Нет данных",
+            "percentage": 0
+        })
+    
+    # Создаем легенду
+    legend_data = []
+    for item in data[:15]:  # В легенде показываем только топ-15
+        legend_data.append(item["name"])
+    
+    # Заголовок с информацией о фильтрах
+    title_text = "Доли типов ячеек"
+    if filters:
+        active_filters = []
+        for key, value in filters.items():
+            if value and value != 'Все':
+                active_filters.append(f"{value}")
+        if active_filters:
+            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
+            if len(active_filters) > 3:
+                title_text += "..."
+    
+    # Простой тултип без JavaScript
+    return {
+        "title": {
+            "text": title_text,
+            "left": "center",
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#333"
+            }
+        },
+        "tooltip": {
+            "trigger": "item",
+            "formatter": "{a}<br/>{b}: {c} ячеек ({d}%)"
+        },
+        "legend": {
+            "data": legend_data,
+            "orient": "vertical",
+            "right": 10,
+            "top": "middle",
+            "textStyle": {"fontSize": 8},
+            "itemHeight": 8,
+            "itemWidth": 8,
+            "type": "scroll"  # Добавляем прокрутку если много элементов
+        },
+        "series": [{
+            "name": "Типы ячеек",
+            "type": "pie",
+            "radius": ["40%", "70%"],
+            "center": ["40%", "50%"],  # Сдвигаем влево чтобы легенда поместилась
+            "avoidLabelOverlap": True,
+            "itemStyle": {
+                "borderRadius": 6,
+                "borderColor": "#fff",
+                "borderWidth": 2
+            },
+            "label": {
+                "show": True,
+                "formatter": "{b}",
+                "fontSize": 8
+            },
+            "emphasis": {
+                "itemStyle": {
+                    "shadowBlur": 10,
+                    "shadowOffsetX": 0,
+                    "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+            },
+            "labelLine": {
+                "show": True,
+                "length": 10,
+                "length2": 5
+            },
+            "data": data
+        }],
+        "animationDuration": 1000
+    }
+
+def create_types_bar_chart(chart_data, filters=None):
+    """
+    Диаграмма 3: Количество типов ячеек
+    Ось X: Типы МХ (location_type)
+    Ряды: Всего МХ и Пустые МХ
+    """
+    types_data = chart_data.get('by_location_type', [])
+    
+    # УБИРАЕМ ОГРАНИЧЕНИЕ на количество типов
+    # types_data = types_data[:10]  # УДАЛИТЬ ЭТУ СТРОКУ
+    
+    # Цвета
+    total_color = '#0D47A1'    # Темно-синий для "Всего МХ"
+    empty_color = '#2196F3'    # Светло-синий для "Пустые МХ"
+    
+    # Подготавливаем данные
+    categories = []
+    total_values = []
+    empty_values = []
+    
+    for item in types_data:  # УБРАЛИ [:10]
+        loc_type = item['location_type']
+        if len(loc_type) > 12:
+            display_name = loc_type[:12] + "..."
+        else:
+            display_name = loc_type
+            
+        categories.append(display_name)
+        total_values.append({
+            "value": item['total'],
+            "itemStyle": {"color": total_color}
+        })
+        empty_values.append({
+            "value": item['empty'],
+            "itemStyle": {"color": empty_color}
+        })
+    
+    if not categories:
+        categories = ["Нет данных"]
+        total_values = [{"value": 1, "itemStyle": {"color": total_color}}]
+        empty_values = [{"value": 0, "itemStyle": {"color": empty_color}}]
+    
+    # Заголовок с информацией о фильтрах
+    title_text = "Количество типов ячеек"
+    if filters:
+        active_filters = []
+        for key, value in filters.items():
+            if value and value != 'Все':
+                active_filters.append(f"{value}")
+        if active_filters:
+            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
+            if len(active_filters) > 3:
+                title_text += "..."
+    
+    # Простой тултип без JavaScript
+    return {
+        "title": {
+            "text": title_text,
+            "left": "center",
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#333"
+            }
+        },
+        "tooltip": {
+            "trigger": "axis",
+            "axisPointer": {"type": "shadow"},
+            "formatter": "{b}<br/>{a0}: {c0} ячеек<br/>{a1}: {c1} ячеек"
+        },
+        "legend": {
+            "data": ['Всего МХ', 'Пустые МХ'],
+            "top": "30px",
+            "textStyle": {"fontSize": 11}
+        },
+        "xAxis": {
+            "type": "category",
+            "data": categories,
+            "axisLine": {"show": True},
+            "axisTick": {"show": True},
+            "axisLabel": {
+                "rotate": 45,
+                "fontSize": 9,
+                "interval": 0  # Показывать все метки
+            }
+        },
+        "yAxis": {
+            "type": "value",
+            "name": "Количество ячеек",
+            "axisLine": {"show": True},
+            "axisTick": {"show": True},
+            "splitLine": {"show": True, "lineStyle": {"color": "#f0f0f0"}},
+            "axisLabel": {"formatter": "{value}", "fontSize": 9}
+        },
+        "series": [
+            {
+                "name": "Всего МХ",
+                "type": "bar",
+                "data": total_values,
+                "itemStyle": {
+                    "borderRadius": [4, 4, 0, 0]
+                },
+                "label": {
+                    "show": True,
+                    "position": "top",
+                    "formatter": "{c}",
+                    "fontSize": 8
+                }
+            },
+            {
+                "name": "Пустые МХ",
+                "type": "bar",
+                "data": empty_values,
+                "itemStyle": {
+                    "borderRadius": [4, 4, 0, 0]
+                },
+                "label": {
+                    "show": True,
+                    "position": "top",
+                    "formatter": "{c}",
+                    "fontSize": 8
+                }
+            }
+        ],
+        "grid": {
+            "left": "5%",
+            "right": "5%",
+            "bottom": "25%",
+            "top": "20%",
+            "containLabel": True
+        },
+        "animationDuration": 1000
+    }

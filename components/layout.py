@@ -2,7 +2,7 @@ import base64
 from dash import html, dcc
 from datetime import datetime, timedelta
 import dash_echarts
-from components.modals import create_analytics_modal, create_fines_modal, create_idle_detail_modal
+from components.modals import create_analytics_modal, create_fines_modal, create_idle_detail_modal, create_storage_cells_modal
 from components.tabs.general_tab import create_general_tab
 from components.tabs.productivity_tab import create_productivity_tab
 from components.tabs.timeliness_tab import create_timeliness_tab
@@ -40,6 +40,7 @@ def create_layout():
         create_analytics_modal(),
         create_fines_modal(),
         create_idle_detail_modal(),  # ДОБАВЛЕНО НОВОЕ ОКНО
+        create_storage_cells_modal(),
         
         # Store компоненты для хранения состояния
         dcc.Store(id='selected-employee', data=''),
@@ -48,6 +49,15 @@ def create_layout():
         dcc.Store(id='timeliness-period', data='week'),
         dcc.Store(id='timeliness-data', data={}),
         dcc.Store(id='fines-data', data={}),
+        dcc.Store(id='storage-all-data', data={}),
+        dcc.Store(id='storage-current-filters', data={
+            'storage_type': 'Все',
+             'locating_zone': 'Все', 
+            'allocation_zone': 'Все',
+            'location_type': 'Все',
+            'work_zone': 'Все'
+         }),
+        dcc.Store(id='storage-filters', data={}),
         dcc.Store(id='fines-period', data='week'),
         dcc.Store(id='selected-fines-employee', data=''),
         dcc.Store(id='shift-comparison-data', data={}),

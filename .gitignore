@@ -16,3 +16,6 @@ __pycache__/
 # Пароли и секреты
 .env
 secrets/
+config/local_config.py
+config/production_config.py
+config/clickhouse_config.py
