@@ -11,7 +11,7 @@ from data.queries import (
     get_employee_operations_detail, get_employee_fines_details,
     get_employees_on_shift, refresh_data, get_error_hours_top_data,
     get_storage_cells_stats, get_all_storage_data, filter_storage_data,
-    get_revision_stats  # НОВЫЙ ИМПОРТ ДЛЯ РЕВИЗИЙ
+    get_revision_stats, get_placement_errors  # НОВЫЕ ИМПОРТЫ
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
@@ -67,8 +67,10 @@ def update_global_date_range_and_data(start_date, end_date):
     [Output('total-revisions-kpi', 'children'),
      Output('open-revisions-kpi', 'children'),
      Output('in-process-revisions-kpi', 'children'),
-     Output('avg-operation-time-kpi', 'children'),
-     Output('avg-productivity-kpi', 'children'),
+     Output('placement-errors-kpi', 'children'),
+     Output('placement-correct-kpi', 'children'),
+     Output('placement-errors-count-kpi', 'children'),
+     Output('placement-percentage-kpi', 'children'),
      Output('storage-cells-kpi', 'children'),
      Output('storage-cells-detail', 'children'),
      Output('order-accuracy-kpi', 'children'),
@@ -78,22 +80,21 @@ def update_global_date_range_and_data(start_date, end_date):
 def update_main_kpi_cards(date_range):
     """Обновление KPI карточек на главной вкладке"""
     if not date_range:
-        return ("0", "0", "0", "0 мин", "0 оп/ч", "0/0", 
+        return ("0", "0", "0", "0%", "0", "0", "Нет данных", "0/0", 
                 "0% занято | 0% своб.", "100%", "0 заказов без ошибок")
     
     start_date = date_range['start_date']
     end_date = date_range['end_date']
     
     try:
-        # 1. Получаем данные по ревизиям (НОВАЯ ФУНКЦИЯ)
-        revision_stats = get_revision_stats(start_date, end_date)
+        # 1. Получаем данные по ревизиям
+        revision_stats = get_revision_stats()
         
-        # 2. Получаем остальные данные (существующие функции)
-        avg_time = get_avg_operation_time(start_date, end_date)
+        # 2. Получаем данные по ошибкам размещения
+        placement_stats = get_placement_errors()
+        
+        # 3. Получаем остальные данные
         accuracy, orders_without_errors, total_orders_accuracy, error_orders = get_order_accuracy(start_date, end_date)
-        avg_productivity, active_employees = get_avg_productivity(start_date, end_date)
-        
-        # 3. Получаем статистику по ячейкам хранения
         storage_stats = get_storage_cells_stats()
         
         # 4. Форматируем KPI значения
@@ -103,13 +104,23 @@ def update_main_kpi_cards(date_range):
         open_revisions = f"{revision_stats['open_revisions']:,}"
         in_process_revisions = f"{revision_stats['in_process_revisions']:,}"
         
-        # Среднее время операции
-        avg_time_str = f"{avg_time:.1f} мин"
+        # Ошибки размещения
+        error_percentage = f"{placement_stats['error_percentage']}%"
+        correct_count = f"{placement_stats['correct_count']:,}"
+        error_count = f"{placement_stats['error_count']:,}"
         
-        # Производительность
-        avg_productivity_str = f"↗ {avg_productivity} оп/ч"
+        # Формируем детали для ошибок размещения
+        placement_detail = ""
+        if placement_stats['total_count'] > 0:
+            placement_detail = f"{placement_stats['total_count']:,} всего"
+            if placement_stats['unique_users'] > 0:
+                placement_detail += f" | {placement_stats['unique_users']} пользователей"
+            if placement_stats['unique_items'] > 0:
+                placement_detail += f" | {placement_stats['unique_items']} позиций"
+        else:
+            placement_detail = "Нет данных за 2025"
         
-        # Ячейки хранения (ИСПРАВЛЕННЫЙ ФОРМАТ: занято/свободно)
+        # Ячейки хранения
         storage_kpi = f"{storage_stats['occupied_cells']}/{storage_stats['free_cells']}"
         storage_detail = f"{storage_stats['occupied_percent']}% занято | {storage_stats['free_percent']}% своб."
         
@@ -121,8 +132,10 @@ def update_main_kpi_cards(date_range):
             total_revisions,
             open_revisions,
             in_process_revisions,
-            avg_time_str,
-            avg_productivity_str,
+            error_percentage,
+            correct_count,
+            error_count,
+            placement_detail,
             storage_kpi,
             storage_detail,
             accuracy_str,
@@ -130,7 +143,9 @@ def update_main_kpi_cards(date_range):
         )
     except Exception as e:
         print(f"Error in update_main_kpi_cards: {e}")
-        return ("0", "0", "0", "0 мин", "0 оп/ч", "0/0", 
+        import traceback
+        traceback.print_exc()
+        return ("0", "0", "0", "0%", "0", "0", "Ошибка загрузки", "0/0", 
                 "0% занято | 0% своб.", "100%", "0 заказов без ошибок")
 
 # Callback для обновления таблицы сотрудников на смене
@@ -307,52 +322,52 @@ def update_shift_stats_info(date_range):
                 'time': emp.get('Время_первой_операции', '--:--')
             })
         
-        # Создаем визуализацию (ОТРЕГУЛИРОВАННЫЕ РАЗМЕРЫ - шрифт как в таблице)
+        # Создаем визуализацию
         position_cards = []
         for position, stats in position_analysis.items():
             if position != 'Не указана':
                 position_cards.append(
                     html.Div([
                         html.Div([
-                            html.Strong(position, style={'fontSize': '14px', 'color': '#333'}),  # ТАКОЙ ЖЕ как в таблице
-                            html.Span(f" ({stats['total']} чел.)", style={'fontSize': '12px', 'color': '#666'})  # Немного меньше
-                        ], style={'marginBottom': '6px'}),  # Немного отступа
+                            html.Strong(position, style={'fontSize': '14px', 'color': '#333'}),
+                            html.Span(f" ({stats['total']} чел.)", style={'fontSize': '12px', 'color': '#666'})
+                        ], style={'marginBottom': '6px'}),
                         
                         html.Div([
                             html.Div([
                                 html.Span("✅", style={'marginRight': '4px', 'fontSize': '12px'}),
                                 html.Span(f"{stats['on_work']} на работе", 
-                                        style={'color': '#4CAF50', 'fontWeight': 'bold', 'fontSize': '12px'})  # 12px для компактности
+                                        style={'color': '#4CAF50', 'fontWeight': 'bold', 'fontSize': '12px'})
                             ], style={'flex': '1', 'textAlign': 'center'}),
                             
                             html.Div([
                                 html.Span("❌", style={'marginRight': '4px', 'fontSize': '12px'}),
                                 html.Span(f"{stats['not_come']} не вышли", 
-                                        style={'color': '#F44336', 'fontWeight': 'bold', 'fontSize': '12px'})  # 12px для компактности
+                                        style={'color': '#F44336', 'fontWeight': 'bold', 'fontSize': '12px'})
                             ], style={'flex': '1', 'textAlign': 'center'})
                         ], style={'display': 'flex', 'justifyContent': 'space-between'})
                     ], style={
                         'background': '#fff',
                         'border': '1px solid #e0e0e0',
                         'borderRadius': '6px',
-                        'padding': '10px',  # Увеличено для лучшего отображения текста
+                        'padding': '10px',
                         'marginBottom': '8px',
                         'boxShadow': '0 1px 2px rgba(0,0,0,0.1)'
                     })
                 )
         
         return html.Div([
-            # Общая статистика (ШРИФТ КАК В ТАБЛИЦЕ)
+            # Общая статистика
             html.Div([
                 html.H4("Общая статистика смены", 
-                       style={'marginBottom': '12px', 'color': '#1976d2', 'fontSize': '18px', 'fontWeight': 'bold'}),  # Заголовок побольше
+                       style={'marginBottom': '12px', 'color': '#1976d2', 'fontSize': '18px', 'fontWeight': 'bold'}),
                 
                 html.Div([
                     html.Div([
                         html.Div(f"{len(employees)}", 
-                               style={'fontSize': '28px', 'fontWeight': 'bold', 'color': '#1976d2', 'textAlign': 'center'}),  # Увеличен
+                               style={'fontSize': '28px', 'fontWeight': 'bold', 'color': '#1976d2', 'textAlign': 'center'}),
                         html.Div("Всего сотрудников", 
-                               style={'fontSize': '12px', 'color': '#666', 'textAlign': 'center'})  # 12px как в таблице
+                               style={'fontSize': '12px', 'color': '#666', 'textAlign': 'center'})
                     ], style={'flex': '1', 'padding': '8px'}),
                     
                     html.Div([
@@ -376,7 +391,7 @@ def update_shift_stats_info(date_range):
                 html.H4("Анализ по должностям", 
                        style={'marginBottom': '12px', 'color': '#ed6c02', 'fontSize': '18px', 'fontWeight': 'bold'}),
                 
-                html.Div(position_cards, style={'maxHeight': '380px', 'overflowY': 'auto'})  # Оставили прокрутку на случай большого количества должностей
+                html.Div(position_cards, style={'maxHeight': '380px', 'overflowY': 'auto'})
             ])
         ], style={'height': '100%', 'overflow': 'hidden'})
         

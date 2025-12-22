@@ -7,7 +7,7 @@ def create_general_tab():
     return html.Div([
         # KPI карточки
         html.Div([
-            # НОВАЯ КАРТОЧКА: Кол-во ревизий по событию (заменяет "Собрано заказов вовремя")
+            # Карточка 1: Кол-во ревизий по событию (заменяет "Собрано заказов вовремя")
             html.Div([
                 html.Div([
                     html.Span("Кол-во ревизий по событию", 
@@ -43,17 +43,51 @@ def create_general_tab():
                 ], style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'lineHeight': '1.4'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s'}),
             
-            # Существующие карточки (остаются без изменений)
+            # Карточка 2: Ошибки при размещении (заменяет "Ср. время операции")
             html.Div([
-                html.Div("Ср. время операции", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="avg-operation-time-kpi", style={'color': '#1976d2', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="avg-productivity-kpi", style={'color': '#1976d2', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div([
+                    html.Span("Ошибки при размещении", 
+                             style={'verticalAlign': 'middle'}),
+                    html.Button(
+                        "ℹ️",
+                        id="open-placement-info",
+                        title="Подробная информация",
+                        style={
+                            'background': 'transparent',
+                            'border': 'none',
+                            'fontSize': '12px',
+                            'cursor': 'pointer',
+                            'color': '#1976d2',
+                            'marginLeft': '6px',
+                            'padding': '1px 4px',
+                            'borderRadius': '3px',
+                            'transition': 'all 0.2s ease',
+                            'verticalAlign': 'middle'
+                        }
+                    )
+                ], style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div(id="placement-errors-kpi", style={'color': '#1976d2', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div([
+                    html.Div([
+                        html.Span("✅ Верно: ", style={'fontWeight': 'bold'}),
+                        html.Span(id="placement-correct-kpi", style={'color': '#4CAF50'})
+                    ], style={'marginBottom': '4px'}),
+                    html.Div([
+                        html.Span("❌ Ошибок: ", style={'fontWeight': 'bold'}),
+                        html.Span(id="placement-errors-count-kpi", style={'color': '#f44336'})
+                    ], style={'marginBottom': '4px'}),
+                    html.Div(id="placement-percentage-kpi", style={'fontSize': '11px', 'color': '#666'})
+                ], style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'lineHeight': '1.4'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.3s'}),
+            
+            # Карточка 3: Точность заказов (остается без изменений)
             html.Div([
                 html.Div("Точность заказов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="order-accuracy-kpi", style={'color': '#ed6c02', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="order-accuracy-detail", style={'color': '#ed6c02', 'fontSize': '14px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
+            
+            # Карточка 4: Ячейки хранения (остается без изменений)
             html.Div([
                 html.Div([
                     html.Span("Ячейки хранения своб/зан", 

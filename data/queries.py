@@ -2385,3 +2385,122 @@ def get_revision_stats(start_date=None, end_date=None):
             'open_revisions': 0,
             'in_process_revisions': 0
         }
+    
+def get_placement_errors():
+    """
+    Получение количества ошибок при размещении
+    
+    Логика:
+    1. Фильтруем записи: WORK_TYPE = 'Размещение KC', 
+                        INSTRUCTION_TYPE = 'Detail', 
+                        CONDITION = 'Closed'
+    2. Присоединяем таблицу raw_item для получения ITEM_CATEGORY9
+    3. Фильтруем по 2025 году из DATE_TIME_STAMP
+    4. Определяем статус "Верно"/"Ошибка" по правилам:
+       - Если ITEM_CATEGORY9 = "A" или "B" И LOCATING_ZONE = "KC_ST_A" или "KC_ST_B" → "Верно"
+       - Если ITEM_CATEGORY9 = "C" И LOCATING_ZONE = "KC_ST_C" → "Верно"
+       - В остальных случаях → "Ошибка"
+    5. Считаем количество ошибок и верных размещений
+    """
+    query = """
+    WITH placement_data AS (
+        SELECT 
+            w.COMPLETED_BY_USER,
+            w.ITEM,
+            w.LOCATING_ZONE,
+            i.ITEM_CATEGORY9,
+            w.DATE_TIME_STAMP
+        FROM olap.raw_work_instruction_view2 w
+        LEFT JOIN olap.raw_item i ON w.ITEM = i.ITEM
+        WHERE w.WORK_TYPE = 'Размещение KC'
+            AND w.INSTRUCTION_TYPE = 'Detail'
+            AND w.CONDITION = 'Closed'
+            AND w.DATE_TIME_STAMP IS NOT NULL
+            AND w.DATE_TIME_STAMP != ''
+            AND toYear(parseDateTimeBestEffortOrNull(w.DATE_TIME_STAMP)) = 2025
+    ),
+    categorized_data AS (
+        SELECT 
+            COMPLETED_BY_USER,
+            ITEM,
+            LOCATING_ZONE,
+            ITEM_CATEGORY9,
+            DATE_TIME_STAMP,
+            CASE 
+                WHEN (ITEM_CATEGORY9 IN ('A', 'B') AND LOCATING_ZONE IN ('KC_ST_A', 'KC_ST_B')) 
+                     OR (ITEM_CATEGORY9 = 'C' AND LOCATING_ZONE = 'KC_ST_C')
+                THEN 'Верно'
+                ELSE 'Ошибка'
+            END as placement_status
+        FROM placement_data
+        WHERE ITEM_CATEGORY9 IS NOT NULL
+            AND ITEM_CATEGORY9 != ''
+            AND LOCATING_ZONE IS NOT NULL
+            AND LOCATING_ZONE != ''
+    )
+    SELECT 
+        placement_status,
+        COUNT(*) as count,
+        COUNT(DISTINCT COMPLETED_BY_USER) as unique_users,
+        COUNT(DISTINCT ITEM) as unique_items
+    FROM categorized_data
+    GROUP BY placement_status
+    """
+    
+    try:
+        result = execute_query_cached(query)
+        
+        print(f"[DEBUG] get_placement_errors результат: {result}")
+        
+        # Извлекаем значения
+        correct_count = 0
+        error_count = 0
+        unique_users = 0
+        unique_items = 0
+        
+        if result:
+            for row in result:
+                status = row[0] if row[0] else ''
+                count = int(float(row[1])) if row[1] else 0
+                users = int(float(row[2])) if row[2] else 0
+                items = int(float(row[3])) if row[3] else 0
+                
+                if status == 'Верно':
+                    correct_count = count
+                elif status == 'Ошибка':
+                    error_count = count
+                
+                # Берем максимум из уникальных пользователей/предметов
+                unique_users = max(unique_users, users)
+                unique_items = max(unique_items, items)
+        
+        total_count = correct_count + error_count
+        
+        # Рассчитываем процент ошибок
+        error_percentage = 0
+        if total_count > 0:
+            error_percentage = round((error_count / total_count) * 100, 1)
+        
+        print(f"[DEBUG] Итог: Верно={correct_count}, Ошибок={error_count}, Всего={total_count}, % ошибок={error_percentage}%")
+        
+        return {
+            'correct_count': correct_count,
+            'error_count': error_count,
+            'total_count': total_count,
+            'error_percentage': error_percentage,
+            'unique_users': unique_users,
+            'unique_items': unique_items
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Ошибка в get_placement_errors: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'correct_count': 0,
+            'error_count': 0,
+            'total_count': 0,
+            'error_percentage': 0,
+            'unique_users': 0,
+            'unique_items': 0
+        }
