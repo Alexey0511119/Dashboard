@@ -7,11 +7,43 @@ def create_general_tab():
     return html.Div([
         # KPI карточки
         html.Div([
+            # НОВАЯ КАРТОЧКА: Кол-во ревизий по событию (заменяет "Собрано заказов вовремя")
             html.Div([
-                html.Div("Собрано заказов вовремя", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="orders-timely-kpi", style={'color': '#2e7d32', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="orders-percentage-kpi", style={'color': '#2e7d32', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div([
+                    html.Span("Кол-во ревизий по событию", 
+                             style={'verticalAlign': 'middle'}),
+                    html.Button(
+                        "ℹ️",
+                        id="open-revision-info",
+                        title="Подробная информация",
+                        style={
+                            'background': 'transparent',
+                            'border': 'none',
+                            'fontSize': '12px',
+                            'cursor': 'pointer',
+                            'color': '#2e7d32',
+                            'marginLeft': '6px',
+                            'padding': '1px 4px',
+                            'borderRadius': '3px',
+                            'transition': 'all 0.2s ease',
+                            'verticalAlign': 'middle'
+                        }
+                    )
+                ], style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div(id="total-revisions-kpi", style={'color': '#2e7d32', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div([
+                    html.Div([
+                        html.Span("📋 Открыто: ", style={'fontWeight': 'bold'}),
+                        html.Span(id="open-revisions-kpi", style={'color': '#ff9800'})
+                    ], style={'marginBottom': '4px'}),
+                    html.Div([
+                        html.Span("⏳ На согласовании: ", style={'fontWeight': 'bold'}),
+                        html.Span(id="in-process-revisions-kpi", style={'color': '#2196f3'})
+                    ], style={})
+                ], style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'lineHeight': '1.4'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s'}),
+            
+            # Существующие карточки (остаются без изменений)
             html.Div([
                 html.Div("Ср. время операции", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="avg-operation-time-kpi", style={'color': '#1976d2', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),

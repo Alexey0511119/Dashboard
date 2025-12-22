@@ -10,7 +10,8 @@ from data.queries import (
     get_order_timeliness, get_fines_data, get_employee_analytics,
     get_employee_operations_detail, get_employee_fines_details,
     get_employees_on_shift, refresh_data, get_error_hours_top_data,
-    get_storage_cells_stats, get_all_storage_data, filter_storage_data
+    get_storage_cells_stats, get_all_storage_data, filter_storage_data,
+    get_revision_stats  # НОВЫЙ ИМПОРТ ДЛЯ РЕВИЗИЙ
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
@@ -18,9 +19,8 @@ from components.charts import (
     create_time_distribution_pie_echarts, create_idle_intervals_bar_echarts,
     create_fines_pie_chart, create_fines_amount_bar_chart,
     create_employee_fines_chart,
-    create_empty_pie_chart, create_types_pie_chart, create_types_bar_chart  # ИСПРАВЛЕННЫЙ ИМПОРТ
+    create_empty_pie_chart, create_types_pie_chart, create_types_bar_chart
 )
-
 from components.tables import create_performance_table
 
 # Callback для обновления времени последнего обновления
@@ -64,8 +64,9 @@ def update_global_date_range_and_data(start_date, end_date):
 
 # Callback для обновления KPI карточек на главной вкладке
 @callback(
-    [Output('orders-timely-kpi', 'children'),
-     Output('orders-percentage-kpi', 'children'),
+    [Output('total-revisions-kpi', 'children'),
+     Output('open-revisions-kpi', 'children'),
+     Output('in-process-revisions-kpi', 'children'),
      Output('avg-operation-time-kpi', 'children'),
      Output('avg-productivity-kpi', 'children'),
      Output('storage-cells-kpi', 'children'),
@@ -77,37 +78,60 @@ def update_global_date_range_and_data(start_date, end_date):
 def update_main_kpi_cards(date_range):
     """Обновление KPI карточек на главной вкладке"""
     if not date_range:
-        return "0", "0%", "0 мин", "0 оп/ч", "0/0", "0% занято | 0% своб.", "100%", "0 заказов без ошибок"
+        return ("0", "0", "0", "0 мин", "0 оп/ч", "0/0", 
+                "0% занято | 0% своб.", "100%", "0 заказов без ошибок")
     
     start_date = date_range['start_date']
     end_date = date_range['end_date']
     
     try:
-        timely_orders, delayed_orders, total_orders, percentage = get_orders_timely(start_date, end_date)
+        # 1. Получаем данные по ревизиям (НОВАЯ ФУНКЦИЯ)
+        revision_stats = get_revision_stats(start_date, end_date)
+        
+        # 2. Получаем остальные данные (существующие функции)
         avg_time = get_avg_operation_time(start_date, end_date)
         accuracy, orders_without_errors, total_orders_accuracy, error_orders = get_order_accuracy(start_date, end_date)
         avg_productivity, active_employees = get_avg_productivity(start_date, end_date)
         
-        # Получаем статистику по ячейкам хранения
+        # 3. Получаем статистику по ячейкам хранения
         storage_stats = get_storage_cells_stats()
         
-        # ИСПРАВЛЕННЫЙ ФОРМАТ: занято/свободно
+        # 4. Форматируем KPI значения
+        
+        # Ревизии
+        total_revisions = f"{revision_stats['total_revisions']:,}"
+        open_revisions = f"{revision_stats['open_revisions']:,}"
+        in_process_revisions = f"{revision_stats['in_process_revisions']:,}"
+        
+        # Среднее время операции
+        avg_time_str = f"{avg_time:.1f} мин"
+        
+        # Производительность
+        avg_productivity_str = f"↗ {avg_productivity} оп/ч"
+        
+        # Ячейки хранения (ИСПРАВЛЕННЫЙ ФОРМАТ: занято/свободно)
         storage_kpi = f"{storage_stats['occupied_cells']}/{storage_stats['free_cells']}"
         storage_detail = f"{storage_stats['occupied_percent']}% занято | {storage_stats['free_percent']}% своб."
         
+        # Точность заказов
+        accuracy_str = f"{accuracy:.1f}%"
+        accuracy_detail = f"↗ {orders_without_errors:,} заказов без ошибок"
+        
         return (
-            f"{timely_orders:,}",
-            f"↗ {percentage}% ({total_orders} всего)",
-            f"{avg_time:.1f} мин",
-            f"↗ {avg_productivity} оп/ч",
-            storage_kpi,  # ИСПРАВЛЕНО: занято/свободно
+            total_revisions,
+            open_revisions,
+            in_process_revisions,
+            avg_time_str,
+            avg_productivity_str,
+            storage_kpi,
             storage_detail,
-            f"{accuracy:.1f}%",
-            f"↗ {orders_without_errors:,} заказов без ошибок"
+            accuracy_str,
+            accuracy_detail
         )
     except Exception as e:
         print(f"Error in update_main_kpi_cards: {e}")
-        return "0", "0%", "0 мин", "0 оп/ч", "0/0", "0% занято | 0% своб.", "100%", "0 заказов без ошибок"
+        return ("0", "0", "0", "0 мин", "0 оп/ч", "0/0", 
+                "0% занято | 0% своб.", "100%", "0 заказов без ошибок")
 
 # Callback для обновления таблицы сотрудников на смене
 @callback(

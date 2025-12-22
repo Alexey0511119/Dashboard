@@ -2292,3 +2292,96 @@ def filter_storage_data(all_data, filters):
             'by_location_type': chart_data_by_type[:100]  # Топ-15 типов
         }
     }
+
+# Получение данных по ревизиям по событию
+def get_revision_stats(start_date=None, end_date=None):
+    """
+    Получение статистики по ревизиям по событию
+    В таблице нет поля date, поэтому используем все записи
+    """
+    print(f"[DEBUG] get_revision_stats вызвана")
+    
+    # Тестовый запрос: посмотреть все данные в таблице
+    query_test = """
+    SELECT 
+        WORK_TYPE,
+        INSTRUCTION_TYPE,
+        CONDITION,
+        COUNT(*) as count
+    FROM olap.raw_work_instruction_view2 
+    GROUP BY WORK_TYPE, INSTRUCTION_TYPE, CONDITION
+    ORDER BY count DESC
+    """
+    
+    try:
+        # Сначала выполняем тестовый запрос
+        test_result = execute_query_cached(query_test)
+        
+        print(f"[DEBUG] Всего найдено {len(test_result)} комбинаций данных:")
+        for row in test_result:
+            work_type = row[0] if row[0] else ''
+            instr_type = row[1] if row[1] else ''
+            condition = row[2] if row[2] else ''
+            count = int(float(row[3])) if row[3] else 0
+            
+            print(f"[DEBUG] WORK_TYPE='{work_type}', INSTRUCTION_TYPE='{instr_type}', CONDITION='{condition}': {count} шт.")
+        
+        # Основные запросы (БЕЗ ФИЛЬТРА ПО DATE - его нет в таблице!)
+        
+        # 1. Открытые ревизии (Detail + Open)
+        query_open = """
+        SELECT 
+            COUNT(*) as open_revisions
+        FROM olap.raw_work_instruction_view2 
+        WHERE WORK_TYPE = 'Ревизия по событию'
+            AND INSTRUCTION_TYPE = 'Detail'
+            AND CONDITION = 'Open'
+        """
+        
+        # 2. Ревизии на согласовании (Header + In Process)
+        query_in_process = """
+        SELECT 
+            COUNT(*) as in_process_revisions
+        FROM olap.raw_work_instruction_view2 
+        WHERE WORK_TYPE = 'Ревизия по событию'
+            AND INSTRUCTION_TYPE = 'Header'
+            AND CONDITION = 'In Process'
+        """
+        
+        # Выполняем запросы
+        open_result = execute_query_cached(query_open)
+        in_process_result = execute_query_cached(query_in_process)
+        
+        # Извлекаем значения
+        open_revisions = 0
+        in_process_revisions = 0
+        
+        if open_result and open_result[0] and open_result[0][0]:
+            open_revisions = int(float(open_result[0][0]))
+        
+        if in_process_result and in_process_result[0] and in_process_result[0][0]:
+            in_process_revisions = int(float(in_process_result[0][0]))
+        
+        # Общее количество (сумма открытых и на согласовании)
+        total_revisions = open_revisions + in_process_revisions
+        
+        print(f"[DEBUG] Статистика по ревизиям:")
+        print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Detail', CONDITION='Open': {open_revisions} шт.")
+        print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Header', CONDITION='In Process': {in_process_revisions} шт.")
+        print(f"[DEBUG] - Всего ревизий: {total_revisions}")
+        
+        return {
+            'total_revisions': total_revisions,
+            'open_revisions': open_revisions,
+            'in_process_revisions': in_process_revisions
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Ошибка в get_revision_stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'total_revisions': 0,
+            'open_revisions': 0,
+            'in_process_revisions': 0
+        }
