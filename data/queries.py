@@ -2504,3 +2504,80 @@ def get_placement_errors():
             'unique_users': 0,
             'unique_items': 0
         }
+    
+# Получение количества отклоненных строк в заказах
+def get_rejected_lines_count(start_date, end_date):
+    """Получение количества отклоненных строк в заказах по полю DATE_TIME_STAMP"""
+    query = """
+    SELECT 
+        COUNT(*) as rejected_lines_count
+    FROM dwh.cube_shipment_detail 
+    WHERE DATE(DATE_TIME_STAMP) BETWEEN %(start_date)s AND %(end_date)s
+        AND DATE_TIME_STAMP IS NOT NULL
+    """
+    
+    result = execute_query_cached(query, {
+        'start_date': start_date,
+        'end_date': end_date
+    })
+    
+    rejected_count = 0
+    if result and result[0] and result[0][0]:
+        rejected_count = int(float(result[0][0]))
+    
+    print(f"[DEBUG] Отклоненных строк за период {start_date} - {end_date}: {rejected_count}")
+    return rejected_count
+
+# Получение детальной информации по отклоненным строкам
+def get_rejected_lines_details(start_date, end_date):
+    """Получение детальной информации по отклоненным строкам"""
+    query = """
+    SELECT 
+        SHIPMENT_ID,
+        ITEM,
+        ITEM_DESC,
+        REQUESTED_QTY,
+        QUANTITY_UM,
+        PICK_LOC,
+        PICK_ZONE,
+        DATE_TIME_STAMP
+    FROM dwh.cube_shipment_detail 
+    WHERE DATE(DATE_TIME_STAMP) BETWEEN %(start_date)s AND %(end_date)s
+        AND DATE_TIME_STAMP IS NOT NULL
+    ORDER BY DATE_TIME_STAMP DESC
+    LIMIT 1000
+    """
+    
+    result = execute_query_cached(query, {
+        'start_date': start_date,
+        'end_date': end_date
+    })
+    
+    rejected_lines = []
+    if result:
+        for row in result:
+            try:
+                # Преобразуем дату в строку для корректного отображения
+                date_str = ""
+                if row[7]:  # DATE_TIME_STAMP
+                    if isinstance(row[7], str):
+                        date_str = row[7]
+                    else:
+                        date_str = str(row[7])
+                
+                rejected_lines.append({
+                    'SHIPMENT_ID': row[0] if row[0] else '',
+                    'ITEM': row[1] if row[1] else '',
+                    'ITEM_DESC': row[2] if row[2] else '',
+                    'REQUESTED_QTY': float(row[3]) if row[3] else 0.0,
+                    'QUANTITY_UM': row[4] if row[4] else '',
+                    'PICK_LOC': row[5] if row[5] else '',
+                    'PICK_ZONE': row[6] if row[6] else '',
+                    'DATE_TIME_STAMP': date_str
+                })
+            except Exception as e:
+                print(f"Ошибка обработки строки отклоненного заказа: {e}")
+                continue
+    
+    print(f"[DEBUG] Детали отклоненных строк: {len(rejected_lines)} записей")
+    return rejected_lines    

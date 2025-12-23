@@ -2,7 +2,7 @@ import base64
 from dash import html, dcc
 from datetime import datetime, timedelta
 import dash_echarts
-from components.modals import create_analytics_modal, create_fines_modal, create_idle_detail_modal, create_storage_cells_modal
+from components.modals import create_analytics_modal, create_fines_modal, create_idle_detail_modal, create_storage_cells_modal, create_rejected_lines_modal
 from components.tabs.general_tab import create_general_tab
 from components.tabs.productivity_tab import create_productivity_tab
 from components.tabs.timeliness_tab import create_timeliness_tab
@@ -41,6 +41,7 @@ def create_layout():
         create_fines_modal(),
         create_idle_detail_modal(),  # ДОБАВЛЕНО НОВОЕ ОКНО
         create_storage_cells_modal(),
+        create_rejected_lines_modal(),
         
         # Store компоненты для хранения состояния
         dcc.Store(id='selected-employee', data=''),

@@ -225,7 +225,7 @@ def create_idle_detail_modal():
                     dash_echarts.DashECharts(
                         id="idle-timeline-chart",
                         option={},
-                        style={'height': '500px', 'width': '100%'}
+                        style={'height': 'px700', 'width': '100%'}
                     )
                 ], className='analytics-chart-card', style={'height': '550px'}),
                 
@@ -409,3 +409,82 @@ def create_storage_cells_modal():
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
         ], id="storage-modal-content", className="modal-content")
     ], id="storage-cells-modal", className="modal-hidden")
+
+def create_rejected_lines_modal():
+    """Создание модального окна с таблицей отклоненных строк"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детализация отклоненных строк в заказах", 
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕", 
+                    id="close-rejected-lines-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # KPI карточки
+                html.Div([
+                    html.Div([
+                        html.Div("Всего отклоненных строк", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="total-rejected-lines-kpi", style={'color': '#9C27B0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Уникальных заказов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="unique-orders-kpi", style={'color': '#673AB7', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Уникальных товаров", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="unique-items-kpi", style={'color': '#3F51B5', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Последнее отклонение", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="last-rejection-date", style={'color': '#666', 'fontSize': '20px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card')
+                ], className="analytics-kpi-row", style={'marginBottom': '20px', 'gridTemplateColumns': '1fr 1fr 1fr 1fr'}),
+                
+                # Таблица отклоненных строк
+                html.Div([
+                    html.H4("Таблица отклоненных строк", 
+                           style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                    html.Div([
+                        html.Table([
+                            html.Thead(html.Tr([
+                                html.Th("SHIPMENT_ID", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ITEM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ITEM_DESC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("REQUESTED_QTY", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("QUANTITY_UM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("PICK_LOC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("PICK_ZONE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("DATE_TIME_STAMP", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'})
+                            ])),
+                            html.Tbody(id="rejected-lines-table-body")
+                        ], style={'width': '100%', 'borderCollapse': 'collapse'})
+                    ], style={'maxHeight': '500px', 'overflowY': 'auto', 'border': '1px solid #eee', 'borderRadius': '8px'})
+                ], style={'marginTop': '20px'})
+                
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="rejected-lines-modal-content", className="modal-content")
+    ], id="rejected-lines-modal", className="modal-hidden")

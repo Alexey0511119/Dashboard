@@ -359,3 +359,27 @@ def update_error_hours_chart(error_hours):
     result = create_error_hours_chart(error_hours)
     print(f"DEBUG: Диаграмма создана, возвращаем результат")
     return result
+
+# Callback для обновления KPI отклоненных строк
+@callback(
+    [Output('rejected-lines-kpi', 'children'),
+     Output('rejected-lines-detail', 'children')],
+    [Input('global-date-range', 'data')]
+)
+def update_rejected_lines_kpi(date_range):
+    """Обновление KPI отклоненных строк"""
+    if not date_range:
+        return "0", ""
+    
+    start_date = date_range['start_date']
+    end_date = date_range['end_date']
+    
+    try:
+        # Нужно будет импортировать функцию get_rejected_lines_count
+        from data.queries import get_rejected_lines_count
+        rejected_count = get_rejected_lines_count(start_date, end_date)
+        
+        return str(rejected_count), f"1 строка = 1 отмененный заказ"
+    except Exception as e:
+        print(f"Error in update_rejected_lines_kpi: {e}")
+        return "0", ""

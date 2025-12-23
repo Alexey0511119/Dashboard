@@ -7,6 +7,8 @@ from callbacks.main_callbacks import *
 from callbacks.tab_callbacks import *
 from callbacks.modal_callbacks import *
 from data.queries import refresh_data
+# Добавим импорт для нового модального окна
+from components.modals import create_rejected_lines_modal
 
 # Инициализация приложения Dash
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
@@ -126,15 +128,21 @@ app.index_string = f'''
                 border-bottom: 3px solid #1976d2;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             }}
+            /* ИЗМЕНЕННЫЙ СТИЛЬ ДЛЯ 5 КАРТОЧЕК - используем flexbox */
             .kpi-row {{
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
+                display: flex;
+                flex-wrap: nowrap;
                 gap: 15px;
                 margin-bottom: 25px;
+                overflow-x: auto;
+                padding-bottom: 10px;
             }}
             .kpi-card {{
+                flex: 1 0 19%; /* 5 карточек по ~19% каждая */
+                min-width: 240px;
+                max-width: 280px;
                 background: white;
-                padding: 25px;
+                padding: 20px;
                 border-radius: 12px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -400,6 +408,21 @@ app.index_string = f'''
             .poor-performance {{
                 color: #F44336 !important;
                 font-weight: bold;
+            }}
+            /* Стили для скроллбара в ряду карточек */
+            .kpi-row::-webkit-scrollbar {{
+                height: 6px;
+            }}
+            .kpi-row::-webkit-scrollbar-track {{
+                background: #f1f1f1;
+                border-radius: 3px;
+            }}
+            .kpi-row::-webkit-scrollbar-thumb {{
+                background: #888;
+                border-radius: 3px;
+            }}
+            .kpi-row::-webkit-scrollbar-thumb:hover {{
+                background: #555;
             }}
         </style>
     </head>
