@@ -529,7 +529,8 @@ def load_storage_data(modal_class):
         return all_data
     return dash.no_update
 
-# Callback для обновления фильтров и диаграмм
+# Добавьте новый Input в callback update_storage_filters_and_charts:
+
 @callback(
     [Output("filter-storage-type", "options"),
      Output("filter-locating-zone", "options"),
@@ -549,11 +550,16 @@ def load_storage_data(modal_class):
      Input("filter-allocation-zone", "value"),
      Input("filter-location-type", "value"),
      Input("filter-work-zone", "value"),
+     Input("filter-only-empty", "value"),
      Input("storage-all-data", "data")]
 )
 def update_storage_filters_and_charts(storage_type_val, locating_zone_val, allocation_zone_val, 
-                                     location_type_val, work_zone_val, all_data):
+                                     location_type_val, work_zone_val, only_empty_val, all_data):
     """Обновление фильтров и диаграмм на основе выбранных значений"""
+    
+    print(f"=== DEBUG update_storage_filters_and_charts ===")
+    print(f"Only empty checkbox value: {only_empty_val}")
+    print(f"Is only empty active: {'empty' in only_empty_val if only_empty_val else False}")
     
     if not all_data or 'all_data' not in all_data:
         # Возвращаем пустые опции если данных нет
@@ -563,16 +569,19 @@ def update_storage_filters_and_charts(storage_type_val, locating_zone_val, alloc
             empty_options, empty_options, empty_options, empty_options, empty_options,
             "0", "0", "0", "0%", empty_chart, empty_chart, empty_chart,
             {'storage_type': 'Все', 'locating_zone': 'Все', 'allocation_zone': 'Все', 
-             'location_type': 'Все', 'work_zone': 'Все'}
+             'location_type': 'Все', 'work_zone': 'Все', 'only_empty': False}
         )
     
     # Текущие фильтры
+    is_only_empty = True if only_empty_val and 'empty' in only_empty_val else False
+    
     current_filters = {
         'storage_type': storage_type_val if storage_type_val != 'Все' else None,
         'locating_zone': locating_zone_val if locating_zone_val != 'Все' else None,
         'allocation_zone': allocation_zone_val if allocation_zone_val != 'Все' else None,
         'location_type': location_type_val if location_type_val != 'Все' else None,
-        'work_zone': work_zone_val if work_zone_val != 'Все' else None
+        'work_zone': work_zone_val if work_zone_val != 'Все' else None,
+        'only_empty': is_only_empty
     }
     
     # Фильтруем данные
@@ -597,13 +606,22 @@ def update_storage_filters_and_charts(storage_type_val, locating_zone_val, alloc
     
     # Форматируем KPI
     summary = filtered_result['summary']
-    total_cells = f"{summary['total']:,}"
-    occupied_cells = f"{summary['occupied']:,}"
-    free_cells = f"{summary['empty']:,}"
     
-    occupied_percent = 0
-    if summary['total'] > 0:
-        occupied_percent = round((summary['occupied'] / summary['total']) * 100, 1)
+    # Показываем данные в зависимости от фильтра "только пустые"
+    if is_only_empty:
+        # Если выбрана галочка "только пустые", показываем только пустые ячейки
+        total_cells = f"{summary['empty']:,}"
+        occupied_cells = "0"
+        free_cells = f"{summary['empty']:,}"
+        occupied_percent = 0
+    else:
+        total_cells = f"{summary['total']:,}"
+        occupied_cells = f"{summary['occupied']:,}"
+        free_cells = f"{summary['empty']:,}"
+        occupied_percent = 0
+        if summary['total'] > 0:
+            occupied_percent = round((summary['occupied'] / summary['total']) * 100, 1)
+    
     occupied_percent_str = f"{occupied_percent}%"
     
     # Создаем диаграммы
@@ -611,14 +629,27 @@ def update_storage_filters_and_charts(storage_type_val, locating_zone_val, alloc
     types_pie_chart = create_types_pie_chart(filtered_result['chart_data'], current_filters)
     types_bar_chart = create_types_bar_chart(filtered_result['chart_data'], current_filters)
     
+    # ВАЖНОЕ ИЗМЕНЕНИЕ: Добавляем timestamp к диаграмме чтобы избежать кэширования
+    import time
+    timestamp = int(time.time() * 1000)
+    
+    # Добавляем timestamp к конфигурации диаграммы
+    if 'title' in types_bar_chart:
+        original_title = types_bar_chart['title'].get('text', '')
+        types_bar_chart['title']['text'] = f"{original_title}"
+        types_bar_chart['_timestamp'] = timestamp  # Скрытый параметр для обновления
+    
     # Текущие значения фильтров для сохранения
     current_filter_values = {
         'storage_type': storage_type_val,
         'locating_zone': locating_zone_val,
         'allocation_zone': allocation_zone_val,
         'location_type': location_type_val,
-        'work_zone': work_zone_val
+        'work_zone': work_zone_val,
+        'only_empty': is_only_empty
     }
+    
+    print(f"Returning chart with series count: {len(types_bar_chart.get('series', []))}")
     
     return (
         storage_type_options,
@@ -635,3 +666,80 @@ def update_storage_filters_and_charts(storage_type_val, locating_zone_val, alloc
         types_bar_chart,
         current_filter_values
     )
+
+# Callback для сброса фильтров
+@callback(
+    [Output("filter-storage-type", "value"),
+     Output("filter-locating-zone", "value"),
+     Output("filter-allocation-zone", "value"),
+     Output("filter-location-type", "value"),
+     Output("filter-work-zone", "value")],
+    [Input("reset-all-filters-btn", "n_clicks"),
+     Input("reset-storage-type-btn", "n_clicks"),
+     Input("reset-locating-zone-btn", "n_clicks"),
+     Input("reset-allocation-zone-btn", "n_clicks"),
+     Input("reset-location-type-btn", "n_clicks"),
+     Input("reset-work-zone-btn", "n_clicks")],
+    [State("filter-storage-type", "value"),
+     State("filter-locating-zone", "value"),
+     State("filter-allocation-zone", "value"),
+     State("filter-location-type", "value"),
+     State("filter-work-zone", "value")],
+    prevent_initial_call=True
+)
+def reset_filters(all_clicks, storage_clicks, locating_clicks, allocation_clicks, location_clicks, work_clicks,
+                  current_storage, current_locating, current_allocation, current_location, current_work):
+    """Сброс фильтров при нажатии кнопок"""
+    ctx = dash.callback_context
+    
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    print(f"DEBUG: Кнопка сброса нажата: {button_id}")
+    print(f"DEBUG: Текущие значения фильтров:")
+    print(f"  storage: {current_storage}")
+    print(f"  locating: {current_locating}")
+    print(f"  allocation: {current_allocation}")
+    print(f"  location: {current_location}")
+    print(f"  work: {current_work}")
+    
+    # Начальные значения
+    new_storage = current_storage
+    new_locating = current_locating
+    new_allocation = current_allocation
+    new_location = current_location
+    new_work = current_work
+    
+    # Если нажата кнопка "Сбросить все"
+    if button_id == "reset-all-filters-btn":
+        print("Сброс ВСЕХ фильтров")
+        return ['Все', 'Все', 'Все', 'Все', 'Все']
+    
+    # Если нажата кнопка сброса конкретного фильтра
+    if button_id == "reset-storage-type-btn":
+        new_storage = 'Все'
+        print("Сброс только фильтра: Тип хранения")
+    elif button_id == "reset-locating-zone-btn":
+        new_locating = 'Все'
+        print("Сброс только фильтра: Зона размещения")
+    elif button_id == "reset-allocation-zone-btn":
+        new_allocation = 'Все'
+        print("Сброс только фильтра: Зона резервирования")
+    elif button_id == "reset-location-type-btn":
+        new_location = 'Все'
+        print("Сброс только фильтра: Тип МХ")
+    elif button_id == "reset-work-zone-btn":
+        new_work = 'Все'
+        print("Сброс только фильтра: Рабочая зона")
+    
+    print(f"DEBUG: Новые значения фильтров:")
+    print(f"  storage: {new_storage}")
+    print(f"  locating: {new_locating}")
+    print(f"  allocation: {new_allocation}")
+    print(f"  location: {new_location}")
+    print(f"  work: {new_work}")
+    
+    return new_storage, new_locating, new_allocation, new_location, new_work
+
