@@ -128,19 +128,15 @@ app.index_string = f'''
                 border-bottom: 3px solid #1976d2;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             }}
-            /* ИЗМЕНЕННЫЙ СТИЛЬ ДЛЯ 5 КАРТОЧЕК - используем flexbox */
+            /* ИСПРАВЛЕННЫЙ СТИЛЬ ДЛЯ КАРТОЧЕК - Теперь полностью адаптивный */
             .kpi-row {{
-                display: flex;
-                flex-wrap: nowrap;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
                 gap: 15px;
                 margin-bottom: 25px;
-                overflow-x: auto;
-                padding-bottom: 10px;
+                width: 100%;
             }}
             .kpi-card {{
-                flex: 1 0 19%; /* 5 карточек по ~19% каждая */
-                min-width: 240px;
-                max-width: 280px;
                 background: white;
                 padding: 20px;
                 border-radius: 12px;
@@ -151,6 +147,8 @@ app.index_string = f'''
                 justify-content: center;
                 align-items: center;
                 text-align: center;
+                width: 100%;
+                min-height: 180px;
             }}
             .kpi-card:hover {{
                 transform: translateY(-5px) scale(1.02);
@@ -229,7 +227,7 @@ app.index_string = f'''
             }}
             .analytics-kpi-row {{
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 15px;
                 margin-bottom: 25px;
             }}
@@ -283,6 +281,7 @@ app.index_string = f'''
                 font-size: 12px;
                 border-bottom: 1px solid #f0f0f0;
             }}
+            /* НОВЫЕ СТИЛИ ДЛЯ АНИМАЦИЙ В МОДАЛЬНЫХ ОКНАХ */
             .modal-hidden {{
                 position: fixed;
                 top: 0;
@@ -337,16 +336,107 @@ app.index_string = f'''
                 box-shadow: 0 25px 80px rgba(0,0,0,0.4);
                 transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             }}
+            /* Стили для интерактивных элементов в модальных окнах */
+            .analytics-kpi-card:hover {{
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                border: 1px solid rgba(25, 118, 210, 0.2);
+            }}
+            
+            .analytics-chart-card {{
+                border: 2px solid transparent;
+                transition: all 0.3s ease;
+            }}
+            .analytics-chart-card:hover {{
+                border-color: #e3f2fd;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            }}
+            
+            /* Docker-like hover effects */
+            .docker-hover-effect {{
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 10px;
+                overflow: hidden;
+            }}
+            .docker-hover-effect:hover {{
+                transform: translateY(-4px);
+                box-shadow: 
+                    0 15px 30px rgba(0, 0, 0, 0.1),
+                    0 5px 15px rgba(0, 0, 0, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+                border-color: rgba(0, 150, 255, 0.3);
+            }}
+            
+            /* Стили для кнопок сброса в модальных окнах */
+            .reset-btn {{
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }}
+            .reset-btn:hover {{
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                transform: scale(1.05);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }}
+            .reset-btn:active {{
+                transform: scale(0.95);
+            }}
+            
+            /* Эффект свечения при наведении на кнопки */
+            .glow-on-hover {{
+                transition: all 0.3s ease;
+            }}
+            .glow-on-hover:hover {{
+                box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
+            }}
+            
+            /* Эффект для элементов таблицы */
+            .table-row-hover {{
+                transition: all 0.2s ease;
+            }}
+            .table-row-hover:hover {{
+                background-color: rgba(25, 118, 210, 0.05);
+                transform: scale(1.002);
+                box-shadow: inset 0 0 0 1px rgba(25, 118, 210, 0.1);
+            }}
+            
+            /* Эффекты для заголовков диаграмм */
+            .chart-header {{
+                transition: all 0.3s ease;
+                position: relative;
+            }}
+            .chart-header:hover {{
+                color: #1976d2;
+                transform: translateX(5px);
+            }}
+            .chart-header::after {{
+                content: '';
+                position: absolute;
+                bottom: -5px;
+                left: 0;
+                width: 0;
+                height: 2px;
+                background: linear-gradient(90deg, #1976d2, #21c1d6);
+                transition: width 0.3s ease;
+            }}
+            .chart-header:hover::after {{
+                width: 100%;
+            }}
+            
             .fines-employee-link {{
                 color: #B71C1C;
                 text-decoration: none;
                 cursor: pointer;
                 font-weight: bold;
                 transition: all 0.3s ease;
+                padding: 2px 6px;
+                border-radius: 4px;
             }}
             .fines-employee-link:hover {{
                 color: #F44336;
                 text-decoration: underline;
+                background-color: rgba(244, 67, 54, 0.1);
+                box-shadow: 0 2px 8px rgba(244, 67, 54, 0.2);
             }}
             .employee-link {{
                 color: #1976d2;
@@ -354,10 +444,14 @@ app.index_string = f'''
                 cursor: pointer;
                 font-weight: bold;
                 transition: all 0.3s ease;
+                padding: 2px 6px;
+                border-radius: 4px;
             }}
             .employee-link:hover {{
                 color: #0d47a1;
                 text-decoration: underline;
+                background-color: rgba(25, 118, 210, 0.1);
+                box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
             }}
             /* ИСПРАВЛЕННЫЕ стили для отображения календаря поверх элементов */
             .DateRangePicker {{
@@ -394,6 +488,35 @@ app.index_string = f'''
                     left: 50% !important;
                     transform: translate(-50%, -50%) !important;
                     right: auto !important;
+                }}
+                .kpi-row {{
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                }}
+                .main-content {{
+                    flex-direction: column;
+                }}
+                .left-panel, .right-panel {{
+                    width: 100% !important;
+                }}
+                .analytics-kpi-row {{
+                    grid-template-columns: repeat(2, 1fr);
+                }}
+            }}
+            @media (max-width: 480px) {{
+                .kpi-row {{
+                    grid-template-columns: 1fr;
+                }}
+                .analytics-kpi-row {{
+                    grid-template-columns: 1fr;
+                }}
+                .header {{
+                    flex-direction: column;
+                    text-align: center;
+                    gap: 15px;
+                }}
+                .header-right {{
+                    width: 100%;
+                    text-align: center;
                 }}
             }}
             /* Цветовая индикация для таблиц */

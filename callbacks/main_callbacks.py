@@ -3,6 +3,7 @@ from dash import Input, Output, State, callback, html
 import pandas as pd
 from datetime import datetime, timedelta
 import json
+import random  # Добавим для генерации тестовых данных
 from data.queries import (
     get_orders_timely, get_avg_operation_time, get_total_earnings, get_order_accuracy,
     get_avg_productivity, get_performance_data, get_shift_comparison, 
@@ -268,13 +269,13 @@ def update_shift_employees_table(position_filter, brigade_filter):
             ])
         ]
 
-# Новый callback для обновления информации о смене в общей сводке
+# НОВЫЙ ВАРИАНТ: Callback для обновления информации о смене в общей сводке
 @callback(
     Output('shift-stats-info', 'children'),
     [Input('global-date-range', 'data')]
 )
 def update_shift_stats_info(date_range):
-    """Обновление информации о смене в общей сводке"""
+    """Обновление информации о смене в общей сводке - ТАБЛИЦА С ЦВЕТОВОЙ ИНДИКАЦИЕЙ"""
     
     from data.queries import get_employees_on_shift
     
@@ -322,42 +323,191 @@ def update_shift_stats_info(date_range):
                 'time': emp.get('Время_первой_операции', '--:--')
             })
         
-        # Создаем визуализацию
-        position_cards = []
+        # ГЕНЕРИРУЕМ ТЕСТОВЫЕ ДАННЫЕ ДЛЯ ОТКРЫТЫХ ЗАДАНИЙ
+        # Создаем словарь с тестовыми данными для каждой должности
+        test_open_tasks = {}
+        for position in position_analysis.keys():
+            if position != 'Не указана':
+                # Генерируем случайное количество открытых заданий от 1 до 20
+                test_open_tasks[position] = random.randint(1, 20)
+        
+        # Создаем таблицу вместо карточек
+        table_rows = []
+        
+        # Создаем заголовок таблицы (УПРОЩЕННЫЙ - 5 колонок)
+        table_header = html.Tr([
+            html.Th("Должность", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #ddd', 'background': '#f8f9fa'}),
+            html.Th("На работе", style={'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #ddd', 'background': '#f8f9fa'}),
+            html.Th("Не вышли", style={'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #ddd', 'background': '#f8f9fa'}),
+            html.Th("Открытые задания", style={'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #ddd', 'background': '#f8f9fa'}),
+            html.Th("Индикация", style={'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #ddd', 'background': '#f8f9fa'})
+        ])
+        table_rows.append(table_header)
+        
+        # Заполняем таблицу данными
         for position, stats in position_analysis.items():
             if position != 'Не указана':
-                position_cards.append(
-                    html.Div([
-                        html.Div([
-                            html.Strong(position, style={'fontSize': '14px', 'color': '#333'}),
-                            html.Span(f" ({stats['total']} чел.)", style={'fontSize': '12px', 'color': '#666'})
-                        ], style={'marginBottom': '6px'}),
-                        
-                        html.Div([
-                            html.Div([
-                                html.Span("✅", style={'marginRight': '4px', 'fontSize': '12px'}),
-                                html.Span(f"{stats['on_work']} на работе", 
-                                        style={'color': '#4CAF50', 'fontWeight': 'bold', 'fontSize': '12px'})
-                            ], style={'flex': '1', 'textAlign': 'center'}),
-                            
-                            html.Div([
-                                html.Span("❌", style={'marginRight': '4px', 'fontSize': '12px'}),
-                                html.Span(f"{stats['not_come']} не вышли", 
-                                        style={'color': '#F44336', 'fontWeight': 'bold', 'fontSize': '12px'})
-                            ], style={'flex': '1', 'textAlign': 'center'})
-                        ], style={'display': 'flex', 'justifyContent': 'space-between'})
-                    ], style={
-                        'background': '#fff',
-                        'border': '1px solid #e0e0e0',
-                        'borderRadius': '6px',
-                        'padding': '10px',
-                        'marginBottom': '8px',
-                        'boxShadow': '0 1px 2px rgba(0,0,0,0.1)'
-                    })
+                total = stats['total']
+                on_work = stats['on_work']
+                not_come = stats['not_come']
+                
+                # Рассчитываем процент сотрудников на смене
+                percentage_on_work = 0
+                if total > 0:
+                    percentage_on_work = round((on_work / total) * 100, 1)
+                
+                # Получаем количество открытых заданий (тестовые данные)
+                open_tasks = test_open_tasks.get(position, 0)
+                
+                # Определяем цвет индикации на основе процента сотрудников на смене
+                indicator_color = ''
+                indicator_text = ''
+                
+                if percentage_on_work >= 90:
+                    indicator_color = '#4CAF50'  # зеленый
+                    indicator_text = '✓'
+                elif percentage_on_work >= 70:
+                    indicator_color = '#FFC107'  # желтый
+                    indicator_text = '⚠'
+                elif percentage_on_work >= 65:
+                    indicator_color = '#FF9800'  # оранжевый
+                    indicator_text = '⚠'
+                else:
+                    indicator_color = '#F44336'  # красный
+                    indicator_text = '✗'
+                
+                # Создаем строку таблицы (УПРОЩЕННАЯ - 5 колонок)
+                row = html.Tr([
+                    html.Td(
+                        html.Strong(position),
+                        style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px'}
+                    ),
+                    html.Td(
+                        html.Span(str(on_work), style={'color': '#4CAF50', 'fontWeight': 'bold', 'fontSize': '16px'}),
+                        style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'textAlign': 'center'}
+                    ),
+                    html.Td(
+                        html.Span(str(not_come), style={'color': '#F44336', 'fontWeight': 'bold', 'fontSize': '16px'}),
+                        style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'textAlign': 'center'}
+                    ),
+                    html.Td(
+                        html.Span(str(open_tasks), style={'color': '#1976d2', 'fontWeight': 'bold', 'fontSize': '16px'}),
+                        style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'textAlign': 'center'}
+                    ),
+                    html.Td(
+                        html.Div(
+                            style={
+                                'width': '30px',
+                                'height': '30px',
+                                'borderRadius': '50%',
+                                'backgroundColor': indicator_color,
+                                'display': 'flex',
+                                'alignItems': 'center',
+                                'justifyContent': 'center',
+                                'margin': '0 auto',
+                                'color': 'white',
+                                'fontWeight': 'bold',
+                                'fontSize': '16px'
+                            },
+                            children=indicator_text
+                        ),
+                        style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'textAlign': 'center'}
+                    )
+                ])
+                table_rows.append(row)
+        
+        # Итоговая строка (УПРОЩЕННАЯ)
+        if position_analysis:
+            total_on_work = sum(stats['on_work'] for stats in position_analysis.values() if 'on_work' in stats)
+            total_not_come = sum(stats['not_come'] for stats in position_analysis.values() if 'not_come' in stats)
+            total_open_tasks = sum(test_open_tasks.values())
+            total_all = total_on_work + total_not_come
+            
+            # Рассчитываем общий процент
+            total_percentage = 0
+            if total_all > 0:
+                total_percentage = round((total_on_work / total_all) * 100, 1)
+            
+            # Определяем цвет для общего индикатора
+            total_indicator_color = ''
+            total_indicator_text = ''
+            if total_percentage >= 90:
+                total_indicator_color = '#4CAF50'
+                total_indicator_text = '✓'
+            elif total_percentage >= 70:
+                total_indicator_color = '#FFC107'
+                total_indicator_text = '⚠'
+            elif total_percentage >= 65:
+                total_indicator_color = '#FF9800'
+                total_indicator_text = '⚠'
+            else:
+                total_indicator_color = '#F44336'
+                total_indicator_text = '✗'
+            
+            total_row = html.Tr([
+                html.Td(
+                    html.Strong("ИТОГО"),
+                    style={'padding': '12px', 'borderTop': '2px solid #ddd', 'fontSize': '14px', 'fontWeight': 'bold'}
+                ),
+                html.Td(
+                    html.Span(html.Strong(str(total_on_work)), style={'color': '#4CAF50', 'fontSize': '16px'}),
+                    style={'padding': '12px', 'borderTop': '2px solid #ddd', 'fontSize': '14px', 'textAlign': 'center', 'fontWeight': 'bold'}
+                ),
+                html.Td(
+                    html.Span(html.Strong(str(total_not_come)), style={'color': '#F44336', 'fontSize': '16px'}),
+                    style={'padding': '12px', 'borderTop': '2px solid #ddd', 'fontSize': '14px', 'textAlign': 'center', 'fontWeight': 'bold'}
+                ),
+                html.Td(
+                    html.Strong(str(total_open_tasks)),
+                    style={'padding': '12px', 'borderTop': '2px solid #ddd', 'fontSize': '14px', 'textAlign': 'center', 'fontWeight': 'bold', 'color': '#1976d2'}
+                ),
+                html.Td(
+                    html.Div(
+                        style={
+                            'width': '30px',
+                            'height': '30px',
+                            'borderRadius': '50%',
+                            'backgroundColor': total_indicator_color,
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'margin': '0 auto',
+                            'color': 'white',
+                            'fontWeight': 'bold',
+                            'fontSize': '16px'
+                        },
+                        children=total_indicator_text
+                    ),
+                    style={'padding': '12px', 'borderTop': '2px solid #ddd', 'fontSize': '14px', 'textAlign': 'center'}
                 )
+            ])
+            table_rows.append(total_row)
+        
+        # Создаем контейнер таблицы
+        table_container = html.Table(
+            table_rows,
+            style={
+                'width': '100%',
+                'borderCollapse': 'collapse',
+                'marginTop': '10px',
+                'backgroundColor': 'white',
+                'borderRadius': '8px',
+                'overflow': 'hidden',
+                'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+            }
+        )
+        
+        # Примечание о тестовых данных
+        test_note = html.Div([
+            html.P(
+                "Данные в колонке 'Открытые задания' являются тестовыми и генерируются случайным образом. "
+                "После подключения к реальным данным они будут заменены актуальной информацией.",
+                style={'fontSize': '12px', 'color': '#666', 'fontStyle': 'italic', 'margin': '10px 0 0 0', 'textAlign': 'center'}
+            )
+        ])
         
         return html.Div([
-            # Общая статистика
+            # Общая статистика смены (оставляем как было)
             html.Div([
                 html.H4("Общая статистика смены", 
                        style={'marginBottom': '12px', 'color': '#1976d2', 'fontSize': '18px', 'fontWeight': 'bold'}),
@@ -384,16 +534,17 @@ def update_shift_stats_info(date_range):
                                style={'fontSize': '12px', 'color': '#666', 'textAlign': 'center'})
                     ], style={'flex': '1', 'padding': '8px'})
                 ], style={'display': 'flex', 'justifyContent': 'space-around', 'marginBottom': '16px'}),
-            ], style={'marginBottom': '16px'}),
+            ], style={'marginBottom': '20px'}),
             
-            # Анализ по должностям
+            # Новая упрощенная таблица
             html.Div([
-                html.H4("Анализ по должностям", 
+                html.H4("Анализ по должностям с открытыми заданиями", 
                        style={'marginBottom': '12px', 'color': '#ed6c02', 'fontSize': '18px', 'fontWeight': 'bold'}),
                 
-                html.Div(position_cards, style={'maxHeight': '380px', 'overflowY': 'auto'})
+                table_container,
+                test_note
             ])
-        ], style={'height': '100%', 'overflow': 'hidden'})
+        ], style={'height': '100%', 'overflowY': 'auto'})
         
     except Exception as e:
         print(f"Error in update_shift_stats_info: {e}")
@@ -742,4 +893,3 @@ def reset_filters(all_clicks, storage_clicks, locating_clicks, allocation_clicks
     print(f"  work: {new_work}")
     
     return new_storage, new_locating, new_allocation, new_location, new_work
-
