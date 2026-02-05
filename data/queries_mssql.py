@@ -737,12 +737,44 @@ def get_fines_data(start_date, end_date):
                 print(f"Error processing fines row: {e}")
                 continue
     
+    # Получаем данные по категориям штрафов
+    category_query = """
+    SELECT
+        fine_category,
+        COUNT(*) as fine_count,
+        SUM(total_fine) as total_amount
+    FROM dm.v_penalty_summary
+    WHERE date_key BETWEEN ? AND ?
+        AND fine_category IS NOT NULL
+        AND fine_category != ''
+    GROUP BY fine_category
+    ORDER BY total_amount DESC
+    """
+    
+    category_result = execute_query_cached(category_query, (start_date, end_date))
+    
+    category_data = {}
+    if category_result:
+        for row in category_result:
+            try:
+                category = row[0] if row[0] else 'Без категории'
+                count = int(row[1]) if row[1] else 0
+                total_amount = float(row[2]) if row[2] else 0.0
+                
+                category_data[category] = {
+                    'count': count,
+                    'total_amount': total_amount
+                }
+            except Exception as e:
+                print(f"Error processing category row: {e}")
+                continue
+
     # Получаем KPI данные
     kpi_data = get_fines_kpi_data(start_date, end_date)
-    
+
     return {
         'summary_data': summary_data,
-        'category_data': [],  # Упрощенно
+        'category_data': category_data,
         'kpi_data': {
             'max_fines_employee': kpi_data['max_count_employee'],
             'max_fines_count': kpi_data['max_count'],
