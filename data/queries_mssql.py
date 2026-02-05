@@ -577,25 +577,76 @@ def get_employee_idle_data(employee_name, start_date, end_date):
 
 # Получение данных для топ-5 проблемных часов
 def get_problematic_hours(start_date, end_date):
-    """Упрощенная версия"""
-    return [
-        {'hour': 14, 'total_orders': 100, 'delayed_orders': 15, 'delay_percentage': 15.0},
-        {'hour': 15, 'total_orders': 120, 'delayed_orders': 12, 'delay_percentage': 10.0},
-        {'hour': 16, 'total_orders': 80, 'delayed_orders': 8, 'delay_percentage': 10.0},
-        {'hour': 13, 'total_orders': 90, 'delayed_orders': 6, 'delay_percentage': 6.7},
-        {'hour': 17, 'total_orders': 60, 'delayed_orders': 3, 'delay_percentage': 5.0}
-    ]
+    """Получение данных для топ-5 проблемных часов из dm.v_hourly_delays"""
+    query = """
+    SELECT 
+        hour,
+        total_orders,
+        delayed_orders,
+        pct_delayed
+    FROM dm.v_hourly_delays
+    ORDER BY pct_delayed DESC
+    """
+    
+    result = execute_query_cached(query)
+    
+    problematic_hours = []
+    if result:
+        for row in result[:5]:  # Берем только топ-5
+            try:
+                hour = int(row[0]) if row[0] is not None else 0
+                total_orders = int(row[1]) if row[1] is not None else 0
+                delayed_orders = int(row[2]) if row[2] is not None else 0
+                delay_percentage = float(row[3]) if row[3] is not None else 0.0
+                
+                problematic_hours.append({
+                    'hour': hour,
+                    'total_orders': total_orders,
+                    'delayed_orders': delayed_orders,
+                    'delay_percentage': delay_percentage
+                })
+            except Exception as e:
+                print(f"Error processing problematic hours row: {e}")
+                continue
+    
+    return problematic_hours
 
 # Получение данных для топ-5 часов с наибольшим процентом ошибок
 def get_error_hours_top_data(start_date, end_date):
-    """Упрощенная версия"""
-    return [
-        {'hour': 14, 'error_orders_count': 8, 'total_orders_in_hour': 100, 'error_percentage': 8.0, 'error_types': 'Штраф по претензии, Товар размещен без паллета'},
-        {'hour': 15, 'error_orders_count': 6, 'total_orders_in_hour': 120, 'error_percentage': 5.0, 'error_types': 'Штраф кладовщику'},
-        {'hour': 16, 'error_orders_count': 4, 'total_orders_in_hour': 80, 'error_percentage': 5.0, 'error_types': 'Штраф по претензии'},
-        {'hour': 13, 'error_orders_count': 3, 'total_orders_in_hour': 90, 'error_percentage': 3.3, 'error_types': 'Товар размещен без паллета'},
-        {'hour': 17, 'error_orders_count': 2, 'total_orders_in_hour': 60, 'error_percentage': 3.3, 'error_types': 'Штраф кладовщику'}
-    ]
+    """Получение данных для топ-5 часов с наибольшим процентом ошибок из dm.v_hourly_errors"""
+    query = """
+    SELECT 
+        hour,
+        total_orders,
+        error_orders,
+        pct_errors
+    FROM dm.v_hourly_errors
+    ORDER BY pct_errors DESC
+    """
+    
+    result = execute_query_cached(query)
+    
+    error_hours = []
+    if result:
+        for row in result[:5]:  # Берем только топ-5
+            try:
+                hour = int(row[0]) if row[0] is not None else 0
+                total_orders_in_hour = int(row[1]) if row[1] is not None else 0
+                error_orders_count = int(row[2]) if row[2] is not None else 0
+                error_percentage = float(row[3]) if row[3] is not None else 0.0
+                
+                error_hours.append({
+                    'hour': hour,
+                    'total_orders_in_hour': total_orders_in_hour,
+                    'error_orders_count': error_orders_count,
+                    'error_percentage': error_percentage,
+                    'error_types': ''  # В этой таблице нет информации о типах ошибок
+                })
+            except Exception as e:
+                print(f"Error processing error hours row: {e}")
+                continue
+    
+    return error_hours
 
 # Получение данных для сравнения смен
 def get_shift_comparison(start_date, end_date):

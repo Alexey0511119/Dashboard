@@ -264,7 +264,7 @@ def create_order_accuracy_chart(start_date, end_date):
 
 def create_problematic_hours_chart(problematic_hours):
     """Создание диаграммы проблемных часов"""
-    
+
     if not problematic_hours:
         return {
             "title": {
@@ -284,28 +284,22 @@ def create_problematic_hours_chart(problematic_hours):
             "yAxis": {"type": "value", "show": False},
             "series": []
         }
-    
+
     hours = [f"{item['hour']}:00" for item in problematic_hours]
     delay_percentages = [item['delay_percentage'] for item in problematic_hours]
     delayed_counts = [item['delayed_orders'] for item in problematic_hours]
     total_counts = [item['total_orders'] for item in problematic_hours]
-    
-    # Создаем ВНЕШНЮЮ JavaScript функцию
-    tooltip_js = """
-    function(params) {
-        var dataIndex = params[0].dataIndex;
-        var hour = params[0].name;
-        var delayed = """ + str(delayed_counts) + """[dataIndex];
-        var total = """ + str(total_counts) + """[dataIndex];
-        var percent = params[0].value;
-        
-        return hour + '<br/>' +
-               'Процент просрочек: ' + percent.toFixed(1) + '%<br/>' +
-               'Просрочено: ' + delayed + ' заказов<br/>' +
-               'Всего: ' + total + ' заказов';
-    }
-    """
-    
+
+    # Подготовим данные для tooltip с дополнительной информацией
+    chart_data = []
+    for i, (hour, delay_pct, delayed, total) in enumerate(zip(hours, delay_percentages, delayed_counts, total_counts)):
+        chart_data.append({
+            "name": hour,
+            "value": delay_pct,
+            "delayed": delayed,
+            "total": total
+        })
+
     return {
         "title": {
             "text": "Топ-5 проблемных часов",
@@ -319,7 +313,7 @@ def create_problematic_hours_chart(problematic_hours):
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
-            "formatter": tooltip_js
+            "formatter": "{b}<br/>Процент просрочек: {c}%<br/>Просрочено: {@delayed} заказов<br/>Всего: {@total} заказов"
         },
         "xAxis": {
             "type": "category",
@@ -349,7 +343,10 @@ def create_problematic_hours_chart(problematic_hours):
         "series": [{
             "name": "Процент просрочек",
             "type": "bar",
-            "data": delay_percentages,
+            "data": [
+                {"value": delay_pct, "delayed": delayed, "total": total}
+                for delay_pct, delayed, total in zip(delay_percentages, delayed_counts, total_counts)
+            ],
             "itemStyle": {
                 "color": {
                     "type": "linear",
@@ -385,9 +382,9 @@ def create_problematic_hours_chart(problematic_hours):
 
 def create_error_hours_chart(error_hours):
     """Создание диаграммы часов с ошибками"""
-    
+
     print(f"DEBUG [create_error_hours_chart]: Получены данные: {len(error_hours) if error_hours else 0} записей")
-    
+
     if not error_hours:
         print("DEBUG: Нет данных для диаграммы часов с ошибками - показываем заглушку")
         return {
@@ -424,41 +421,18 @@ def create_error_hours_chart(error_hours):
             "yAxis": {"type": "value", "show": False},
             "series": []
         }
-    
+
     hours = [f"{item['hour']}:00" for item in error_hours]
     error_percentages = [item['error_percentage'] for item in error_hours]
     error_counts = [item['error_orders_count'] for item in error_hours]
     total_counts = [item['total_orders_in_hour'] for item in error_hours]
     error_types = [item['error_types'] for item in error_hours]
-    
+
     print(f"DEBUG: Часы: {hours}")
     print(f"DEBUG: Проценты ошибок: {error_percentages}")
     print(f"DEBUG: Количество ошибок: {error_counts}")
     print(f"DEBUG: Всего заказов: {total_counts}")
-    
-    # Создаем JavaScript функцию для форматирования тултипа
-    tooltip_js = """
-    function(params) {
-        var dataIndex = params.dataIndex || 0;
-        var hour = """ + json.dumps(hours) + """[dataIndex];
-        var errors = """ + json.dumps(error_counts) + """[dataIndex];
-        var total = """ + json.dumps(total_counts) + """[dataIndex];
-        var percent = """ + json.dumps(error_percentages) + """[dataIndex];
-        var types = """ + json.dumps(error_types) + """[dataIndex];
-        
-        var tooltip = hour + '<br/>' +
-                      '<b>Процент ошибок:</b> ' + percent.toFixed(1) + '%<br/>' +
-                      '<b>С ошибками:</b> ' + errors + ' заказов<br/>' +
-                      '<b>Всего заказов:</b> ' + total;
-        
-        if (types && types !== '') {
-            tooltip += '<br/><b>Типы ошибок:</b> ' + types;
-        }
-        
-        return tooltip;
-    }
-    """
-    
+
     return {
         "title": {
             "text": "Топ-5 часов с ошибками",
@@ -472,10 +446,7 @@ def create_error_hours_chart(error_hours):
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
-            "formatter": tooltip_js,
-            "backgroundColor": "rgba(50, 50, 50, 0.7)",
-            "borderColor": "#333",
-            "textStyle": {"color": "#fff"}
+            "formatter": "{b}<br/>Процент ошибок: {c}%<br/>С ошибками: {@errors} заказов<br/>Всего: {@total} заказов"
         },
         "xAxis": {
             "type": "category",
@@ -499,7 +470,7 @@ def create_error_hours_chart(error_hours):
             "axisLine": {"show": True, "lineStyle": {"color": "#333"}},
             "axisTick": {"show": True},
             "splitLine": {
-                "show": True, 
+                "show": True,
                 "lineStyle": {
                     "color": "#f0f0f0",
                     "type": "dashed"
@@ -518,7 +489,10 @@ def create_error_hours_chart(error_hours):
         "series": [{
             "name": "Процент ошибок",
             "type": "bar",
-            "data": error_percentages,
+            "data": [
+                {"value": error_pct, "errors": error_cnt, "total": total}
+                for error_pct, error_cnt, total in zip(error_percentages, error_counts, total_counts)
+            ],
             "itemStyle": {
                 "color": {
                     "type": "linear",
