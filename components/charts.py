@@ -68,7 +68,7 @@ def create_time_distribution_pie_echarts(work_minutes, idle_minutes):
 def create_idle_intervals_bar_echarts(idle_counts):
     """Столбчатая диаграмма периодов простоя"""
     interval_order = ['5-10 мин', '10-30 мин', '30-60 мин', '>1 часа']
-    colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336']
+    colors = ['#0D47A1', '#1565C0', '#1976D2', '#59D478']  # Темно-синие и зеленый как в ячейках хранения
     data = [idle_counts.get(k, 0) for k in interval_order]
     
     # Подготавливаем данные с информацией для кликов
@@ -105,6 +105,7 @@ def create_idle_intervals_bar_echarts(idle_counts):
         "yAxis": {
             "type": "value",
             "name": "Количество простоев",
+            "nameTextStyle": {"color": "#666"},
             "axisLine": {"show": True},
             "axisTick": {"show": True},
             "splitLine": {"show": True, "lineStyle": {"color": "#f0f0f0"}}
@@ -1302,7 +1303,8 @@ def create_types_pie_chart(chart_data, filters=None):
     Диаграмма 2: Доли типов ячеек
     Показывает доли каждого Типа МХ (location_type)
     """
-    types_data = chart_data.get('by_location_type', [])
+    # chart_data теперь это список, а не словарь
+    types_data = chart_data if isinstance(chart_data, list) else []
     
     # Проверяем, активирована ли галочка "только пустые"
     only_empty = filters.get('only_empty', False) if filters else False
@@ -1321,8 +1323,8 @@ def create_types_pie_chart(chart_data, filters=None):
     if only_empty:
         # Если выбраны только пустые, показываем ТОЛЬКО пустые ячейки
         for i, item in enumerate(types_data):
-            loc_type = item['location_type']
-            empty_count = item['empty']
+            loc_type = item.get('name', 'Неизвестно')
+            empty_count = item.get('empty', 0)
             
             if empty_count > 0:  # Только типы с пустыми ячейками
                 if len(loc_type) > 15:
@@ -1345,16 +1347,17 @@ def create_types_pie_chart(chart_data, filters=None):
                 item['name'] = f"{item['original_name'][:12] if len(item['original_name']) > 12 else item['original_name']} ({percentage}%)"
     else:
         # Показываем все ячейки
-        total_all = sum(item['total'] for item in types_data)
+        total_all = sum(item.get('value', 0) for item in types_data)
         
         for i, item in enumerate(types_data):
-            loc_type = item['location_type']
+            loc_type = item.get('name', 'Неизвестно')
+            total = item.get('value', 0)
+            
             if len(loc_type) > 15:
                 display_name = loc_type[:15] + "..."
             else:
                 display_name = loc_type
                 
-            total = item['total']
             percentage = round((total / total_all) * 100, 1) if total_all > 0 else 0
             
             data.append({
@@ -1460,14 +1463,23 @@ def create_types_bar_chart(chart_data, filters=None):
     Ось X: Типы МХ (location_type)
     Ряды: Всего МХ и Пустые МХ
     """
-    types_data = chart_data.get('by_location_type', [])
+    # chart_data теперь это список, а не словарь
+    types_data = chart_data if isinstance(chart_data, list) else []
     
     # Проверяем, активирована ли галочка "только пустые"
     only_empty = filters.get('only_empty', False) if filters else False
     
+    # Сортируем данные от большего к меньшему
+    if only_empty:
+        # В режиме "только пустые" сортируем по количеству пустых ячеек
+        types_data = sorted(types_data, key=lambda x: x.get('empty', 0), reverse=True)
+    else:
+        # В обычном режиме сортируем по общему количеству ячеек
+        types_data = sorted(types_data, key=lambda x: x.get('value', 0), reverse=True)
+    
     # Цвета
     total_color = '#0D47A1'    # Темно-синий для "Всего МХ"
-    empty_color = "#59D478"    # Светло-синий для "Пустые МХ"
+    empty_color = "#59D478"    # Светло-синий для "Пустых МХ"
     
     # Подготавливаем данные
     categories = []
@@ -1475,7 +1487,7 @@ def create_types_bar_chart(chart_data, filters=None):
     empty_values = []
     
     for item in types_data:
-        loc_type = item['location_type']
+        loc_type = item.get('name', 'Неизвестно')
         
         if len(loc_type) > 12:
             display_name = loc_type[:12] + "..."
@@ -1491,17 +1503,17 @@ def create_types_bar_chart(chart_data, filters=None):
                 "itemStyle": {"color": total_color}
             })
             empty_values.append({
-                "value": item['empty'],
+                "value": item.get('empty', 0),
                 "itemStyle": {"color": empty_color}
             })
         else:
             # В обычном режиме показываем оба ряда
             total_values.append({
-                "value": item['total'],
+                "value": item.get('value', 0),
                 "itemStyle": {"color": total_color}
             })
             empty_values.append({
-                "value": item['empty'],
+                "value": item.get('empty', 0),
                 "itemStyle": {"color": empty_color}
             })
     

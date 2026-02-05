@@ -6,7 +6,7 @@ from components.layout import create_layout
 from callbacks.main_callbacks import *
 from callbacks.tab_callbacks import *
 from callbacks.modal_callbacks import *
-from data.queries import refresh_data
+from data.queries_mssql import refresh_data
 # Добавим импорт для нового модального окна
 from components.modals import create_rejected_lines_modal
 
@@ -560,10 +560,10 @@ app.index_string = f'''
 </html>
 '''
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     default_start = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
     default_end = datetime.now().strftime('%Y-%m-%d')
     
     refresh_data(default_start, default_end)
     
-    app.run(host='0.0.0.0', port=8056, debug=False)
+    app.run_server(debug=True, host="0.0.0.0", port=8056)

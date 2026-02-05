@@ -2,9 +2,9 @@ import dash
 from dash import Input, Output, State, callback, ALL
 import json
 import re
-from data.queries import (
+from data.queries_mssql import (
     get_employee_analytics, get_employee_operations_detail,
-    get_employee_fines_details
+    get_employee_fines_details, get_employee_idle_data, get_all_storage_data, filter_storage_data
 )
 from components.charts import (
     create_operations_type_chart, create_time_distribution_pie_echarts,
@@ -58,34 +58,49 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                 employee_name = performance_data[employee_idx]['Сотрудник']
                 
                 if date_range:
-                    analytics_data = get_employee_analytics(employee_name, 
-                                                          date_range['start_date'], 
-                                                          date_range['end_date'])
+                    from data.queries_mssql import get_employee_modal_detail
+                    detail_data = get_employee_modal_detail(employee_name, 
+                                                           date_range['start_date'], 
+                                                           date_range['end_date'])
                     
-                    if not analytics_data:
+                    if not detail_data:
                         analytics_data = {
                             'total_operations': 0,
-                            'total_work_minutes': 0,
-                            'work_duration': '0ч 0м',
-                            'ops_per_hour': 0,
+                            'total_earnings': 0.0,
+                            'total_idle_minutes': 0,
                             'orders_completed': 0,
-                            'timely_percentage': 100.0,
+                            'timely_percentage': 0.0,
                             'fines_count': 0,
                             'fines_amount': 0.0,
-                            'operations_stats': [],
-                            'idle_data': {
-                                'total_work_minutes': 0,
-                                'total_idle_minutes': 0,
-                                'idle_counts': {
-                                    '5-10 мин': 0,
-                                    '10-30 мин': 0,
-                                    '30-60 мин': 0,
-                                    '>1 часа': 0
-                                }
-                            },
-                            'total_earnings': 0.0,
-                            'regular_earnings': 0.0,
-                            'reception_earnings': 0.0
+                            'operations_by_type': '',
+                            'reception_count': 0,
+                            'daily_data': []
+                        }
+                    else:
+                        # Агрегируем данные за период
+                        total_operations = sum(d['total_operations'] for d in detail_data)
+                        total_earnings = sum(d['total_earnings'] for d in detail_data)
+                        total_idle_minutes = sum(d['total_idle_minutes'] for d in detail_data)
+                        orders_completed = sum(d['orders_completed'] for d in detail_data)
+                        fines_count = sum(d['fines_count'] for d in detail_data)
+                        fines_amount = sum(d['fines_amount'] for d in detail_data)
+                        reception_count = sum(d['reception_count'] for d in detail_data)
+                        
+                        # Средний процент своевременности
+                        timely_records = [d for d in detail_data if d['timely_percentage'] > 0]
+                        avg_timely = sum(d['timely_percentage'] for d in timely_records) / len(timely_records) if timely_records else 0.0
+                        
+                        analytics_data = {
+                            'total_operations': total_operations,
+                            'total_earnings': total_earnings,
+                            'total_idle_minutes': total_idle_minutes,
+                            'orders_completed': orders_completed,
+                            'timely_percentage': avg_timely,
+                            'fines_count': fines_count,
+                            'fines_amount': fines_amount,
+                            'operations_by_type': detail_data[0]['operations_by_type'] if detail_data else '',
+                            'reception_count': reception_count,
+                            'daily_data': detail_data
                         }
                     
                     ops_detail = get_employee_operations_detail(employee_name,
@@ -93,35 +108,103 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                                                                date_range['end_date'])
                     
                     total_operations = analytics_data['total_operations']
-                    ops_per_hour = analytics_data['ops_per_hour']
-                    work_duration = analytics_data['work_duration']
-                    total_earnings = analytics_data.get('total_earnings', 0.0)
-                    idle_data = analytics_data.get('idle_data', {})
+                    total_earnings = analytics_data['total_earnings']
+                    total_idle_minutes = analytics_data['total_idle_minutes']
+                    
+                    # Упрощенный расчет операций в час (на основе 8-часового рабочего дня)
+                    work_hours = 8.0
+                    if total_operations > 0:
+                        ops_per_hour = total_operations / work_hours
+                    else:
+                        ops_per_hour = 0.0
                     
                     # РАСЧЕТ ЗАРАБОТКА В ЧАС
-                    earnings_per_hour = 0.0
-                    if work_duration and work_duration != '0ч 0м':
-                        hours_match = re.search(r'(\d+)ч', work_duration)
-                        minutes_match = re.search(r'(\d+)м', work_duration)
-                        
-                        hours = int(hours_match.group(1)) if hours_match else 0
-                        minutes = int(minutes_match.group(1)) if minutes_match else 0
-                        
-                        total_hours = hours + (minutes / 60)
-                        if total_hours > 0:
-                            earnings_per_hour = total_earnings / total_hours
+                    earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
                     
-                    # Создаем диаграммы
-                    operations_chart = create_operations_type_chart(employee_name, ops_detail)
+                    # Форматирование времени работы
+                    work_duration = f"{int(work_hours)}ч 0м"
+                    
+                    # Получаем данные для диаграмм
+                    from data.queries_mssql import get_employee_operations_by_type, get_employee_idle_intervals
+                    
+                    operations_by_type = get_employee_operations_by_type(employee_name, 
+                                                                        date_range['start_date'], 
+                                                                        date_range['end_date'])
+                    idle_intervals = get_employee_idle_intervals(employee_name, 
+                                                               date_range['start_date'], 
+                                                               date_range['end_date'])
+                    
+                    total_operations = analytics_data['total_operations']
+                    total_earnings = analytics_data['total_earnings']
+                    total_idle_minutes = analytics_data['total_idle_minutes']
+                    
+                    # Упрощенный расчет операций в час (на основе 8-часового рабочего дня)
+                    work_hours = 8.0
+                    if total_operations > 0:
+                        ops_per_hour = total_operations / work_hours
+                    else:
+                        ops_per_hour = 0.0
+                    
+                    # РАСЧЕТ ЗАРАБОТКА В ЧАС
+                    earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
+                    
+                    # Форматирование времени работы
+                    work_duration = f"{int(work_hours)}ч 0м"
+                    
+                    # Создаем СТОЛБЧАТУЮ диаграмму типов операций (цвета как в ячейках хранения)
+                    operations_chart = {
+                        "title": {
+                            "text": "Типы операций",
+                            "left": "center",
+                            "textStyle": {
+                                "fontSize": 14,
+                                "fontWeight": "bold",
+                                "color": "#333"
+                            }
+                        },
+                        "tooltip": {
+                            "trigger": "axis", 
+                            "axisPointer": {"type": "shadow"},
+                            "formatter": "{b}<br/>{a}: {c} операций"
+                        },
+                        "xAxis": {
+                            "type": "category",
+                            "data": [op['operation_type'] for op in operations_by_type],
+                            "axisLabel": {"rotate": 45, "fontSize": 10}
+                        },
+                        "yAxis": {
+                            "type": "value", 
+                            "name": "Количество операций",
+                            "nameTextStyle": {"color": "#666"}
+                        },
+                        "series": [{
+                            "name": "Операции",
+                            "type": "bar",
+                            "data": [
+                                {
+                                    "value": op['total_operations'], 
+                                    "itemStyle": {"color": "#0D47A1"}
+                                } for op in operations_by_type
+                            ],
+                            "itemStyle": {
+                                "borderRadius": [4, 4, 0, 0]
+                            },
+                            "label": {
+                                "show": True, 
+                                "position": "top",
+                                "formatter": "{c}",
+                                "fontSize": 8
+                            }
+                        }]
+                    }
                     
                     # Круговая диаграмма распределения времени
-                    work_minutes = idle_data.get('total_work_minutes', 0)
-                    idle_minutes = idle_data.get('total_idle_minutes', 0)
+                    work_minutes = int(work_hours * 60)
+                    idle_minutes = total_idle_minutes
                     time_distribution_pie = create_time_distribution_pie_echarts(work_minutes, idle_minutes)
                     
                     # Столбчатая диаграмма периодов простоя
-                    idle_counts = idle_data.get('idle_counts', {})
-                    idle_intervals_bar = create_idle_intervals_bar_echarts(idle_counts)
+                    idle_intervals_bar = create_idle_intervals_bar_echarts(idle_intervals)
                     
                     return [
                         "modal-visible", "modal-content-visible", 
@@ -150,12 +233,12 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
      Output("idle-detail-employee-name", "children"),
      Output("idle-detail-interval", "children"),
      Output("selected-idle-interval", "data")],
-    [Input("idle-intervals-chart", "clickData"),
+    [Input("idle-intervals-chart", "selectedData"),
      Input("close-idle-detail-modal", "n_clicks")],
     [State("selected-analytics-employee", "data")],
     prevent_initial_call=True
 )
-def handle_idle_detail_modal(click_data, close_clicks, employee_name):
+def handle_idle_detail_modal(selected_data, close_clicks, employee_name):
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
@@ -163,9 +246,9 @@ def handle_idle_detail_modal(click_data, close_clicks, employee_name):
     button_id = ctx.triggered[0]['prop_id']
     
     print(f"\n{'='*60}")
-    print(f"=== ОБРАБОТКА КЛИКА ПО ДИАГРАММЕ ===")
+    print(f"=== ОБРАБОТКА ВЫБОРА НА ДИАГРАММЕ ===")
     print(f"Сработало: {button_id}")
-    print(f"Данные клика: {click_data}")
+    print(f"Выбранные данные: {selected_data}")
     print(f"Имя сотрудника: {employee_name}")
     print(f"{'='*60}\n")
     
@@ -173,29 +256,40 @@ def handle_idle_detail_modal(click_data, close_clicks, employee_name):
         print(">>> Закрытие модального окна")
         return ["modal-hidden", "modal-content", "", "", ""]
     
-    if 'idle-intervals-chart.clickData' in button_id and click_data:
+    if 'idle-intervals-chart.selectedData' in button_id and selected_data:
         try:
-            print(f">>> Данные клика: {json.dumps(click_data, indent=2, ensure_ascii=False)}")
+            print(f">>> Данные выбора: {json.dumps(selected_data, indent=2, ensure_ascii=False)}")
             
-            # Получаем имя интервала из данных клика
+            # Получаем имя интервала из данных выбора
             interval_name = "Неизвестный интервал"
             
             # ECharts обычно возвращает данные в таком формате
-            if 'name' in click_data:
-                interval_name = click_data['name']
-                print(f">>> Найдено имя в click_data['name']: {interval_name}")
-            elif 'data' in click_data and 'name' in click_data['data']:
-                interval_name = click_data['data']['name']
-                print(f">>> Найдено имя в click_data['data']['name']: {interval_name}")
-            elif 'seriesName' in click_data:
-                interval_name = click_data['seriesName']
-                print(f">>> Найдено имя в seriesName: {interval_name}")
-            elif 'value' in click_data:
-                if isinstance(click_data['value'], (list, tuple)) and len(click_data['value']) > 0:
-                    interval_name = str(click_data['value'][0])
-                else:
-                    interval_name = str(click_data['value'])
-                print(f">>> Найдено значение: {interval_name}")
+            if isinstance(selected_data, list) and len(selected_data) > 0:
+                # Если это массив выбранных элементов
+                first_item = selected_data[0]
+                if 'name' in first_item:
+                    interval_name = first_item['name']
+                    print(f">>> Найдено имя в selected_data[0]['name']: {interval_name}")
+                elif 'data' in first_item and 'name' in first_item['data']:
+                    interval_name = first_item['data']['name']
+                    print(f">>> Найдено имя в selected_data[0]['data']['name']: {interval_name}")
+            elif isinstance(selected_data, dict):
+                # Если это один объект
+                if 'name' in selected_data:
+                    interval_name = selected_data['name']
+                    print(f">>> Найдено имя в selected_data['name']: {interval_name}")
+                elif 'data' in selected_data and 'name' in selected_data['data']:
+                    interval_name = selected_data['data']['name']
+                    print(f">>> Найдено имя в selected_data['data']['name']: {interval_name}")
+                elif 'seriesName' in selected_data:
+                    interval_name = selected_data['seriesName']
+                    print(f">>> Найдено имя в seriesName: {interval_name}")
+                elif 'value' in selected_data:
+                    if isinstance(selected_data['value'], (list, tuple)) and len(selected_data['value']) > 0:
+                        interval_name = str(selected_data['value'][0])
+                    else:
+                        interval_name = str(selected_data['value'])
+                    print(f">>> Найдено значение: {interval_name}")
             
             print(f">>> Определен интервал: {interval_name}")
             
@@ -209,7 +303,7 @@ def handle_idle_detail_modal(click_data, close_clicks, employee_name):
                 ]
                 
         except Exception as e:
-            print(f">>> ОШИБКА при обработке клика: {e}")
+            print(f">>> ОШИБКА при обработке выбора: {e}")
             import traceback
             traceback.print_exc()
     
@@ -379,69 +473,65 @@ def handle_rejected_lines_modal(open_clicks, close_clicks, date_range):
         end_date = date_range['end_date']
         
         try:
-            from data.queries import get_rejected_lines_details
-            rejected_lines = get_rejected_lines_details(start_date, end_date)
+            # Используем новую функцию get_rejected_lines_summary и get_rejected_lines_detail
+            from data.queries_mssql import get_rejected_lines_summary, get_rejected_lines_detail
             
-            # Рассчитываем KPI
-            total_lines = len(rejected_lines)
+            # Получаем сводную статистику
+            summary_stats = get_rejected_lines_summary(start_date, end_date)
             
-            unique_orders = set()
-            unique_items = set()
-            last_date = ""
+            # Получаем детальные данные (убираем лимит, чтобы показать все записи)
+            rejected_lines = get_rejected_lines_detail(start_date, end_date, limit=1000)
             
-            for line in rejected_lines:
-                if line['SHIPMENT_ID']:
-                    unique_orders.add(line['SHIPMENT_ID'])
-                if line['ITEM']:
-                    unique_items.add(line['ITEM'])
-                
-                # Находим самую позднюю дату
-                if line['DATE_TIME_STAMP']:
-                    if not last_date or line['DATE_TIME_STAMP'] > last_date:
-                        last_date = line['DATE_TIME_STAMP']
-            
-            unique_orders_count = len(unique_orders)
-            unique_items_count = len(unique_items)
+            # Используем данные из summary_stats
+            total_lines = summary_stats['total_rejected_lines']
+            unique_orders_count = summary_stats['unique_orders']
+            unique_items_count = summary_stats['unique_items']
+            last_date = summary_stats['last_rejection_date']
             
             # Форматируем последнюю дату
             if last_date:
-                if ' ' in last_date:
-                    last_date = last_date.split(' ')[0]
-                elif 'T' in last_date:
-                    last_date = last_date.split('T')[0]
+                if hasattr(last_date, 'strftime'):
+                    last_date = last_date.strftime('%Y-%m-%d')
+                elif ' ' in str(last_date):
+                    last_date = str(last_date).split(' ')[0]
+                elif 'T' in str(last_date):
+                    last_date = str(last_date).split('T')[0]
             
             # Создаем строки таблицы
             table_rows = []
-            for line in rejected_lines[:500]:  # Ограничим 500 строками для производительности
+            for line in rejected_lines:  # Показываем все записи без ограничений
                 # Форматируем дату для отображения
                 display_date = ""
-                if line['DATE_TIME_STAMP']:
-                    if ' ' in line['DATE_TIME_STAMP']:
-                        date_part = line['DATE_TIME_STAMP'].split(' ')[0]
-                        time_part = line['DATE_TIME_STAMP'].split(' ')[1][:8]
-                        display_date = f"{date_part} {time_part}"
-                    elif 'T' in line['DATE_TIME_STAMP']:
-                        date_part = line['DATE_TIME_STAMP'].split('T')[0]
-                        time_part = line['DATE_TIME_STAMP'].split('T')[1][:8]
-                        display_date = f"{date_part} {time_part}"
-                    else:
-                        display_date = line['DATE_TIME_STAMP'][:19]
+                if line['date_time_stamp']:
+                    if hasattr(line['date_time_stamp'], 'strftime'):
+                        display_date = line['date_time_stamp'].strftime('%Y-%m-%d %H:%M:%S')
+                    elif isinstance(line['date_time_stamp'], str):
+                        if ' ' in line['date_time_stamp']:
+                            date_part = line['date_time_stamp'].split(' ')[0]
+                            time_part = line['date_time_stamp'].split(' ')[1][:8]
+                            display_date = f"{date_part} {time_part}"
+                        elif 'T' in line['date_time_stamp']:
+                            date_part = line['date_time_stamp'].split('T')[0]
+                            time_part = line['date_time_stamp'].split('T')[1][:8]
+                            display_date = f"{date_part} {time_part}"
+                        else:
+                            display_date = str(line['date_time_stamp'])[:19]
                 
                 table_rows.append(
                     html.Tr([
-                        html.Td(line['SHIPMENT_ID'] or '', 
+                        html.Td(line['shipment_id'] or '', 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['ITEM'] or '', 
+                        html.Td(line['item'] or '', 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['ITEM_DESC'] or '', 
+                        html.Td(line['item_desc'] or '', 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'maxWidth': '200px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'}),
-                        html.Td(str(line['REQUESTED_QTY']) if line['REQUESTED_QTY'] else '', 
+                        html.Td(str(line['requested_qty']) if line['requested_qty'] else '', 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'textAlign': 'right'}),
-                        html.Td(line['QUANTITY_UM'] or '', 
+                        html.Td(line['quantity_um'] or '', 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['PICK_LOC'] or '', 
+                        html.Td(line['pick_loc'] or '', 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['PICK_ZONE'] or '', 
+                        html.Td(line['pick_zone'] or '', 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
                         html.Td(display_date, 
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'color': '#673AB7'})

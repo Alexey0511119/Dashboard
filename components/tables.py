@@ -2,7 +2,7 @@ import dash
 from dash import html, dcc
 import pandas as pd
 import json
-from data.queries import get_employees_on_shift, get_positions_list, get_brigades_list
+from data.queries_mssql import get_employees_on_shift, get_positions_list, get_brigades_list
 
 def create_performance_table(df, title="", is_best=False, is_worst=False):
     """Создание HTML таблицы производительности с колонкой заработка"""
@@ -128,8 +128,9 @@ def create_shift_employees_table():
             html.Thead(html.Tr([
                 html.Th('ФИО сотрудника', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
                 html.Th('Должность', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                html.Th('Время первой операции', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
+                html.Th('Участок', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                html.Th('Время первой операции', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
             ])),
             html.Tbody(id='shift-employees-table-body')
         ], style={'width': '100%', 'borderCollapse': 'collapse'})
