@@ -727,11 +727,12 @@ def get_fines_data(start_date, end_date):
                     'Сумма штрафов': round(total_amount, 2),
                     'Средний штраф': round(avg_amount, 2)
                 })
-                
+
                 summary_data.append({
                     'Сотрудник': employee,
                     'Количество_штрафов': fines_count,
-                    'Сумма_штрафов': round(total_amount, 2)
+                    'Сумма_штрафов': round(total_amount, 2),
+                    'Средний_штраф': round(avg_amount, 2)
                 })
             except Exception as e:
                 print(f"Error processing fines row: {e}")

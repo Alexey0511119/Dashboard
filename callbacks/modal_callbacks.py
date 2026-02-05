@@ -387,17 +387,17 @@ def handle_fines_modal(close_clicks, fines_clicks, selected_fines_employee, fine
             
             summary_data = fines_data.get('summary_data', []) if fines_data else []
             sorted_summary_data = sorted(summary_data, key=lambda x: x.get('Количество_штрафов', 0), reverse=True)
-            
+
             if 0 <= employee_idx < len(sorted_summary_data):
                 employee_data = sorted_summary_data[employee_idx]
                 employee_name = employee_data.get('Сотрудник', 'Неизвестно')
-                
+
                 if date_range:
-                    fines_details = get_employee_fines_details(employee_name, 
-                                                             date_range['start_date'], 
+                    fines_details = get_employee_fines_details(employee_name,
+                                                             date_range['start_date'],
                                                              date_range['end_date'])
                     employee_data['Штрафы'] = fines_details
-                
+
                 fines_count = employee_data.get('Количество_штрафов', 0)
                 total_amount = employee_data.get('Сумма_штрафов', 0)
                 avg_amount = employee_data.get('Средний_штраф', 0)
