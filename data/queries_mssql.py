@@ -1311,13 +1311,41 @@ def get_employee_operations_detail(employee_name, start_date, end_date):
 
 def get_employee_fines_details(employee_name, start_date, end_date):
     """Получение детализации штрафов сотрудника"""
-    fines_data = get_fines_data(start_date, end_date)
+    # Запрос для получения детализированных данных штрафов для конкретного сотрудника
+    query = """
+    SELECT
+        date_key,
+        fine_category,
+        total_fine,
+        smena
+    FROM dm.v_penalty_summary
+    WHERE fio = ? AND date_key BETWEEN ? AND ?
+    ORDER BY date_key DESC
+    """
     
-    for fine in fines_data:
-        if fine['Сотрудник'] == employee_name:
-            return fines_data
+    result = execute_query_cached(query, (employee_name, start_date, end_date))
     
-    return []
+    fines_details = []
+    if result:
+        for row in result:
+            try:
+                date_key = row[0] if row[0] else ''
+                category = row[1] if row[1] else 'Без категории'
+                amount = float(row[2]) if row[2] else 0.0
+                shift = row[3] if row[3] else ''
+                
+                fines_details.append({
+                    'date': str(date_key),
+                    'category': category,
+                    'amount': amount,
+                    'shift': shift,
+                    'description': f"Штраф за {category}, смена {shift}"
+                })
+            except Exception as e:
+                print(f"Error processing fine detail row: {e}")
+                continue
+    
+    return fines_details
 
 def filter_storage_data(storage_data, filters):
     """Фильтрация данных по ячейкам хранения"""
