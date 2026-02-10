@@ -342,11 +342,11 @@ def get_avg_productivity(start_date, end_date):
 
 # Получение данных для таблицы производительности сотрудников
 def get_performance_data(start_date, end_date):
-    """Получение данных производительности сотрудников из dm.v_performance_detailed"""
+    """Получение данных производительности сотрудников из dm.v_performance_detailed с корректной агрегацией по сотруднику"""
+    # Сначала получаем все данные по дням для корректного расчета
     query = """
-    SELECT 
+    SELECT
         Сотрудник,
-        date_key,
         Общее_кол_операций,
         Ср_время_на_операцию,
         Заработок,
@@ -354,46 +354,126 @@ def get_performance_data(start_date, end_date):
         Время_работы,
         Время_первой_операции,
         Обычные_операции,
-        Приемка
-    FROM dm.v_performance_detailed 
+        Приемка,
+        date_key
+    FROM dm.v_performance_detailed
     WHERE date_key BETWEEN ? AND ?
         AND Общее_кол_операций > 0
-    ORDER BY Заработок DESC
+    ORDER BY Сотрудник, date_key
     """
-    
+
     result = execute_query_cached(query, (start_date, end_date))
-    
-    performance_data = []
+
+    # Группируем данные по сотруднику для корректного расчета
+    employee_data = {}
     if result:
         for row in result:
             try:
                 employee = row[0] if row[0] else ''
-                date_key = row[1] if row[1] else ''
-                total_ops = int(row[2]) if row[2] else 0
-                avg_time_per_op = float(row[3]) if row[3] else 0.0
-                earnings = float(row[4]) if row[4] else 0.0
-                ops_per_hour = float(row[5]) if row[5] else 0.0
-                work_time = row[6] if row[6] else ''
-                first_op_time = row[7] if row[7] else ''
-                regular_ops = int(row[8]) if row[8] else 0
-                reception_ops = int(row[9]) if row[9] else 0
-                
-                performance_data.append({
-                    'Сотрудник': employee,
-                    'Общее_кол_операций': total_ops,
-                    'Ср_время_на_операцию': round(avg_time_per_op, 1),
-                    'Заработок': round(earnings, 2),
-                    'Операций_в_час': round(ops_per_hour, 1),
-                    'Время_работы': work_time,
-                    'Время_первой_операции': first_op_time,
-                    'Обычные_операции': regular_ops,
-                    'Приемка': reception_ops,
-                    'date_key': date_key
-                })
+                total_ops = int(row[1]) if row[1] is not None else 0
+                avg_time_per_op = float(row[2]) if row[2] is not None else 0.0
+                earnings = float(row[3]) if row[3] is not None else 0.0
+                ops_per_hour_raw = float(row[4]) if row[4] is not None else 0.0
+                work_time_str = row[5] if row[5] else ''
+                first_op_time = row[6] if row[6] else ''
+                regular_ops = int(row[7]) if row[7] is not None else 0
+                reception_ops = int(row[8]) if row[8] is not None else 0
+                date_key = row[9] if row[9] else ''
+
+                # Преобразуем строку времени работы в минуты для суммирования
+                work_minutes = 0
+                if work_time_str and work_time_str != '':
+                    # Парсим строку в формате "Xч Yм"
+                    parts = work_time_str.split()
+                    hours = 0
+                    minutes = 0
+                    for part in parts:
+                        if 'ч' in part:
+                            hours = int(part.replace('ч', '').strip())
+                        elif 'м' in part:
+                            minutes = int(part.replace('м', '').strip())
+                    work_minutes = hours * 60 + minutes
+
+                if employee not in employee_data:
+                    employee_data[employee] = {
+                        'total_operations': 0,
+                        'total_earnings': 0.0,
+                        'total_work_minutes': 0,
+                        'total_regular_ops': 0,
+                        'total_reception_ops': 0,
+                        'total_ops_hours': 0.0,  # Сумма (операции / часы) для расчета среднего
+                        'total_time_for_avg': 0.0,  # Сумма (время_на_операцию * кол_операций) для расчета среднего
+                        'total_ops_for_time_avg': 0,  # Сумма количества операций для расчета среднего времени
+                        'first_op_times': [],
+                        'date_keys': []
+                    }
+
+                employee_data[employee]['total_operations'] += total_ops
+                employee_data[employee]['total_earnings'] += earnings
+                employee_data[employee]['total_work_minutes'] += work_minutes
+                employee_data[employee]['total_regular_ops'] += regular_ops
+                employee_data[employee]['total_reception_ops'] += reception_ops
+                employee_data[employee]['total_ops_hours'] += ops_per_hour_raw
+                employee_data[employee]['total_time_for_avg'] += avg_time_per_op * total_ops
+                employee_data[employee]['total_ops_for_time_avg'] += total_ops
+                if first_op_time:
+                    employee_data[employee]['first_op_times'].append(first_op_time)
+                employee_data[employee]['date_keys'].append(date_key)
+
             except Exception as e:
                 print(f"Error processing performance row: {e}")
                 continue
-    
+
+    # Теперь формируем итоговые данные для каждого сотрудника
+    performance_data = []
+    for employee, data in employee_data.items():
+        # Рассчитываем среднее время на операцию как общее время / общее количество операций
+        avg_time_per_op = 0.0
+        if data['total_ops_for_time_avg'] > 0:
+            avg_time_per_op = data['total_time_for_avg'] / data['total_ops_for_time_avg']
+
+        # Рассчитываем операций в час как общее количество операций / общее рабочее время в часах
+        ops_per_hour = 0.0
+        total_work_hours = data['total_work_minutes'] / 60.0 if data['total_work_minutes'] > 0 else 0.0
+        if total_work_hours > 0:
+            ops_per_hour = data['total_operations'] / total_work_hours
+
+        # Форматируем время работы обратно в строку
+        total_hours = int(data['total_work_minutes'] // 60)
+        total_minutes = int(data['total_work_minutes'] % 60)
+        work_time_formatted = f"{total_hours}ч {total_minutes}м"
+
+        # Определяем время первой операции (самое раннее в периоде)
+        first_op_time = ''
+        if data['first_op_times']:
+            # Попробуем найти самое раннее время в формате HH:MM
+            try:
+                # Преобразуем все времена в формат HH:MM и находим минимальное
+                times = []
+                for time_str in data['first_op_times']:
+                    if time_str and ':' in time_str:
+                        times.append(time_str)
+                if times:
+                    first_op_time = min(times)
+            except:
+                # Если не получилось, берем первое доступное
+                first_op_time = data['first_op_times'][0] if data['first_op_times'] else ''
+
+        performance_data.append({
+            'Сотрудник': employee,
+            'Общее_кол_операций': data['total_operations'],
+            'Ср_время_на_операцию': round(avg_time_per_op, 1),
+            'Заработок': round(data['total_earnings'], 2),
+            'Операций_в_час': round(ops_per_hour, 1),
+            'Время_работы': work_time_formatted,
+            'Время_первой_операции': first_op_time,
+            'Обычные_операции': data['total_regular_ops'],
+            'Приемка': data['total_reception_ops']
+        })
+
+    # Сортируем по заработку (как в оригинальном запросе)
+    performance_data.sort(key=lambda x: x['Заработок'], reverse=True)
+
     return performance_data
 
 def get_employee_modal_detail(employee_name, start_date, end_date):
@@ -1022,10 +1102,10 @@ def refresh_data(start_date, end_date):
         storage_data = get_all_storage_data()
         print(f"Получено данных по ячейкам: {len(storage_data)}")
         
-        print("✅ Данные успешно обновлены")
-        
+        print("SUCCESS: Данные успешно обновлены")
+
     except Exception as e:
-        print(f"❌ Ошибка при обновлении данных: {e}")
+        print(f"ERROR: Ошибка при обновлении данных: {e}")
 
 # Недостающие функции для совместимости
 
