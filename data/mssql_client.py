@@ -60,23 +60,39 @@ class MSSQLClient:
 mssql_client = MSSQLClient()
 
 # Кэширование для оптимизации запросов
+from functools import wraps
+import time
+
 cache_lock = threading.Lock()
 executor = ThreadPoolExecutor(max_workers=5)
 
+# Простой кэш с TTL
+query_cache = {}
+cache_timestamps = {}
+
 def execute_query_cached(query, params=None, ttl=300):
-    """Выполнение запроса с кэшированием"""
+    """Выполнение запроса с кэшированием и TTL"""
     cache_key = f"{query}_{str(params)}"
     
-    @lru_cache(maxsize=128)
-    def cached_execution(cache_key):
-        try:
-            result = mssql_client.execute(query, params)
-            return result
-        except Exception as e:
-            print(f"Cache execution error: {e}")
-            return []
+    # Проверяем, есть ли данные в кэше и не истекло ли время
+    current_time = time.time()
+    if cache_key in query_cache and cache_key in cache_timestamps:
+        if current_time - cache_timestamps[cache_key] < ttl:
+            return query_cache[cache_key]
+        else:
+            # Удаляем устаревшие данные из кэша
+            del query_cache[cache_key]
+            del cache_timestamps[cache_key]
     
-    return cached_execution(cache_key)
+    # Выполняем запрос и сохраняем результат в кэш
+    try:
+        result = mssql_client.execute(query, params)
+        query_cache[cache_key] = result
+        cache_timestamps[cache_key] = current_time
+        return result
+    except Exception as e:
+        print(f"Cache execution error: {e}")
+        return []
 
 def test_connection():
     """Тест подключения к БД"""

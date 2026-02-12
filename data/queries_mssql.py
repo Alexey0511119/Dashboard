@@ -1102,7 +1102,6 @@ def refresh_data(start_date, end_date):
         storage_data = get_all_storage_data()
         print(f"Получено данных по ячейкам: {len(storage_data)}")
         
-        print("SUCCESS: Данные успешно обновлены")
 
     except Exception as e:
         print(f"ERROR: Ошибка при обновлении данных: {e}")
