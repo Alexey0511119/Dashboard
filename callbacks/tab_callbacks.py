@@ -1,9 +1,9 @@
 import dash
 from dash import Input, Output, callback, html
 from datetime import datetime, timedelta
-from data.queries import (
-    get_orders_table, get_arrival_timeliness, get_order_timeliness,
-    get_fines_data, get_shift_comparison, get_timeliness_chart_data
+from data.queries_mssql import (
+    get_orders_table, get_arrival_timeliness, get_order_timeliness, get_orders_timeliness_by_delivery,
+    get_fines_data, get_shift_comparison, get_orders_timely
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
@@ -102,8 +102,10 @@ def update_timeliness_kpi(date_range):
     end_date = date_range['end_date']
     
     try:
+        # Получаем данные по приходам из v_receipt_timeliness
         timely_arrivals, delayed_arrivals = get_arrival_timeliness(start_date, end_date)
-        timely_orders, delayed_orders = get_order_timeliness(start_date, end_date)
+        # Получаем данные по заказам из v_order_timeliness (возвращает 4 значения)
+        timely_orders, delayed_orders, total_orders, orders_percentage = get_order_timeliness(start_date, end_date)
         
         return (
             str(timely_arrivals),
@@ -122,7 +124,7 @@ def update_timeliness_kpi(date_range):
     [Input('global-date-range', 'data')]
 )
 def update_timeliness_charts(date_range):
-    """Обновление диаграмм своевременности"""
+    """Обновление диаграмм своевременности с разбивкой по типам доставки"""
     if not date_range:
         return {}, {}
     
@@ -130,16 +132,205 @@ def update_timeliness_charts(date_range):
     end_date = date_range['end_date']
     
     try:
-        timely_data = get_timeliness_chart_data(start_date, end_date, 'timely')
-        delayed_data = get_timeliness_chart_data(start_date, end_date, 'delayed')
+        # Получаем данные с разбивкой по типам доставки
+        chart_data = get_orders_timeliness_by_delivery(start_date, end_date)
         
-        timely_chart = create_timeliness_chart(timely_data, 'timely')
-        delayed_chart = create_timeliness_chart(delayed_data, 'delayed')
+        if not chart_data:
+            return {}, {}
+        
+        # Собираем все уникальные даты и сортируем их
+        all_dates = sorted(set(item['date'] for item in chart_data))
+        
+        # Подготавливаем данные для каждой серии
+        rc_timely_data = []
+        rc_delayed_data = []
+        client_timely_data = []
+        client_delayed_data = []
+        
+        # Заполняем данные по всем датам, используя null для отсутствующих значений
+        for date in all_dates:
+            # Ищем данные для РЦ
+            rc_record = next((item for item in chart_data if item['date'] == date and item['delivery_type'] == 'РЦ'), None)
+            if rc_record:
+                rc_timely_data.append(rc_record['timely_count'])
+                rc_delayed_data.append(rc_record['delayed_count'])
+            else:
+                rc_timely_data.append(None)
+                rc_delayed_data.append(None)
+            
+            # Ищем данные для Доставка клиенту
+            client_record = next((item for item in chart_data if item['date'] == date and item['delivery_type'] == 'Доставка клиенту'), None)
+            if client_record:
+                client_timely_data.append(client_record['timely_count'])
+                client_delayed_data.append(client_record['delayed_count'])
+            else:
+                client_timely_data.append(None)
+                client_delayed_data.append(None)
+        
+        # Считаем количество реальных данных для Доставка клиенту
+        client_timely_count = sum(1 for x in client_timely_data if x is not None and x > 0)
+        client_delayed_count = sum(1 for x in client_delayed_data if x is not None and x > 0)
+        
+        # Определяем настройки для Доставка клиенту
+        if client_timely_count <= 2:
+            # Если 1-2 точки, показываем только точки без линии
+            client_timely_config = {
+                "connectNulls": False,
+                "showSymbol": True,
+                "symbolSize": 8,
+                "lineStyle": {"width": 0}  # Скрываем линию
+            }
+        else:
+            # Если 3+ точек, показываем линию
+            client_timely_config = {
+                "connectNulls": False,
+                "showSymbol": True,
+                "symbolSize": 6,
+                "lineStyle": {"width": 3}
+            }
+            
+        if client_delayed_count <= 2:
+            client_delayed_config = {
+                "connectNulls": False,
+                "showSymbol": True,
+                "symbolSize": 8,
+                "lineStyle": {"width": 0}  # Скрываем линию
+            }
+        else:
+            client_delayed_config = {
+                "connectNulls": False,
+                "showSymbol": True,
+                "symbolSize": 6,
+                "lineStyle": {"width": 3}
+            }
+        
+        # Создаем диаграмму для своевременных заказов
+        timely_chart = {
+            "title": {
+                "text": "Своевременность заказов клиент",
+                "left": "center",
+                "textStyle": {"fontSize": 14, "fontWeight": "bold", "color": "#333"}
+            },
+            "tooltip": {
+                "trigger": "axis",
+                "axisPointer": {"type": "cross"}
+            },
+            "legend": {
+                "data": ["РЦ", "Доставка клиенту"],
+                "top": "30px"
+            },
+            "xAxis": {
+                "type": "category",
+                "data": all_dates,
+                "axisLabel": {"rotate": 45, "fontSize": 10}
+            },
+            "yAxis": {
+                "type": "value",
+                "name": "Количество заказов"
+            },
+            "series": [
+                {
+                    "name": "РЦ",
+                    "type": "line",
+                    "data": rc_timely_data,
+                    "lineStyle": {"color": "#4CAF50", "width": 3},
+                    "itemStyle": {"color": "#4CAF50"},
+                    "smooth": True,
+                    "symbol": "circle",
+                    "symbolSize": 6,
+                    "showSymbol": True
+                },
+                {
+                    "name": "Доставка клиенту",
+                    "type": "line", 
+                    "data": client_timely_data,
+                    "lineStyle": {"color": "#2196F3", "width": 3},
+                    "itemStyle": {"color": "#2196F3"},
+                    "smooth": True,
+                    "symbol": "circle",
+                    "symbolSize": 6,
+                    "showSymbol": True,
+                    **client_timely_config
+                }
+            ]
+        }
+        
+        # Создаем диаграмму для просроченных заказов
+        delayed_chart = {
+            "title": {
+                "text": "Просрочено клиент",
+                "left": "center", 
+                "textStyle": {"fontSize": 14, "fontWeight": "bold", "color": "#333"}
+            },
+            "tooltip": {
+                "trigger": "axis",
+                "axisPointer": {"type": "cross"}
+            },
+            "legend": {
+                "data": ["РЦ", "Доставка клиенту"],
+                "top": "30px"
+            },
+            "xAxis": {
+                "type": "category",
+                "data": all_dates,
+                "axisLabel": {"rotate": 45, "fontSize": 10}
+            },
+            "yAxis": {
+                "type": "value",
+                "name": "Количество заказов"
+            },
+            "series": [
+                {
+                    "name": "РЦ",
+                    "type": "line",
+                    "data": rc_delayed_data,
+                    "lineStyle": {"color": "#F44336", "width": 3},
+                    "itemStyle": {"color": "#F44336"},
+                    "smooth": True,
+                    "symbol": "circle",
+                    "symbolSize": 6,
+                    "showSymbol": True
+                },
+                {
+                    "name": "Доставка клиенту",
+                    "type": "line",
+                    "data": client_delayed_data,
+                    "lineStyle": {"color": "#FF9800", "width": 3},
+                    "itemStyle": {"color": "#FF9800"},
+                    "smooth": True,
+                    "symbol": "circle",
+                    "symbolSize": 6,
+                    "showSymbol": True,
+                    **client_delayed_config
+                }
+            ]
+        }
         
         return timely_chart, delayed_chart
     except Exception as e:
         print(f"Error in update_timeliness_charts: {e}")
         return {}, {}
+
+# JavaScript функции для tooltip
+function_js_timely_tooltip = """
+function(params) {
+    var result = params[0].name + '<br/>';
+    params.forEach(function(item) {
+        result += item.marker + item.seriesName + ': ' + item.value + ' заказов<br/>';
+    });
+    return result;
+}
+"""
+
+function_js_delayed_tooltip = """
+function(params) {
+    var result = params[0].name + '<br/>';
+    params.forEach(function(item) {
+        result += item.marker + item.seriesName + ': ' + item.value + ' заказов<br/>';
+    });
+    return result;
+}
+"""
 
 # Callback для обновления данных штрафов
 @callback(
@@ -212,16 +403,32 @@ def update_fines_data(date_range):
 )
 def update_fines_charts(fines_data):
     """Обновление диаграмм штрафов"""
-    if not fines_data or 'category_data' not in fines_data:
-        empty_pie = create_fines_pie_chart({})
-        empty_bar = create_fines_amount_bar_chart({})
+    try:
+        print(f"DEBUG: update_fines_charts called with data: {fines_data is not None}")
+        
+        if not fines_data or 'category_data' not in fines_data:
+            print("DEBUG: No fines data or missing category_data, returning empty charts")
+            empty_pie = {"title": {"text": "Нет данных", "left": "center"}}
+            empty_bar = {"title": {"text": "Нет данных", "left": "center"}}
+            return empty_pie, empty_bar
+        
+        category_data = fines_data['category_data']
+        print(f"DEBUG: Processing category_data: {len(category_data) if category_data else 0} items")
+        
+        pie_chart = create_fines_pie_chart(category_data)
+        amount_chart = create_fines_amount_bar_chart(category_data)
+        
+        print(f"DEBUG: Charts created successfully")
+        return pie_chart, amount_chart
+        
+    except Exception as e:
+        print(f"ERROR in update_fines_charts: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        empty_pie = {"title": {"text": "Ошибка загрузки", "left": "center"}}
+        empty_bar = {"title": {"text": "Ошибка загрузки", "left": "center"}}
         return empty_pie, empty_bar
-    
-    category_data = fines_data['category_data']
-    pie_chart = create_fines_pie_chart(category_data)
-    amount_chart = create_fines_amount_bar_chart(category_data)
-    
-    return pie_chart, amount_chart
 
 # Callback для обновления таблицы сравнения смен
 @callback(
@@ -359,3 +566,39 @@ def update_error_hours_chart(error_hours):
     result = create_error_hours_chart(error_hours)
     print(f"DEBUG: Диаграмма создана, возвращаем результат")
     return result
+
+# Callback для обновления KPI отклоненных строк
+@callback(
+    [Output('rejected-lines-kpi', 'children'),
+     Output('rejected-lines-detail', 'children')],
+    [Input('global-date-range', 'data')]
+)
+def update_rejected_lines_kpi(date_range):
+    """Обновление KPI отклоненных строк"""
+    if not date_range:
+        return "0", "Нет данных"
+    
+    start_date = date_range['start_date']
+    end_date = date_range['end_date']
+    
+    try:
+        # Используем новую функцию get_rejected_lines_summary
+        from data.queries_mssql import get_rejected_lines_summary
+        rejected_stats = get_rejected_lines_summary(start_date, end_date)
+        
+        total_rejected = rejected_stats['total_rejected_lines']
+        unique_orders = rejected_stats['unique_orders']
+        unique_items = rejected_stats['unique_items']
+        
+        # Форматируем значения
+        rejected_str = f"{total_rejected:,}"
+        
+        if unique_orders > 0:
+            rejected_detail = f"↗ {unique_orders} заказов | {unique_items} позиций"
+        else:
+            rejected_detail = "Нет отклоненных строк"
+        
+        return rejected_str, rejected_detail
+    except Exception as e:
+        print(f"Error in update_rejected_lines_kpi: {e}")
+        return "0", "Ошибка загрузки"

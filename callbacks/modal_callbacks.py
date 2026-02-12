@@ -2,15 +2,16 @@ import dash
 from dash import Input, Output, State, callback, ALL
 import json
 import re
-from data.queries import (
+from data.queries_mssql import (
     get_employee_analytics, get_employee_operations_detail,
-    get_employee_fines_details
+    get_employee_fines_details, get_employee_idle_data, get_all_storage_data, filter_storage_data
 )
 from components.charts import (
     create_operations_type_chart, create_time_distribution_pie_echarts,
     create_idle_intervals_bar_echarts, create_employee_fines_chart,
     create_timeline_chart
 )
+from dash import html
 
 # Callback для аналитического модального окна
 @callback(
@@ -37,109 +38,195 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
-    
+
     button_id = ctx.triggered[0]['prop_id']
-    
+
     if 'close-analytics-modal' in button_id:
         return ["modal-hidden", "modal-content", "", "", "", "", "", "", "", {}, {}, {}]
-    
+
     if 'employee' in button_id:
         triggered_input = ctx.triggered[0]
         if triggered_input['value'] is None:
             raise dash.exceptions.PreventUpdate
-            
+
         button_data = triggered_input['prop_id'].split('.')[0]
         try:
             button_json = json.loads(button_data.replace("'", '"'))
-            employee_idx = button_json['index']
-            
-            if performance_data and 0 <= employee_idx < len(performance_data):
-                employee_name = performance_data[employee_idx]['Сотрудник']
-                
-                if date_range:
-                    analytics_data = get_employee_analytics(employee_name, 
-                                                          date_range['start_date'], 
-                                                          date_range['end_date'])
-                    
-                    if not analytics_data:
-                        analytics_data = {
-                            'total_operations': 0,
-                            'total_work_minutes': 0,
-                            'work_duration': '0ч 0м',
-                            'ops_per_hour': 0,
-                            'orders_completed': 0,
-                            'timely_percentage': 100.0,
-                            'fines_count': 0,
-                            'fines_amount': 0.0,
-                            'operations_stats': [],
-                            'idle_data': {
-                                'total_work_minutes': 0,
-                                'total_idle_minutes': 0,
-                                'idle_counts': {
-                                    '5-10 мин': 0,
-                                    '10-30 мин': 0,
-                                    '30-60 мин': 0,
-                                    '>1 часа': 0
-                                }
-                            },
-                            'total_earnings': 0.0,
-                            'regular_earnings': 0.0,
-                            'reception_earnings': 0.0
+
+            # Используем формат с индексом, как в других таблицах
+            if 'index' in button_json:
+                employee_idx = button_json['index']
+
+                # Теперь, когда мы агрегировали данные по сотруднику, нам нужно получить имя сотрудника
+                # из отсортированного списка, как это делается в таблице производительности
+                if performance_data:
+                    # Сортируем данные по заработку (как в таблице производительности)
+                    sorted_performance_data = sorted(performance_data, key=lambda x: x.get('Заработок', 0), reverse=True)
+
+                    if 0 <= employee_idx < len(sorted_performance_data):
+                        employee_name = sorted_performance_data[employee_idx]['Сотрудник']
+                    else:
+                        # Если индекс вне диапазона, возвращаем обновление
+                        raise dash.exceptions.PreventUpdate
+                else:
+                    # Если нет данных, возвращаем обновление
+                    raise dash.exceptions.PreventUpdate
+            else:
+                # Если нет индекса, возвращаем обновление
+                raise dash.exceptions.PreventUpdate
+
+            # Получаем детальные данные для сотрудника
+            if date_range:
+                from data.queries_mssql import get_employee_modal_detail
+                detail_data = get_employee_modal_detail(employee_name,
+                                                       date_range['start_date'],
+                                                       date_range['end_date'])
+
+                if not detail_data:
+                    analytics_data = {
+                        'total_operations': 0,
+                        'total_earnings': 0.0,
+                        'total_idle_minutes': 0,
+                        'orders_completed': 0,
+                        'timely_percentage': 0.0,
+                        'fines_count': 0,
+                        'fines_amount': 0.0,
+                        'operations_by_type': '',
+                        'reception_count': 0,
+                        'daily_data': []
+                    }
+                else:
+                    # Агрегируем данные за период
+                    total_operations = sum(d['total_operations'] for d in detail_data)
+                    total_earnings = sum(d['total_earnings'] for d in detail_data)
+                    total_idle_minutes = sum(d['total_idle_minutes'] for d in detail_data)
+                    orders_completed = sum(d['orders_completed'] for d in detail_data)
+                    fines_count = sum(d['fines_count'] for d in detail_data)
+                    fines_amount = sum(d['fines_amount'] for d in detail_data)
+                    reception_count = sum(d['reception_count'] for d in detail_data)
+
+                    # Средний процент своевременности
+                    timely_records = [d for d in detail_data if d['timely_percentage'] > 0]
+                    avg_timely = sum(d['timely_percentage'] for d in timely_records) / len(timely_records) if timely_records else 0.0
+
+                    analytics_data = {
+                        'total_operations': total_operations,
+                        'total_earnings': total_earnings,
+                        'total_idle_minutes': total_idle_minutes,
+                        'orders_completed': orders_completed,
+                        'timely_percentage': avg_timely,
+                        'fines_count': fines_count,
+                        'fines_amount': fines_amount,
+                        'operations_by_type': detail_data[0]['operations_by_type'] if detail_data and len(detail_data) > 0 else '',
+                        'reception_count': reception_count,
+                        'daily_data': detail_data
+                    }
+
+                # Используем значения из агрегированных данных
+                total_ops = analytics_data['total_operations']
+                total_earnings = analytics_data['total_earnings']
+                total_idle_minutes = analytics_data['total_idle_minutes']
+
+                # Упрощенный расчет операций в час (на основе 8-часового рабочего дня)
+                work_hours = 8.0
+                if total_ops > 0:
+                    ops_per_hour = total_ops / work_hours
+                else:
+                    ops_per_hour = 0.0
+
+                # РАСЧЕТ ЗАРАБОТКА В ЧАС
+                earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
+
+                # Форматирование времени работы
+                work_duration = f"{int(work_hours)}ч 0м"
+
+                # Получаем данные для диаграмм
+                from data.queries_mssql import get_employee_operations_by_type, get_employee_idle_intervals
+
+                operations_by_type = get_employee_operations_by_type(employee_name,
+                                                                    date_range['start_date'],
+                                                                    date_range['end_date'])
+                idle_intervals = get_employee_idle_intervals(employee_name,
+                                                           date_range['start_date'],
+                                                           date_range['end_date'])
+
+                # Создаем СТОЛБЧАТУЮ диаграмму типов операций (цвета как в ячейках хранения)
+                operations_chart = {
+                    "title": {
+                        "text": "Типы операций",
+                        "left": "center",
+                        "textStyle": {
+                            "fontSize": 14,
+                            "fontWeight": "bold",
+                            "color": "#333"
                         }
-                    
-                    ops_detail = get_employee_operations_detail(employee_name,
-                                                               date_range['start_date'],
-                                                               date_range['end_date'])
-                    
-                    total_operations = analytics_data['total_operations']
-                    ops_per_hour = analytics_data['ops_per_hour']
-                    work_duration = analytics_data['work_duration']
-                    total_earnings = analytics_data.get('total_earnings', 0.0)
-                    idle_data = analytics_data.get('idle_data', {})
-                    
-                    # РАСЧЕТ ЗАРАБОТКА В ЧАС
-                    earnings_per_hour = 0.0
-                    if work_duration and work_duration != '0ч 0м':
-                        hours_match = re.search(r'(\d+)ч', work_duration)
-                        minutes_match = re.search(r'(\d+)м', work_duration)
-                        
-                        hours = int(hours_match.group(1)) if hours_match else 0
-                        minutes = int(minutes_match.group(1)) if minutes_match else 0
-                        
-                        total_hours = hours + (minutes / 60)
-                        if total_hours > 0:
-                            earnings_per_hour = total_earnings / total_hours
-                    
-                    # Создаем диаграммы
-                    operations_chart = create_operations_type_chart(employee_name, ops_detail)
-                    
-                    # Круговая диаграмма распределения времени
-                    work_minutes = idle_data.get('total_work_minutes', 0)
-                    idle_minutes = idle_data.get('total_idle_minutes', 0)
-                    time_distribution_pie = create_time_distribution_pie_echarts(work_minutes, idle_minutes)
-                    
-                    # Столбчатая диаграмма периодов простоя
-                    idle_counts = idle_data.get('idle_counts', {})
-                    idle_intervals_bar = create_idle_intervals_bar_echarts(idle_counts)
-                    
-                    return [
-                        "modal-visible", "modal-content-visible", 
-                        f"Сотрудник: {employee_name}", 
-                        employee_name,
-                        str(total_operations),
-                        f"{earnings_per_hour:.2f} ₽/час",
-                        f"{ops_per_hour:.1f}",
-                        work_duration,
-                        f"{total_earnings:,.2f} ₽",
-                        operations_chart,
-                        time_distribution_pie,
-                        idle_intervals_bar
-                    ]
-                    
+                    },
+                    "tooltip": {
+                        "trigger": "axis",
+                        "axisPointer": {"type": "shadow"},
+                        "formatter": "{b}<br/>{a}: {c} операций"
+                    },
+                    "xAxis": {
+                        "type": "category",
+                        "data": [op['operation_type'] for op in operations_by_type],
+                        "axisLabel": {"rotate": 45, "fontSize": 10}
+                    },
+                    "yAxis": {
+                        "type": "value",
+                        "name": "Количество операций",
+                        "nameTextStyle": {"color": "#666"}
+                    },
+                    "series": [{
+                        "name": "Операции",
+                        "type": "bar",
+                        "data": [
+                            {
+                                "value": op['total_operations'],
+                                "itemStyle": {"color": "#0D47A1"}
+                            } for op in operations_by_type
+                        ],
+                        "itemStyle": {
+                            "borderRadius": [4, 4, 0, 0]
+                        },
+                        "label": {
+                            "show": True,
+                            "position": "top",
+                            "formatter": "{c}",
+                            "fontSize": 8
+                        }
+                    }]
+                }
+
+                # Круговая диаграмма распределения времени
+                work_minutes = int(work_hours * 60)
+                idle_minutes_value = total_idle_minutes
+                from components.charts import create_time_distribution_pie_echarts
+                time_distribution_pie = create_time_distribution_pie_echarts(work_minutes, idle_minutes_value)
+
+                # Столбчатая диаграмма периодов простоя
+                from components.charts import create_idle_intervals_bar_echarts
+                idle_intervals_bar = create_idle_intervals_bar_echarts(idle_intervals)
+
+                return [
+                    "modal-visible", "modal-content-visible",
+                    f"Сотрудник: {employee_name}",
+                    employee_name,
+                    str(total_ops),
+                    f"{earnings_per_hour:.2f} ₽/час",
+                    f"{ops_per_hour:.1f}",
+                    work_duration,
+                    f"{total_earnings:,.2f} ₽",
+                    operations_chart,
+                    time_distribution_pie,
+                    idle_intervals_bar
+                ]
+
         except Exception as e:
             print(f"Error in handle_analytics_modal: {e}")
+            import traceback
+            traceback.print_exc()
             return ["modal-hidden", "modal-content", "", "", "", "", "", "", "", {}, {}, {}]
-    
+
     raise dash.exceptions.PreventUpdate
 
 # Callback для открытия модального окна детализации простоев
@@ -149,12 +236,12 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
      Output("idle-detail-employee-name", "children"),
      Output("idle-detail-interval", "children"),
      Output("selected-idle-interval", "data")],
-    [Input("idle-intervals-chart", "clickData"),
+    [Input("idle-intervals-chart", "selectedData"),
      Input("close-idle-detail-modal", "n_clicks")],
     [State("selected-analytics-employee", "data")],
     prevent_initial_call=True
 )
-def handle_idle_detail_modal(click_data, close_clicks, employee_name):
+def handle_idle_detail_modal(selected_data, close_clicks, employee_name):
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
@@ -162,9 +249,9 @@ def handle_idle_detail_modal(click_data, close_clicks, employee_name):
     button_id = ctx.triggered[0]['prop_id']
     
     print(f"\n{'='*60}")
-    print(f"=== ОБРАБОТКА КЛИКА ПО ДИАГРАММЕ ===")
+    print(f"=== ОБРАБОТКА ВЫБОРА НА ДИАГРАММЕ ===")
     print(f"Сработало: {button_id}")
-    print(f"Данные клика: {click_data}")
+    print(f"Выбранные данные: {selected_data}")
     print(f"Имя сотрудника: {employee_name}")
     print(f"{'='*60}\n")
     
@@ -172,29 +259,40 @@ def handle_idle_detail_modal(click_data, close_clicks, employee_name):
         print(">>> Закрытие модального окна")
         return ["modal-hidden", "modal-content", "", "", ""]
     
-    if 'idle-intervals-chart.clickData' in button_id and click_data:
+    if 'idle-intervals-chart.selectedData' in button_id and selected_data:
         try:
-            print(f">>> Данные клика: {json.dumps(click_data, indent=2, ensure_ascii=False)}")
+            print(f">>> Данные выбора: {json.dumps(selected_data, indent=2, ensure_ascii=False)}")
             
-            # Получаем имя интервала из данных клика
+            # Получаем имя интервала из данных выбора
             interval_name = "Неизвестный интервал"
             
             # ECharts обычно возвращает данные в таком формате
-            if 'name' in click_data:
-                interval_name = click_data['name']
-                print(f">>> Найдено имя в click_data['name']: {interval_name}")
-            elif 'data' in click_data and 'name' in click_data['data']:
-                interval_name = click_data['data']['name']
-                print(f">>> Найдено имя в click_data['data']['name']: {interval_name}")
-            elif 'seriesName' in click_data:
-                interval_name = click_data['seriesName']
-                print(f">>> Найдено имя в seriesName: {interval_name}")
-            elif 'value' in click_data:
-                if isinstance(click_data['value'], (list, tuple)) and len(click_data['value']) > 0:
-                    interval_name = str(click_data['value'][0])
-                else:
-                    interval_name = str(click_data['value'])
-                print(f">>> Найдено значение: {interval_name}")
+            if isinstance(selected_data, list) and len(selected_data) > 0:
+                # Если это массив выбранных элементов
+                first_item = selected_data[0]
+                if 'name' in first_item:
+                    interval_name = first_item['name']
+                    print(f">>> Найдено имя в selected_data[0]['name']: {interval_name}")
+                elif 'data' in first_item and 'name' in first_item['data']:
+                    interval_name = first_item['data']['name']
+                    print(f">>> Найдено имя в selected_data[0]['data']['name']: {interval_name}")
+            elif isinstance(selected_data, dict):
+                # Если это один объект
+                if 'name' in selected_data:
+                    interval_name = selected_data['name']
+                    print(f">>> Найдено имя в selected_data['name']: {interval_name}")
+                elif 'data' in selected_data and 'name' in selected_data['data']:
+                    interval_name = selected_data['data']['name']
+                    print(f">>> Найдено имя в selected_data['data']['name']: {interval_name}")
+                elif 'seriesName' in selected_data:
+                    interval_name = selected_data['seriesName']
+                    print(f">>> Найдено имя в seriesName: {interval_name}")
+                elif 'value' in selected_data:
+                    if isinstance(selected_data['value'], (list, tuple)) and len(selected_data['value']) > 0:
+                        interval_name = str(selected_data['value'][0])
+                    else:
+                        interval_name = str(selected_data['value'])
+                    print(f">>> Найдено значение: {interval_name}")
             
             print(f">>> Определен интервал: {interval_name}")
             
@@ -208,7 +306,7 @@ def handle_idle_detail_modal(click_data, close_clicks, employee_name):
                 ]
                 
         except Exception as e:
-            print(f">>> ОШИБКА при обработке клика: {e}")
+            print(f">>> ОШИБКА при обработке выбора: {e}")
             import traceback
             traceback.print_exc()
     
@@ -292,17 +390,17 @@ def handle_fines_modal(close_clicks, fines_clicks, selected_fines_employee, fine
             
             summary_data = fines_data.get('summary_data', []) if fines_data else []
             sorted_summary_data = sorted(summary_data, key=lambda x: x.get('Количество_штрафов', 0), reverse=True)
-            
+
             if 0 <= employee_idx < len(sorted_summary_data):
                 employee_data = sorted_summary_data[employee_idx]
                 employee_name = employee_data.get('Сотрудник', 'Неизвестно')
-                
+
                 if date_range:
-                    fines_details = get_employee_fines_details(employee_name, 
-                                                             date_range['start_date'], 
+                    fines_details = get_employee_fines_details(employee_name,
+                                                             date_range['start_date'],
                                                              date_range['end_date'])
                     employee_data['Штрафы'] = fines_details
-                
+
                 fines_count = employee_data.get('Количество_штрафов', 0)
                 total_amount = employee_data.get('Сумма_штрафов', 0)
                 avg_amount = employee_data.get('Средний_штраф', 0)
@@ -343,5 +441,117 @@ def handle_fines_modal(close_clicks, fines_clicks, selected_fines_employee, fine
         except Exception as e:
             print(f"Error in handle_fines_modal: {e}")
             raise dash.exceptions.PreventUpdate
+    
+    raise dash.exceptions.PreventUpdate
+
+# Callback для открытия модального окна отклоненных строк
+@callback(
+    [Output("rejected-lines-modal", "className"),
+     Output("rejected-lines-modal-content", "className"),
+     Output("total-rejected-lines-kpi", "children"),
+     Output("unique-orders-kpi", "children"),
+     Output("unique-items-kpi", "children"),
+     Output("last-rejection-date", "children"),
+     Output("rejected-lines-table-body", "children")],
+    [Input("open-rejected-lines-modal", "n_clicks"),
+     Input("close-rejected-lines-modal", "n_clicks")],
+    [State("global-date-range", "data")],
+    prevent_initial_call=True
+)
+def handle_rejected_lines_modal(open_clicks, close_clicks, date_range):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+    
+    button_id = ctx.triggered[0]['prop_id']
+    
+    if 'close-rejected-lines-modal' in button_id:
+        return ["modal-hidden", "modal-content", "", "", "", "", []]
+    
+    if 'open-rejected-lines-modal' in button_id and open_clicks:
+        if not date_range:
+            return ["modal-hidden", "modal-content", "0", "0", "0", "Нет данных", []]
+        
+        start_date = date_range['start_date']
+        end_date = date_range['end_date']
+        
+        try:
+            # Используем новую функцию get_rejected_lines_summary и get_rejected_lines_detail
+            from data.queries_mssql import get_rejected_lines_summary, get_rejected_lines_detail
+            
+            # Получаем сводную статистику
+            summary_stats = get_rejected_lines_summary(start_date, end_date)
+            
+            # Получаем детальные данные (убираем лимит, чтобы показать все записи)
+            rejected_lines = get_rejected_lines_detail(start_date, end_date, limit=1000)
+            
+            # Используем данные из summary_stats
+            total_lines = summary_stats['total_rejected_lines']
+            unique_orders_count = summary_stats['unique_orders']
+            unique_items_count = summary_stats['unique_items']
+            last_date = summary_stats['last_rejection_date']
+            
+            # Форматируем последнюю дату
+            if last_date:
+                if hasattr(last_date, 'strftime'):
+                    last_date = last_date.strftime('%Y-%m-%d')
+                elif ' ' in str(last_date):
+                    last_date = str(last_date).split(' ')[0]
+                elif 'T' in str(last_date):
+                    last_date = str(last_date).split('T')[0]
+            
+            # Создаем строки таблицы
+            table_rows = []
+            for line in rejected_lines:  # Показываем все записи без ограничений
+                # Форматируем дату для отображения
+                display_date = ""
+                if line['date_time_stamp']:
+                    if hasattr(line['date_time_stamp'], 'strftime'):
+                        display_date = line['date_time_stamp'].strftime('%Y-%m-%d %H:%M:%S')
+                    elif isinstance(line['date_time_stamp'], str):
+                        if ' ' in line['date_time_stamp']:
+                            date_part = line['date_time_stamp'].split(' ')[0]
+                            time_part = line['date_time_stamp'].split(' ')[1][:8]
+                            display_date = f"{date_part} {time_part}"
+                        elif 'T' in line['date_time_stamp']:
+                            date_part = line['date_time_stamp'].split('T')[0]
+                            time_part = line['date_time_stamp'].split('T')[1][:8]
+                            display_date = f"{date_part} {time_part}"
+                        else:
+                            display_date = str(line['date_time_stamp'])[:19]
+                
+                table_rows.append(
+                    html.Tr([
+                        html.Td(line['shipment_id'] or '', 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
+                        html.Td(line['item'] or '', 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
+                        html.Td(line['item_desc'] or '', 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'maxWidth': '200px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'}),
+                        html.Td(str(line['requested_qty']) if line['requested_qty'] else '', 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'textAlign': 'right'}),
+                        html.Td(line['quantity_um'] or '', 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
+                        html.Td(line['pick_loc'] or '', 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
+                        html.Td(line['pick_zone'] or '', 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
+                        html.Td(display_date, 
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'color': '#673AB7'})
+                    ])
+                )
+            
+            return [
+                "modal-visible", "modal-content-visible",
+                str(total_lines),
+                str(unique_orders_count),
+                str(unique_items_count),
+                last_date[:10] if last_date else "Нет данных",
+                table_rows
+            ]
+            
+        except Exception as e:
+            print(f"Error in handle_rejected_lines_modal: {e}")
+            return ["modal-hidden", "modal-content", "0", "0", "0", "Ошибка", []]
     
     raise dash.exceptions.PreventUpdate

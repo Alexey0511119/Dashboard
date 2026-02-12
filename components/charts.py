@@ -68,7 +68,7 @@ def create_time_distribution_pie_echarts(work_minutes, idle_minutes):
 def create_idle_intervals_bar_echarts(idle_counts):
     """Столбчатая диаграмма периодов простоя"""
     interval_order = ['5-10 мин', '10-30 мин', '30-60 мин', '>1 часа']
-    colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336']
+    colors = ['#0D47A1', '#1565C0', '#1976D2', '#59D478']  # Темно-синие и зеленый как в ячейках хранения
     data = [idle_counts.get(k, 0) for k in interval_order]
     
     # Подготавливаем данные с информацией для кликов
@@ -105,6 +105,7 @@ def create_idle_intervals_bar_echarts(idle_counts):
         "yAxis": {
             "type": "value",
             "name": "Количество простоев",
+            "nameTextStyle": {"color": "#666"},
             "axisLine": {"show": True},
             "axisTick": {"show": True},
             "splitLine": {"show": True, "lineStyle": {"color": "#f0f0f0"}}
@@ -263,7 +264,7 @@ def create_order_accuracy_chart(start_date, end_date):
 
 def create_problematic_hours_chart(problematic_hours):
     """Создание диаграммы проблемных часов"""
-    
+
     if not problematic_hours:
         return {
             "title": {
@@ -283,28 +284,22 @@ def create_problematic_hours_chart(problematic_hours):
             "yAxis": {"type": "value", "show": False},
             "series": []
         }
-    
+
     hours = [f"{item['hour']}:00" for item in problematic_hours]
     delay_percentages = [item['delay_percentage'] for item in problematic_hours]
     delayed_counts = [item['delayed_orders'] for item in problematic_hours]
     total_counts = [item['total_orders'] for item in problematic_hours]
-    
-    # Создаем ВНЕШНЮЮ JavaScript функцию
-    tooltip_js = """
-    function(params) {
-        var dataIndex = params[0].dataIndex;
-        var hour = params[0].name;
-        var delayed = """ + str(delayed_counts) + """[dataIndex];
-        var total = """ + str(total_counts) + """[dataIndex];
-        var percent = params[0].value;
-        
-        return hour + '<br/>' +
-               'Процент просрочек: ' + percent.toFixed(1) + '%<br/>' +
-               'Просрочено: ' + delayed + ' заказов<br/>' +
-               'Всего: ' + total + ' заказов';
-    }
-    """
-    
+
+    # Подготовим данные для tooltip с дополнительной информацией
+    chart_data = []
+    for i, (hour, delay_pct, delayed, total) in enumerate(zip(hours, delay_percentages, delayed_counts, total_counts)):
+        chart_data.append({
+            "name": hour,
+            "value": delay_pct,
+            "delayed": delayed,
+            "total": total
+        })
+
     return {
         "title": {
             "text": "Топ-5 проблемных часов",
@@ -318,7 +313,7 @@ def create_problematic_hours_chart(problematic_hours):
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
-            "formatter": tooltip_js
+            "formatter": "{b}<br/>Процент просрочек: {c}%<br/>Просрочено: {@delayed} заказов<br/>Всего: {@total} заказов"
         },
         "xAxis": {
             "type": "category",
@@ -348,7 +343,10 @@ def create_problematic_hours_chart(problematic_hours):
         "series": [{
             "name": "Процент просрочек",
             "type": "bar",
-            "data": delay_percentages,
+            "data": [
+                {"value": delay_pct, "delayed": delayed, "total": total}
+                for delay_pct, delayed, total in zip(delay_percentages, delayed_counts, total_counts)
+            ],
             "itemStyle": {
                 "color": {
                     "type": "linear",
@@ -384,9 +382,9 @@ def create_problematic_hours_chart(problematic_hours):
 
 def create_error_hours_chart(error_hours):
     """Создание диаграммы часов с ошибками"""
-    
+
     print(f"DEBUG [create_error_hours_chart]: Получены данные: {len(error_hours) if error_hours else 0} записей")
-    
+
     if not error_hours:
         print("DEBUG: Нет данных для диаграммы часов с ошибками - показываем заглушку")
         return {
@@ -423,41 +421,18 @@ def create_error_hours_chart(error_hours):
             "yAxis": {"type": "value", "show": False},
             "series": []
         }
-    
+
     hours = [f"{item['hour']}:00" for item in error_hours]
     error_percentages = [item['error_percentage'] for item in error_hours]
     error_counts = [item['error_orders_count'] for item in error_hours]
     total_counts = [item['total_orders_in_hour'] for item in error_hours]
     error_types = [item['error_types'] for item in error_hours]
-    
+
     print(f"DEBUG: Часы: {hours}")
     print(f"DEBUG: Проценты ошибок: {error_percentages}")
     print(f"DEBUG: Количество ошибок: {error_counts}")
     print(f"DEBUG: Всего заказов: {total_counts}")
-    
-    # Создаем JavaScript функцию для форматирования тултипа
-    tooltip_js = """
-    function(params) {
-        var dataIndex = params.dataIndex || 0;
-        var hour = """ + json.dumps(hours) + """[dataIndex];
-        var errors = """ + json.dumps(error_counts) + """[dataIndex];
-        var total = """ + json.dumps(total_counts) + """[dataIndex];
-        var percent = """ + json.dumps(error_percentages) + """[dataIndex];
-        var types = """ + json.dumps(error_types) + """[dataIndex];
-        
-        var tooltip = hour + '<br/>' +
-                      '<b>Процент ошибок:</b> ' + percent.toFixed(1) + '%<br/>' +
-                      '<b>С ошибками:</b> ' + errors + ' заказов<br/>' +
-                      '<b>Всего заказов:</b> ' + total;
-        
-        if (types && types !== '') {
-            tooltip += '<br/><b>Типы ошибок:</b> ' + types;
-        }
-        
-        return tooltip;
-    }
-    """
-    
+
     return {
         "title": {
             "text": "Топ-5 часов с ошибками",
@@ -471,10 +446,7 @@ def create_error_hours_chart(error_hours):
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
-            "formatter": tooltip_js,
-            "backgroundColor": "rgba(50, 50, 50, 0.7)",
-            "borderColor": "#333",
-            "textStyle": {"color": "#fff"}
+            "formatter": "{b}<br/>Процент ошибок: {c}%<br/>С ошибками: {@errors} заказов<br/>Всего: {@total} заказов"
         },
         "xAxis": {
             "type": "category",
@@ -498,7 +470,7 @@ def create_error_hours_chart(error_hours):
             "axisLine": {"show": True, "lineStyle": {"color": "#333"}},
             "axisTick": {"show": True},
             "splitLine": {
-                "show": True, 
+                "show": True,
                 "lineStyle": {
                     "color": "#f0f0f0",
                     "type": "dashed"
@@ -517,7 +489,10 @@ def create_error_hours_chart(error_hours):
         "series": [{
             "name": "Процент ошибок",
             "type": "bar",
-            "data": error_percentages,
+            "data": [
+                {"value": error_pct, "errors": error_cnt, "total": total}
+                for error_pct, error_cnt, total in zip(error_percentages, error_counts, total_counts)
+            ],
             "itemStyle": {
                 "color": {
                     "type": "linear",
@@ -1200,54 +1175,50 @@ def create_timeline_chart(employee_name, selected_day, selected_interval):
 def create_empty_pie_chart(summary_data, filters=None):
     """
     Диаграмма 1: Доля пустых ячеек
-    Показывает: Кол.МХ (все) vs Кол.Пустых МХ (пустые)
     """
     total = summary_data.get('total', 0)
     empty = summary_data.get('empty', 0)
     occupied = summary_data.get('occupied', 0)
+    
+    # Проверяем, активирована ли галочка "только пустые"
+    only_empty = filters.get('only_empty', False) if filters else False
     
     # Цвета
     colors = ['#2196F3', '#0D47A1']
     
     # Данные для диаграммы
     data = []
-    if total > 0:
-        empty_percent = round((empty / total) * 100, 1)
-        occupied_percent = round((occupied / total) * 100, 1)
-        
+    
+    if only_empty:
+        # В режиме "только пустые" показываем 100% пустых
+        title_text = "Только пустые ячейки"
         data = [
             {
-                "name": f"Пустые ({empty_percent}%)",
+                "name": f"Пустые ячейки",
                 "value": empty,
                 "itemStyle": {"color": colors[0]}
-            },
-            {
-                "name": f"Занятые ({occupied_percent}%)",
-                "value": occupied,
-                "itemStyle": {"color": colors[1]}
             }
         ]
-        
-        # Легенда
-        legend_data = [
-            {"name": f"Пустые ({empty_percent}%)", "icon": "circle"},
-            {"name": f"Занятые ({occupied_percent}%)", "icon": "circle"}
-        ]
     else:
-        data = [{"name": "Нет данных", "value": 1, "itemStyle": {"color": "#CCCCCC"}}]
-        legend_data = [{"name": "Нет данных", "icon": "circle"}]
-    
-    # Заголовок с информацией о фильтрах
-    title_text = "Доля пустых ячеек"
-    if filters:
-        active_filters = []
-        for key, value in filters.items():
-            if value and value != 'Все':
-                active_filters.append(f"{value}")
-        if active_filters:
-            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
-            if len(active_filters) > 3:
-                title_text += "..."
+        title_text = "Доля пустых ячеек"
+        if total > 0:
+            empty_percent = round((empty / total) * 100, 1)
+            occupied_percent = round((occupied / total) * 100, 1)
+            
+            data = [
+                {
+                    "name": f"Пустые ({empty_percent}%)",
+                    "value": empty,
+                    "itemStyle": {"color": colors[0]}
+                },
+                {
+                    "name": f"Занятые ({occupied_percent}%)",
+                    "value": occupied,
+                    "itemStyle": {"color": colors[1]}
+                }
+            ]
+        else:
+            data = [{"name": "Нет данных", "value": 1, "itemStyle": {"color": "#CCCCCC"}}]
     
     return {
         "title": {
@@ -1264,7 +1235,7 @@ def create_empty_pie_chart(summary_data, filters=None):
             "formatter": "{a}<br/>{b}: {c} ячеек"
         },
         "legend": {
-            "data": [item["name"] for item in legend_data],
+            "data": [item["name"] for item in data],
             "orient": "horizontal",
             "bottom": 0,
             "left": "center",
@@ -1306,10 +1277,11 @@ def create_types_pie_chart(chart_data, filters=None):
     Диаграмма 2: Доли типов ячеек
     Показывает доли каждого Типа МХ (location_type)
     """
-    types_data = chart_data.get('by_location_type', [])
+    # chart_data теперь это список, а не словарь
+    types_data = chart_data if isinstance(chart_data, list) else []
     
-    # УБИРАЕМ ОГРАНИЧЕНИЕ на количество типов
-    # types_data = types_data[:10]  # УДАЛИТЬ ЭТУ СТРОКУ
+    # Проверяем, активирована ли галочка "только пустые"
+    only_empty = filters.get('only_empty', False) if filters else False
     
     # Цвета в синих оттенках
     colors = [
@@ -1321,25 +1293,54 @@ def create_types_pie_chart(chart_data, filters=None):
     
     # Подготавливаем данные
     data = []
-    total_all = sum(item['total'] for item in types_data)
     
-    for i, item in enumerate(types_data):  # УБРАЛИ [:10]
-        loc_type = item['location_type']
-        if len(loc_type) > 15:
-            display_name = loc_type[:15] + "..."
-        else:
-            display_name = loc_type
+    if only_empty:
+        # Если выбраны только пустые, показываем ТОЛЬКО пустые ячейки
+        for i, item in enumerate(types_data):
+            loc_type = item.get('name', 'Неизвестно')
+            empty_count = item.get('empty', 0)
             
-        total = item['total']
-        percentage = round((total / total_all) * 100, 1) if total_all > 0 else 0
+            if empty_count > 0:  # Только типы с пустыми ячейками
+                if len(loc_type) > 15:
+                    display_name = loc_type[:15] + "..."
+                else:
+                    display_name = loc_type
+                    
+                data.append({
+                    "name": f"{display_name}",
+                    "value": empty_count,
+                    "itemStyle": {"color": colors[i % len(colors)]},
+                    "original_name": loc_type
+                })
         
-        data.append({
-            "name": f"{display_name} ({percentage}%)",
-            "value": total,
-            "itemStyle": {"color": colors[i % len(colors)]},
-            "original_name": loc_type,
-            "percentage": percentage
-        })
+        # Пересчитываем проценты на основе только пустых ячеек
+        total_empty = sum(item['value'] for item in data)
+        for item in data:
+            if total_empty > 0:
+                percentage = round((item['value'] / total_empty) * 100, 1)
+                item['name'] = f"{item['original_name'][:12] if len(item['original_name']) > 12 else item['original_name']} ({percentage}%)"
+    else:
+        # Показываем все ячейки
+        total_all = sum(item.get('value', 0) for item in types_data)
+        
+        for i, item in enumerate(types_data):
+            loc_type = item.get('name', 'Неизвестно')
+            total = item.get('value', 0)
+            
+            if len(loc_type) > 15:
+                display_name = loc_type[:15] + "..."
+            else:
+                display_name = loc_type
+                
+            percentage = round((total / total_all) * 100, 1) if total_all > 0 else 0
+            
+            data.append({
+                "name": f"{display_name} ({percentage}%)",
+                "value": total,
+                "itemStyle": {"color": colors[i % len(colors)]},
+                "original_name": loc_type,
+                "percentage": percentage
+            })
     
     if not data:
         data.append({
@@ -1359,9 +1360,14 @@ def create_types_pie_chart(chart_data, filters=None):
     title_text = "Доли типов ячеек"
     if filters:
         active_filters = []
+        if filters.get('only_empty', False):
+            title_text = "Типы пустых ячеек"
+            active_filters.append("Только пустые")
+        
         for key, value in filters.items():
-            if value and value != 'Все':
+            if key != 'only_empty' and value and value != 'Все':
                 active_filters.append(f"{value}")
+        
         if active_filters:
             title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
             if len(active_filters) > 3:
@@ -1431,95 +1437,95 @@ def create_types_bar_chart(chart_data, filters=None):
     Ось X: Типы МХ (location_type)
     Ряды: Всего МХ и Пустые МХ
     """
-    types_data = chart_data.get('by_location_type', [])
+    # chart_data теперь это список, а не словарь
+    types_data = chart_data if isinstance(chart_data, list) else []
     
-    # УБИРАЕМ ОГРАНИЧЕНИЕ на количество типов
-    # types_data = types_data[:10]  # УДАЛИТЬ ЭТУ СТРОКУ
+    # Проверяем, активирована ли галочка "только пустые"
+    only_empty = filters.get('only_empty', False) if filters else False
+    
+    # Сортируем данные от большего к меньшему
+    if only_empty:
+        # В режиме "только пустые" сортируем по количеству пустых ячеек
+        types_data = sorted(types_data, key=lambda x: x.get('empty', 0), reverse=True)
+    else:
+        # В обычном режиме сортируем по общему количеству ячеек
+        types_data = sorted(types_data, key=lambda x: x.get('value', 0), reverse=True)
     
     # Цвета
     total_color = '#0D47A1'    # Темно-синий для "Всего МХ"
-    empty_color = '#2196F3'    # Светло-синий для "Пустые МХ"
+    empty_color = "#59D478"    # Светло-синий для "Пустых МХ"
     
     # Подготавливаем данные
     categories = []
     total_values = []
     empty_values = []
     
-    for item in types_data:  # УБРАЛИ [:10]
-        loc_type = item['location_type']
+    for item in types_data:
+        loc_type = item.get('name', 'Неизвестно')
+        
         if len(loc_type) > 12:
             display_name = loc_type[:12] + "..."
         else:
             display_name = loc_type
             
         categories.append(display_name)
-        total_values.append({
-            "value": item['total'],
-            "itemStyle": {"color": total_color}
-        })
-        empty_values.append({
-            "value": item['empty'],
-            "itemStyle": {"color": empty_color}
-        })
+        
+        if only_empty:
+            # В режиме "только пустые" показываем только пустые ячейки
+            total_values.append({
+                "value": 0,  # Общее количество не показываем
+                "itemStyle": {"color": total_color}
+            })
+            empty_values.append({
+                "value": item.get('empty', 0),
+                "itemStyle": {"color": empty_color}
+            })
+        else:
+            # В обычном режиме показываем оба ряда
+            total_values.append({
+                "value": item.get('value', 0),
+                "itemStyle": {"color": total_color}
+            })
+            empty_values.append({
+                "value": item.get('empty', 0),
+                "itemStyle": {"color": empty_color}
+            })
     
     if not categories:
         categories = ["Нет данных"]
         total_values = [{"value": 1, "itemStyle": {"color": total_color}}]
         empty_values = [{"value": 0, "itemStyle": {"color": empty_color}}]
     
-    # Заголовок с информацией о фильтрах
+    # Заголовок
     title_text = "Количество типов ячеек"
-    if filters:
-        active_filters = []
-        for key, value in filters.items():
-            if value and value != 'Все':
-                active_filters.append(f"{value}")
-        if active_filters:
-            title_text += f"\nФильтры: {', '.join(active_filters[:3])}"
-            if len(active_filters) > 3:
-                title_text += "..."
+    if only_empty:
+        title_text = "Количество типов пустых ячеек"
     
-    # Простой тултип без JavaScript
-    return {
-        "title": {
-            "text": title_text,
-            "left": "center",
-            "textStyle": {
-                "fontSize": 14,
-                "fontWeight": "bold",
-                "color": "#333"
+    # Подготавливаем серии для диаграммы
+    series = []
+    if only_empty:
+        # В режиме "только пустые" показываем только ряд "Пустые МХ"
+        series = [
+            {
+                "name": "Пустые МХ",
+                "type": "bar",
+                "data": empty_values,
+                "itemStyle": {
+                    "borderRadius": [4, 4, 0, 0]
+                },
+                "label": {
+                    "show": True,
+                    "position": "top",
+                    "formatter": "{c}",
+                    "fontSize": 8
+                }
             }
-        },
-        "tooltip": {
-            "trigger": "axis",
-            "axisPointer": {"type": "shadow"},
-            "formatter": "{b}<br/>{a0}: {c0} ячеек<br/>{a1}: {c1} ячеек"
-        },
-        "legend": {
-            "data": ['Всего МХ', 'Пустые МХ'],
-            "top": "30px",
-            "textStyle": {"fontSize": 11}
-        },
-        "xAxis": {
-            "type": "category",
-            "data": categories,
-            "axisLine": {"show": True},
-            "axisTick": {"show": True},
-            "axisLabel": {
-                "rotate": 45,
-                "fontSize": 9,
-                "interval": 0  # Показывать все метки
-            }
-        },
-        "yAxis": {
-            "type": "value",
-            "name": "Количество ячеек",
-            "axisLine": {"show": True},
-            "axisTick": {"show": True},
-            "splitLine": {"show": True, "lineStyle": {"color": "#f0f0f0"}},
-            "axisLabel": {"formatter": "{value}", "fontSize": 9}
-        },
-        "series": [
+        ]
+        legend_data = ['Пустые МХ']
+        tooltip_formatter = "{b}<br/>Пустые МХ: {c} ячеек"
+    else:
+        # В обычном режиме показываем оба ряда
+        series = [
             {
                 "name": "Всего МХ",
                 "type": "bar",
@@ -1548,7 +1554,50 @@ def create_types_bar_chart(chart_data, filters=None):
                     "fontSize": 8
                 }
             }
-        ],
+        ]
+        legend_data = ['Всего МХ', 'Пустые МХ']
+        tooltip_formatter = "{b}<br/>{a0}: {c0} ячеек<br/>{a1}: {c1} ячеек"
+    
+    return {
+        "title": {
+            "text": title_text,
+            "left": "center",
+            "textStyle": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#333"
+            }
+        },
+        "tooltip": {
+            "trigger": "axis",
+            "axisPointer": {"type": "shadow"},
+            "formatter": tooltip_formatter
+        },
+        "legend": {
+            "data": legend_data,
+            "top": "30px",
+            "textStyle": {"fontSize": 11}
+        },
+        "xAxis": {
+            "type": "category",
+            "data": categories,
+            "axisLine": {"show": True},
+            "axisTick": {"show": True},
+            "axisLabel": {
+                "rotate": 45,
+                "fontSize": 9,
+                "interval": 0
+            }
+        },
+        "yAxis": {
+            "type": "value",
+            "name": "Количество ячеек",
+            "axisLine": {"show": True},
+            "axisTick": {"show": True},
+            "splitLine": {"show": True, "lineStyle": {"color": "#f0f0f0"}},
+            "axisLabel": {"formatter": "{value}", "fontSize": 9}
+        },
+        "series": series,
         "grid": {
             "left": "5%",
             "right": "5%",
