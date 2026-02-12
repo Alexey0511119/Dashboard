@@ -52,168 +52,181 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
         button_data = triggered_input['prop_id'].split('.')[0]
         try:
             button_json = json.loads(button_data.replace("'", '"'))
-            employee_idx = button_json['index']
 
-            # Теперь, когда мы агрегировали данные по сотруднику, нам нужно получить имя сотрудника
-            # из отсортированного списка, как это делается в таблице производительности
-            if performance_data:
-                # Сортируем данные по заработку (как в таблице производительности)
-                sorted_performance_data = sorted(performance_data, key=lambda x: x.get('Заработок', 0), reverse=True)
+            # Используем формат с индексом, как в других таблицах
+            if 'index' in button_json:
+                employee_idx = button_json['index']
 
-                if 0 <= employee_idx < len(sorted_performance_data):
-                    employee_name = sorted_performance_data[employee_idx]['Сотрудник']
+                # Теперь, когда мы агрегировали данные по сотруднику, нам нужно получить имя сотрудника
+                # из отсортированного списка, как это делается в таблице производительности
+                if performance_data:
+                    # Сортируем данные по заработку (как в таблице производительности)
+                    sorted_performance_data = sorted(performance_data, key=lambda x: x.get('Заработок', 0), reverse=True)
 
-                    if date_range:
-                        from data.queries_mssql import get_employee_modal_detail
-                        detail_data = get_employee_modal_detail(employee_name,
-                                                               date_range['start_date'],
-                                                               date_range['end_date'])
+                    if 0 <= employee_idx < len(sorted_performance_data):
+                        employee_name = sorted_performance_data[employee_idx]['Сотрудник']
+                    else:
+                        # Если индекс вне диапазона, возвращаем обновление
+                        raise dash.exceptions.PreventUpdate
+                else:
+                    # Если нет данных, возвращаем обновление
+                    raise dash.exceptions.PreventUpdate
+            else:
+                # Если нет индекса, возвращаем обновление
+                raise dash.exceptions.PreventUpdate
 
-                        if not detail_data:
-                            analytics_data = {
-                                'total_operations': 0,
-                                'total_earnings': 0.0,
-                                'total_idle_minutes': 0,
-                                'orders_completed': 0,
-                                'timely_percentage': 0.0,
-                                'fines_count': 0,
-                                'fines_amount': 0.0,
-                                'operations_by_type': '',
-                                'reception_count': 0,
-                                'daily_data': []
-                            }
-                        else:
-                            # Агрегируем данные за период
-                            total_operations = sum(d['total_operations'] for d in detail_data)
-                            total_earnings = sum(d['total_earnings'] for d in detail_data)
-                            total_idle_minutes = sum(d['total_idle_minutes'] for d in detail_data)
-                            orders_completed = sum(d['orders_completed'] for d in detail_data)
-                            fines_count = sum(d['fines_count'] for d in detail_data)
-                            fines_amount = sum(d['fines_amount'] for d in detail_data)
-                            reception_count = sum(d['reception_count'] for d in detail_data)
+            # Получаем детальные данные для сотрудника
+            if date_range:
+                from data.queries_mssql import get_employee_modal_detail
+                detail_data = get_employee_modal_detail(employee_name,
+                                                       date_range['start_date'],
+                                                       date_range['end_date'])
 
-                            # Средний процент своевременности
-                            timely_records = [d for d in detail_data if d['timely_percentage'] > 0]
-                            avg_timely = sum(d['timely_percentage'] for d in timely_records) / len(timely_records) if timely_records else 0.0
-
-                            analytics_data = {
-                                'total_operations': total_operations,
-                                'total_earnings': total_earnings,
-                                'total_idle_minutes': total_idle_minutes,
-                                'orders_completed': orders_completed,
-                                'timely_percentage': avg_timely,
-                                'fines_count': fines_count,
-                                'fines_amount': fines_amount,
-                                'operations_by_type': detail_data[0]['operations_by_type'] if detail_data else '',
-                                'reception_count': reception_count,
-                                'daily_data': detail_data
-                            }
-
-                        from data.queries_mssql import get_employee_operations_detail
-                        ops_detail = get_employee_operations_detail(employee_name,
-                                                                   date_range['start_date'],
-                                                                   date_range['end_date'])
-
-                        total_operations = analytics_data['total_operations']
-                        total_earnings = analytics_data['total_earnings']
-                        total_idle_minutes = analytics_data['total_idle_minutes']
-
-                        # Упрощенный расчет операций в час (на основе 8-часового рабочего дня)
-                        work_hours = 8.0
-                        if total_operations > 0:
-                            ops_per_hour = total_operations / work_hours
-                        else:
-                            ops_per_hour = 0.0
-
-                        # РАСЧЕТ ЗАРАБОТКА В ЧАС
-                        earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
-
-                        # Форматирование времени работы
-                        work_duration = f"{int(work_hours)}ч 0м"
-
-                        # Получаем данные для диаграмм
-                        from data.queries_mssql import get_employee_operations_by_type, get_employee_idle_intervals
-
-                        operations_by_type = get_employee_operations_by_type(employee_name,
-                                                                            date_range['start_date'],
-                                                                            date_range['end_date'])
-                        idle_intervals = get_employee_idle_intervals(employee_name,
-                                                                   date_range['start_date'],
-                                                                   date_range['end_date'])
-
-                        # Создаем СТОЛБЧАТУЮ диаграмму типов операций (цвета как в ячейках хранения)
-                        operations_chart = {
-                            "title": {
-                                "text": "Типы операций",
-                                "left": "center",
-                                "textStyle": {
-                                    "fontSize": 14,
-                                    "fontWeight": "bold",
-                                    "color": "#333"
-                                }
-                            },
-                            "tooltip": {
-                                "trigger": "axis",
-                                "axisPointer": {"type": "shadow"},
-                                "formatter": "{b}<br/>{a}: {c} операций"
-                            },
-                            "xAxis": {
-                                "type": "category",
-                                "data": [op['operation_type'] for op in operations_by_type],
-                                "axisLabel": {"rotate": 45, "fontSize": 10}
-                            },
-                            "yAxis": {
-                                "type": "value",
-                                "name": "Количество операций",
-                                "nameTextStyle": {"color": "#666"}
-                            },
-                            "series": [{
-                                "name": "Операции",
-                                "type": "bar",
-                                "data": [
-                                    {
-                                        "value": op['total_operations'],
-                                        "itemStyle": {"color": "#0D47A1"}
-                                    } for op in operations_by_type
-                                ],
-                                "itemStyle": {
-                                    "borderRadius": [4, 4, 0, 0]
-                                },
-                                "label": {
-                                    "show": True,
-                                    "position": "top",
-                                    "formatter": "{c}",
-                                "fontSize": 8
-                            }
-                        }]
+                if not detail_data:
+                    analytics_data = {
+                        'total_operations': 0,
+                        'total_earnings': 0.0,
+                        'total_idle_minutes': 0,
+                        'orders_completed': 0,
+                        'timely_percentage': 0.0,
+                        'fines_count': 0,
+                        'fines_amount': 0.0,
+                        'operations_by_type': '',
+                        'reception_count': 0,
+                        'daily_data': []
                     }
-                    
-                    # Круговая диаграмма распределения времени
-                    work_minutes = int(work_hours * 60)
-                    idle_minutes = total_idle_minutes
-                    time_distribution_pie = create_time_distribution_pie_echarts(work_minutes, idle_minutes)
-                    
-                    # Столбчатая диаграмма периодов простоя
-                    idle_intervals_bar = create_idle_intervals_bar_echarts(idle_intervals)
-                    
-                    return [
-                        "modal-visible", "modal-content-visible", 
-                        f"Сотрудник: {employee_name}", 
-                        employee_name,
-                        str(total_operations),
-                        f"{earnings_per_hour:.2f} ₽/час",
-                        f"{ops_per_hour:.1f}",
-                        work_duration,
-                        f"{total_earnings:,.2f} ₽",
-                        operations_chart,
-                        time_distribution_pie,
-                        idle_intervals_bar
-                    ]
-                    
+                else:
+                    # Агрегируем данные за период
+                    total_operations = sum(d['total_operations'] for d in detail_data)
+                    total_earnings = sum(d['total_earnings'] for d in detail_data)
+                    total_idle_minutes = sum(d['total_idle_minutes'] for d in detail_data)
+                    orders_completed = sum(d['orders_completed'] for d in detail_data)
+                    fines_count = sum(d['fines_count'] for d in detail_data)
+                    fines_amount = sum(d['fines_amount'] for d in detail_data)
+                    reception_count = sum(d['reception_count'] for d in detail_data)
+
+                    # Средний процент своевременности
+                    timely_records = [d for d in detail_data if d['timely_percentage'] > 0]
+                    avg_timely = sum(d['timely_percentage'] for d in timely_records) / len(timely_records) if timely_records else 0.0
+
+                    analytics_data = {
+                        'total_operations': total_operations,
+                        'total_earnings': total_earnings,
+                        'total_idle_minutes': total_idle_minutes,
+                        'orders_completed': orders_completed,
+                        'timely_percentage': avg_timely,
+                        'fines_count': fines_count,
+                        'fines_amount': fines_amount,
+                        'operations_by_type': detail_data[0]['operations_by_type'] if detail_data and len(detail_data) > 0 else '',
+                        'reception_count': reception_count,
+                        'daily_data': detail_data
+                    }
+
+                # Используем значения из агрегированных данных
+                total_ops = analytics_data['total_operations']
+                total_earnings = analytics_data['total_earnings']
+                total_idle_minutes = analytics_data['total_idle_minutes']
+
+                # Упрощенный расчет операций в час (на основе 8-часового рабочего дня)
+                work_hours = 8.0
+                if total_ops > 0:
+                    ops_per_hour = total_ops / work_hours
+                else:
+                    ops_per_hour = 0.0
+
+                # РАСЧЕТ ЗАРАБОТКА В ЧАС
+                earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
+
+                # Форматирование времени работы
+                work_duration = f"{int(work_hours)}ч 0м"
+
+                # Получаем данные для диаграмм
+                from data.queries_mssql import get_employee_operations_by_type, get_employee_idle_intervals
+
+                operations_by_type = get_employee_operations_by_type(employee_name,
+                                                                    date_range['start_date'],
+                                                                    date_range['end_date'])
+                idle_intervals = get_employee_idle_intervals(employee_name,
+                                                           date_range['start_date'],
+                                                           date_range['end_date'])
+
+                # Создаем СТОЛБЧАТУЮ диаграмму типов операций (цвета как в ячейках хранения)
+                operations_chart = {
+                    "title": {
+                        "text": "Типы операций",
+                        "left": "center",
+                        "textStyle": {
+                            "fontSize": 14,
+                            "fontWeight": "bold",
+                            "color": "#333"
+                        }
+                    },
+                    "tooltip": {
+                        "trigger": "axis",
+                        "axisPointer": {"type": "shadow"},
+                        "formatter": "{b}<br/>{a}: {c} операций"
+                    },
+                    "xAxis": {
+                        "type": "category",
+                        "data": [op['operation_type'] for op in operations_by_type],
+                        "axisLabel": {"rotate": 45, "fontSize": 10}
+                    },
+                    "yAxis": {
+                        "type": "value",
+                        "name": "Количество операций",
+                        "nameTextStyle": {"color": "#666"}
+                    },
+                    "series": [{
+                        "name": "Операции",
+                        "type": "bar",
+                        "data": [
+                            {
+                                "value": op['total_operations'],
+                                "itemStyle": {"color": "#0D47A1"}
+                            } for op in operations_by_type
+                        ],
+                        "itemStyle": {
+                            "borderRadius": [4, 4, 0, 0]
+                        },
+                        "label": {
+                            "show": True,
+                            "position": "top",
+                            "formatter": "{c}",
+                            "fontSize": 8
+                        }
+                    }]
+                }
+
+                # Круговая диаграмма распределения времени
+                work_minutes = int(work_hours * 60)
+                idle_minutes_value = total_idle_minutes
+                from components.charts import create_time_distribution_pie_echarts
+                time_distribution_pie = create_time_distribution_pie_echarts(work_minutes, idle_minutes_value)
+
+                # Столбчатая диаграмма периодов простоя
+                from components.charts import create_idle_intervals_bar_echarts
+                idle_intervals_bar = create_idle_intervals_bar_echarts(idle_intervals)
+
+                return [
+                    "modal-visible", "modal-content-visible",
+                    f"Сотрудник: {employee_name}",
+                    employee_name,
+                    str(total_ops),
+                    f"{earnings_per_hour:.2f} ₽/час",
+                    f"{ops_per_hour:.1f}",
+                    work_duration,
+                    f"{total_earnings:,.2f} ₽",
+                    operations_chart,
+                    time_distribution_pie,
+                    idle_intervals_bar
+                ]
+
         except Exception as e:
             print(f"Error in handle_analytics_modal: {e}")
+            import traceback
+            traceback.print_exc()
             return ["modal-hidden", "modal-content", "", "", "", "", "", "", "", {}, {}, {}]
-    
+
     raise dash.exceptions.PreventUpdate
 
 # Callback для открытия модального окна детализации простоев

@@ -474,3 +474,38 @@ def update_performance_tables(data, current_view):
         worst_table = all_employees_table
     
     return all_employees_table, best_table, worst_table
+
+# Callback для переключения между таблицами производительности
+@callback(
+    [Output('table-all-employees', 'className'),
+     Output('table-top-best', 'className'),
+     Output('table-top-worst', 'className'),
+     Output('current-table-view', 'data')],
+    [Input('prev-table', 'n_clicks'),
+     Input('next-table', 'n_clicks')],
+    [State('current-table-view', 'data')],
+    prevent_initial_call=True
+)
+def switch_performance_table_view(prev_clicks, next_clicks, current_view):
+    """Переключение между таблицами: все сотрудники, топ-5 лучших, топ-5 худших"""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    views = ['all', 'best', 'worst']
+    current_index = views.index(current_view) if current_view in views else 0
+
+    if button_id == 'next-table':
+        current_index = (current_index + 1) % len(views)
+    elif button_id == 'prev-table':
+        current_index = (current_index - 1) % len(views)
+
+    new_view = views[current_index]
+    classes = ['table-view', 'table-view', 'table-view']
+
+    for i in range(len(views)):
+        if i == current_index:
+            classes[i] = 'table-view active'
+
+    return classes[0], classes[1], classes[2], new_view

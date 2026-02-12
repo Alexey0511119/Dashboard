@@ -46,15 +46,16 @@ def create_performance_table(df, title="", is_best=False, is_worst=False):
         elif earnings < 3000:
             earnings_color = '#ed6c02'  # оранжевый для среднего
         
+        # Используем индекс строки как идентификатор (как в других таблицах)
         rows.append(
             html.Tr([
                 html.Td(
                     html.A(
-                        row.get('Сотрудник', 'Неизвестно'), 
+                        row.get('Сотрудник', 'Неизвестно'),
                         href='#',
                         id={'type': 'employee', 'index': idx},
                         className='employee-link'
-                    ), 
+                    ),
                     style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'transition': 'all 0.3s ease'}
                 ),
                 html.Td(str(int(row.get('Общее_кол_операций', 0))), 

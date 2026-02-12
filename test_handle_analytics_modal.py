@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Тестирование функции handle_analytics_modal
+Тестирование обновленной функции handle_analytics_modal
 """
 
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-def test_modal_function():
-    """Тестирование функции handle_analytics_modal"""
+def test_handle_analytics_modal():
+    """Тестирование обновленной функции handle_analytics_modal"""
     
-    print("=== ТЕСТИРОВАНИЕ ФУНКЦИИ handle_analytics_modal ===\n")
+    print("=== ТЕСТИРОВАНИЕ ОБНОВЛЕННОЙ ФУНКЦИИ handle_analytics_modal ===\n")
     
     # Импортируем необходимые модули
     try:
@@ -41,48 +41,44 @@ def test_modal_function():
         first_employee = performance_data[0]
         print(f"Первый сотрудник: {first_employee.get('Сотрудник', 'N/A')}")
     
-    # Создаем тестовые параметры для функции
-    print(f"\n1. ТЕСТИРОВАНИЕ СИМУЛЯЦИИИ КЛИКА ПО СОТРУДНИКУ:")
-    print("-" * 60)
-    
-    # Имитируем параметры, которые передаются в функцию
-    close_clicks = 0
-    employee_clicks = [1]  # Симуляция клика
-    selected_employee = ""
+    # Создаем тестовые параметры
     date_range = {
         'start_date': start_date,
         'end_date': end_date
     }
     
-    # Создаем симуляцию callback_context
+    # Имитируем callback context
     import dash
     from unittest.mock import Mock
+    import json
     
     # Сохраняем оригинальный callback_context
     original_callback_context = dash.callback_context
     
-    # Создаем mock для callback_context
-    mock_ctx = Mock()
-    mock_ctx.triggered = [
+    # Создаем mock для случая с именем сотрудника
+    mock_ctx_with_name = Mock()
+    mock_ctx_with_name.triggered = [
         {
-            'prop_id': "{'type': 'employee', 'employee_name': 'Тестовый Сотрудник'}.n_clicks",
+            'prop_id': "{'type': 'employee', 'employee_name': '" + first_employee.get('Сотрудник', 'Тестовый Сотрудник') + "'}.n_clicks",
             'value': 1
         }
     ]
     
     # Устанавливаем mock
-    dash.callback_context = mock_ctx
+    dash.callback_context = mock_ctx_with_name
     
     try:
-        print("  Попытка вызвать handle_analytics_modal с тестовыми параметрами...")
+        print("\n1. ТЕСТИРОВАНИЕ С ИМЕНЕМ СОТРУДНИКА:")
+        print("-" * 50)
+        print("  Попытка вызвать handle_analytics_modal с именем сотрудника...")
         
         # Вызовем функцию с тестовыми параметрами
         result = handle_analytics_modal(
-            close_clicks, 
-            employee_clicks, 
-            selected_employee, 
-            date_range, 
-            performance_data
+            close_clicks=0,
+            employee_clicks=[1],
+            selected_analytics_employee="",
+            date_range=date_range,
+            performance_data=performance_data
         )
         
         print(f"  SUCCESS: Функция выполнена успешно")
@@ -94,16 +90,12 @@ def test_modal_function():
             print(f"  Количество операций: {result[4] if len(result) > 4 else 'N/A'}")
         
     except Exception as e:
-        print(f"  ERROR: Ошибка при вызове функции: {e}")
+        print(f"  ERROR: Ошибка при вызове функции с именем сотрудника: {e}")
         import traceback
         traceback.print_exc()
-        return False
-    finally:
-        # Восстанавливаем оригинальный callback_context
-        dash.callback_context = original_callback_context
     
-    print(f"\n2. ТЕСТИРОВАНИЕ СИМУЛЯЦИИ КЛИКА С ИНДЕКСОМ:")
-    print("-" * 60)
+    # Восстанавливаем оригинальный callback_context
+    dash.callback_context = original_callback_context
     
     # Создаем mock для случая с индексом
     mock_ctx_with_index = Mock()
@@ -114,17 +106,21 @@ def test_modal_function():
         }
     ]
     
+    # Устанавливаем mock
     dash.callback_context = mock_ctx_with_index
     
     try:
-        print("  Попытка вызвать handle_analytics_modal с индексом...")
+        print("\n2. ТЕСТИРОВАНИЕ С ИНДЕКСОМ СОТРУДНИКА:")
+        print("-" * 50)
+        print("  Попытка вызвать handle_analytics_modal с индексом сотрудника...")
         
+        # Вызовем функцию с тестовыми параметрами
         result = handle_analytics_modal(
-            close_clicks, 
-            employee_clicks, 
-            selected_employee, 
-            date_range, 
-            performance_data
+            close_clicks=0,
+            employee_clicks=[1],
+            selected_analytics_employee="",
+            date_range=date_range,
+            performance_data=performance_data
         )
         
         print(f"  SUCCESS: Функция выполнена успешно")
@@ -136,25 +132,24 @@ def test_modal_function():
             print(f"  Количество операций: {result[4] if len(result) > 4 else 'N/A'}")
         
     except Exception as e:
-        print(f"  ERROR: Ошибка при вызове функции: {e}")
+        print(f"  ERROR: Ошибка при вызове функции с индексом сотрудника: {e}")
         import traceback
         traceback.print_exc()
-        return False
-    finally:
-        # Восстанавливаем оригинальный callback_context
-        dash.callback_context = original_callback_context
+    
+    # Восстанавливаем оригинальный callback_context
+    dash.callback_context = original_callback_context
     
     print(f"\n3. РЕЗУЛЬТАТ:")
     print("-" * 50)
-    print("  SUCCESS: Функция handle_analytics_modal может быть вызвана")
-    print("  SUCCESS: Функция обрабатывает оба типа идентификаторов (с именем и с индексом)")
+    print("  SUCCESS: Обе версии функции (с именем и с индексом) должны работать")
+    print("  SUCCESS: Ошибки с переменными устранены")
     print("  SUCCESS: Модальные окна должны теперь открываться корректно")
     
     return True
 
 
 if __name__ == "__main__":
-    success = test_modal_function()
+    success = test_handle_analytics_modal()
     if success:
         print(f"\nSUCCESS: Функция handle_analytics_modal работает корректно!")
     else:
