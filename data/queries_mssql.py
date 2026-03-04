@@ -2,6 +2,14 @@ import json
 from datetime import datetime, timedelta
 from data.mssql_client import execute_query_cached
 
+# Глобальные переменные для кэширования данных
+PERFORMANCE_DATA_CACHE = []
+EMPLOYEE_ANALYTICS_CACHE = {}
+EMPLOYEE_OPERATIONS_DETAIL_CACHE = {}
+SHIFT_COMPARISON_CACHE = []
+PROBLEMATIC_HOURS_CACHE = []
+ERROR_HOURS_CACHE = []
+
 # Получение списка сотрудников из БД
 def get_employees():
     query = """
@@ -1086,25 +1094,35 @@ def get_all_storage_data():
 # Функция для обновления данных (аналог refresh_data)
 def refresh_data(start_date, end_date):
     """Обновление всех данных для дашборда"""
+    global PERFORMANCE_DATA_CACHE, EMPLOYEE_ANALYTICS_CACHE, EMPLOYEE_OPERATIONS_DETAIL_CACHE
+    global SHIFT_COMPARISON_CACHE, PROBLEMATIC_HOURS_CACHE, ERROR_HOURS_CACHE
+
     print(f"Обновление данных за период: {start_date} - {end_date}")
-    
-    # Тестируем основные функции
+
     try:
-        employees = get_employees()
-        print(f"Получено сотрудников: {len(employees)}")
-        
-        fines_data = get_fines_data(start_date, end_date)
-        print(f"Получено данных о штрафах: {len(fines_data)}")
-        
-        performance_data = get_performance_data(start_date, end_date)
-        print(f"Получено данных производительности: {len(performance_data)}")
-        
-        storage_data = get_all_storage_data()
-        print(f"Получено данных по ячейкам: {len(storage_data)}")
-        
+        # Обновляем кэши
+        PERFORMANCE_DATA_CACHE = get_performance_data(start_date, end_date)
+        print(f"Данные производительности обновлены: {len(PERFORMANCE_DATA_CACHE)} сотрудников")
+
+        SHIFT_COMPARISON_CACHE = get_shift_comparison(start_date, end_date)
+        print(f"Данные сравнения смен обновлены")
+
+        PROBLEMATIC_HOURS_CACHE = get_problematic_hours(start_date, end_date)
+        print(f"Данные проблемных часов обновлены: {len(PROBLEMATIC_HOURS_CACHE)} записей")
+
+        ERROR_HOURS_CACHE = get_error_hours_top_data(start_date, end_date)
+        print(f"Данные часов с ошибками обновлены: {len(ERROR_HOURS_CACHE)} записей")
+
+        # Инициализируем остальные кэши
+        EMPLOYEE_ANALYTICS_CACHE = {}
+        EMPLOYEE_OPERATIONS_DETAIL_CACHE = {}
+
+        print("SUCCESS: Данные успешно обновлены")
 
     except Exception as e:
         print(f"ERROR: Ошибка при обновлении данных: {e}")
+        import traceback
+        traceback.print_exc()
 
 # Недостающие функции для совместимости
 

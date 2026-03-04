@@ -87,6 +87,7 @@ def execute_query_cached(query, params=None, ttl=300):
     # Выполняем запрос и сохраняем результат в кэш
     try:
         result = mssql_client.execute(query, params)
+        # Используем одно и то же время для проверки и сохранения
         query_cache[cache_key] = result
         cache_timestamps[cache_key] = current_time
         return result

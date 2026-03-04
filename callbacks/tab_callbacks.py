@@ -372,10 +372,10 @@ def update_fines_data(date_range):
                         ),
                         style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px'}
                     ),
-                    html.Td(str(item.get('Количество_штрафов', 0)), 
-                           style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#B71C1C'}),
-                    html.Td(f"{item.get('Сумма_штрафов', 0):,.0f} руб", 
-                           style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#D32F2F'})
+                    html.Td(str(item.get('Количество_штрафов', 0)),
+                           style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#1976D2'}),
+                    html.Td(f"{item.get('Сумма_штрафов', 0):,.0f} руб",
+                           style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#1565C0'})
                 ])
             )
         

@@ -424,7 +424,7 @@ app.index_string = f'''
             }}
             
             .fines-employee-link {{
-                color: #B71C1C;
+                color: #1976D2;
                 text-decoration: none;
                 cursor: pointer;
                 font-weight: bold;
@@ -433,10 +433,10 @@ app.index_string = f'''
                 border-radius: 4px;
             }}
             .fines-employee-link:hover {{
-                color: #F44336;
+                color: #0D47A1;
                 text-decoration: underline;
-                background-color: rgba(244, 67, 54, 0.1);
-                box-shadow: 0 2px 8px rgba(244, 67, 54, 0.2);
+                background-color: rgba(25, 118, 210, 0.1);
+                box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
             }}
             .employee-link {{
                 color: #1976d2;

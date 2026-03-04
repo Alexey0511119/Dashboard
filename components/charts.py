@@ -11,7 +11,11 @@ def create_time_distribution_pie_echarts(work_minutes, idle_minutes):
     else:
         work_percent = round((work_minutes / total) * 100, 1)
         idle_percent = round((idle_minutes / total) * 100, 1)
-    
+
+    # Оригинальные цвета
+    work_color = '#4CAF50'  # Зеленый для работы
+    idle_color = '#F44336'  # Красный для простоя
+
     return {
         "title": {
             "text": "Распределение времени работы",
@@ -39,14 +43,14 @@ def create_time_distribution_pie_echarts(work_minutes, idle_minutes):
             "center": ["50%", "50%"],
             "data": [
                 {
-                    "value": work_minutes, 
-                    "name": f"Работа ({work_percent}%)", 
-                    "itemStyle": {"color": "#4CAF50"}
+                    "value": work_minutes,
+                    "name": f"Работа ({work_percent}%)",
+                    "itemStyle": {"color": work_color}
                 },
                 {
-                    "value": idle_minutes, 
-                    "name": f"Простой ({idle_percent}%)", 
-                    "itemStyle": {"color": "#F44336"}
+                    "value": idle_minutes,
+                    "name": f"Простой ({idle_percent}%)",
+                    "itemStyle": {"color": idle_color}
                 }
             ],
             "label": {
@@ -660,6 +664,7 @@ def create_timeliness_chart(chart_data, chart_type='timely'):
     }
 
 def create_operations_type_chart(employee_name, operations_detail):
+    # Оригинальная цветовая палитра
     colors = [
         '#0D2B4F', '#11345C', '#153D69', '#194676', '#1D4F83',
         '#215890', '#25619D', '#296AAA', '#2D73B7', '#317CC4',
@@ -730,9 +735,12 @@ def create_operations_type_chart(employee_name, operations_detail):
 
 def create_fines_pie_chart(category_data):
     data = []
+    # Цвета в синих оттенках (как в модальном окне ячеек хранения)
     colors = [
-        '#B71C1C', '#C62828', '#D32F2F', '#E53935', '#F44336',
-        '#EF5350', '#E57373', '#EF9A9A', '#FFCDD2', '#FFEBEE'
+        '#1A237E', '#283593', '#303F9F', '#3949AB', '#3F51B5',
+        '#5C6BC0', '#7986CB', '#9FA8DA', '#C5CAE9', '#E8EAF6',
+        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3',
+        '#64B5F6', '#90CAF9', '#BBDEFB', '#E3F2FD', '#F5F5F5'
     ]
     
     for i, (category, stats) in enumerate(category_data.items()):
@@ -812,9 +820,12 @@ def create_fines_pie_chart(category_data):
 def create_fines_amount_bar_chart(category_data):
     categories = []
     amounts = []
+    # Цвета в синих оттенках (как в модальном окне ячеек хранения)
     colors = [
-        '#B71C1C', '#C62828', '#D32F2F', '#E53935', '#F44336',
-        '#EF5350', '#E57373', '#EF9A9A', '#FFCDD2'
+        '#1A237E', '#283593', '#303F9F', '#3949AB', '#3F51B5',
+        '#5C6BC0', '#7986CB', '#9FA8DA', '#C5CAE9', '#E8EAF6',
+        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3',
+        '#64B5F6', '#90CAF9', '#BBDEFB', '#E3F2FD', '#F5F5F5'
     ]
     
     for i, (category, stats) in enumerate(category_data.items()):
@@ -890,22 +901,25 @@ def create_fines_amount_bar_chart(category_data):
 def create_employee_fines_chart(employee_data):
     category_counts = {}
     category_amounts = {}
-    
+
     for fine in employee_data.get('Штрафы', []):
         category = fine.get('category', 'Неизвестно')
         amount = fine.get('amount', 0)
-        
+
         if category not in category_counts:
             category_counts[category] = 0
             category_amounts[category] = 0
-        
+
         category_counts[category] += 1
         category_amounts[category] += amount
-    
+
     data = []
+    # Цвета в синих оттенках (как в модальном окне ячеек хранения)
     colors = [
-        '#B71C1C', '#C62828', '#D32F2F', '#E53935', '#F44336',
-        '#EF5350', '#E57373', '#EF9A9A', '#FFCDD2'
+        '#1A237E', '#283593', '#303F9F', '#3949AB', '#3F51B5',
+        '#5C6BC0', '#7986CB', '#9FA8DA', '#C5CAE9', '#E8EAF6',
+        '#0D47A1', '#1565C0', '#1976D2', '#1E88E5', '#2196F3',
+        '#64B5F6', '#90CAF9', '#BBDEFB', '#E3F2FD', '#F5F5F5'
     ]
     
     total_fines = employee_data.get('Количество_штрафов', 0)

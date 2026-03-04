@@ -138,20 +138,20 @@ def create_fines_modal():
                 'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
             }),
             html.Div([
-                html.Div(id="fines-employee-name", 
-                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#B71C1C', 'textAlign': 'center'}),
+                html.Div(id="fines-employee-name",
+                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#1976D2', 'textAlign': 'center'}),
                 html.Div([
                     html.Div([
                         html.Div("Количество штрафов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-count-kpi-modal", style={'color': '#B71C1C', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-count-kpi-modal", style={'color': '#1976D2', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Общая сумма", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-total-kpi", style={'color': '#D32F2F', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-total-kpi", style={'color': '#1565C0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Средний штраф", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-avg-kpi", style={'color': '#F44336', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-avg-kpi", style={'color': '#1E88E5', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Дата последнего", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
