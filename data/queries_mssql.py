@@ -1131,23 +1131,23 @@ def get_revision_stats():
     try:
         # Используем правильный путь к view
         query = "SELECT * FROM dm.v_revision_by_event"
-        
+
         result = execute_query_cached(query)
-        
+
         if result and len(result) > 0:
             row = result[0]
-            
+
             # Обрабатываем данные в зависимости от формата
             if isinstance(row, dict):
-                open_revisions = row.get('open_revisions', 0)
-                in_process_revisions = row.get('in_process_revisions', 0)
-                total_revisions = row.get('total_revisions', 0)
+                open_revisions = row.get('open_revisions') or 0
+                in_process_revisions = row.get('in_process_revisions') or 0
+                total_revisions = row.get('total_revisions') or 0
             else:
                 # Если это кортеж, берем по индексам
-                open_revisions = row[0] if len(row) > 0 else 0
-                in_process_revisions = row[1] if len(row) > 1 else 0
-                total_revisions = row[2] if len(row) > 2 else 0
-            
+                open_revisions = row[0] if len(row) > 0 and row[0] else 0
+                in_process_revisions = row[1] if len(row) > 1 and row[1] else 0
+                total_revisions = row[2] if len(row) > 2 and row[2] else 0
+
             return {
                 'total_revisions': total_revisions,
                 'open_revisions': open_revisions,
@@ -1159,10 +1159,10 @@ def get_revision_stats():
                 'open_revisions': 0,
                 'in_process_revisions': 0
             }
-            
+
     except Exception as e:
         print(f"ERROR: Ошибка в get_revision_stats: {e}")
-        
+
         # Возвращаем значения по умолчанию в случае ошибки
         return {
             'total_revisions': 0,

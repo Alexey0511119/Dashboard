@@ -47,7 +47,7 @@ def create_fines_tab():
                         ])),
                         html.Tbody(id='fines-table-body')
                     ], style={'width': '100%', 'borderCollapse': 'collapse'})
-                ], className="table-container", style={'height': '500px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
+                ], className="table-container", style={'height': '700px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
             ], className="left-panel dashboard-element", style={'animationDelay': '0.6s', 'width': '40%'}),
             
             html.Div([

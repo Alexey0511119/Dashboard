@@ -164,7 +164,7 @@ def create_general_tab():
                 }),
                 html.Div([
                     create_shift_employees_table()
-                ], className="table-container", style={'height': '520px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
+                ], className="table-container", style={'height': '600px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
             ], className="left-panel dashboard-element docker-hover-effect", style={'animationDelay': '0.7s', 'width': '60%'}),
             
             # ПРАВАЯ ПАНЕЛЬ: Контейнер статистики смены
