@@ -5,9 +5,9 @@ from components.tables import create_shift_employees_table
 def create_general_tab():
     """Создание вкладки 'Общая сводка' (без диаграммы Точность заказов)"""
     return html.Div([
-        # KPI карточки
+        # KPI карточки - ИСПРАВЛЕННЫЙ РЯД С АДАПТИВНОСТЬЮ
         html.Div([
-            # Карточка 1: Кол-во ревизий по событию (заменяет "Собрано заказов вовремя")
+            # Карточка 1: Кол-во ревизий по событию
             html.Div([
                 html.Div([
                     html.Span("Кол-во ревизий по событию", 
@@ -16,6 +16,7 @@ def create_general_tab():
                         "ℹ️",
                         id="open-revision-info",
                         title="Подробная информация",
+                        className="glow-on-hover",
                         style={
                             'background': 'transparent',
                             'border': 'none',
@@ -41,9 +42,9 @@ def create_general_tab():
                         html.Span(id="in-process-revisions-kpi", style={'color': '#2196f3'})
                     ], style={})
                 ], style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'lineHeight': '1.4'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s'}),
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.2s'}),
             
-            # Карточка 2: Ошибки при размещении (заменяет "Ср. время операции")
+            # Карточка 2: Ошибки при размещении
             html.Div([
                 html.Div([
                     html.Span("Ошибки при размещении", 
@@ -52,6 +53,7 @@ def create_general_tab():
                         "ℹ️",
                         id="open-placement-info",
                         title="Подробная информация",
+                        className="glow-on-hover",
                         style={
                             'background': 'transparent',
                             'border': 'none',
@@ -78,16 +80,16 @@ def create_general_tab():
                     ], style={'marginBottom': '4px'}),
                     html.Div(id="placement-percentage-kpi", style={'fontSize': '11px', 'color': '#666'})
                 ], style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'lineHeight': '1.4'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.3s'}),
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.3s'}),
             
-            # Карточка 3: Точность заказов (остается без изменений)
+            # Карточка 3: Точность заказов
             html.Div([
                 html.Div("Точность заказов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="order-accuracy-kpi", style={'color': '#ed6c02', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="order-accuracy-detail", style={'color': '#ed6c02', 'fontSize': '14px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.4s'}),
             
-            # Карточка 4: Ячейки хранения (остается без изменений)
+            # Карточка 4: Ячейки хранения
             html.Div([
                 html.Div([
                     html.Span("Ячейки хранения своб/зан", 
@@ -96,6 +98,7 @@ def create_general_tab():
                         "📊",
                         id="open-storage-modal",
                         title="Подробная аналитика",
+                        className="glow-on-hover",
                         style={
                             'background': 'transparent',
                             'border': 'none',
@@ -112,7 +115,35 @@ def create_general_tab():
                 ], style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="storage-cells-kpi", style={'color': '#9c27b0', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
                 html.Div(id="storage-cells-detail", style={'color': '#9c27b0', 'fontSize': '14px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s'})
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.5s'}),
+            
+            # Карточка 5: Количество отклоненных строк в заказах (НОВАЯ)
+            html.Div([
+                html.Div([
+                    html.Span("Отклоненные строки в заказах", 
+                             style={'verticalAlign': 'middle'}),
+                    html.Button(
+                        "📋",
+                        id="open-rejected-lines-modal",
+                        title="Подробная информация",
+                        className="glow-on-hover",
+                        style={
+                            'background': 'transparent',
+                            'border': 'none',
+                            'fontSize': '16px',
+                            'cursor': 'pointer',
+                            'color': '#673AB7',
+                            'marginLeft': '8px',
+                            'padding': '2px 6px',
+                            'borderRadius': '4px',
+                            'transition': 'all 0.2s ease',
+                            'verticalAlign': 'middle'
+                        }
+                    )
+                ], style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div(id="rejected-lines-kpi", style={'color': '#673AB7', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
+                html.Div(id="rejected-lines-detail", style={'color': '#673AB7', 'fontSize': '14px', 'textAlign': 'center'})
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.6s'})
         ], className="kpi-row"),
         
         # Основной контент: Левая панель (таблица) + Правая панель (статистика)
@@ -133,18 +164,20 @@ def create_general_tab():
                 }),
                 html.Div([
                     create_shift_employees_table()
-                ], className="table-container", style={'height': '520px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
-            ], className="left-panel dashboard-element", style={'animationDelay': '0.6s', 'width': '60%'}),
+                ], className="table-container", style={'height': '600px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
+            ], className="left-panel dashboard-element docker-hover-effect", style={'animationDelay': '0.7s', 'width': '60%'}),
             
-            # ПРАВАЯ ПАНЕЛЬ: Контейнер статистики смены (ВМЕСТО диаграммы)
+            # ПРАВАЯ ПАНЕЛЬ: Контейнер статистики смены
             html.Div([
                 html.Div([
                     html.Div([
-                        html.H3("Статистика смены", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        html.H3("Статистика смены", 
+                               className="chart-header",
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
                         # Контейнер для статистики (заполняется через callback)
                         html.Div(id='shift-stats-info', style={'height': '520px', 'overflowY': 'auto'})
-                    ], className='chart-card dashboard-element', style={'animationDelay': '0.7s', 'height': '600px'})
+                    ], className='chart-card dashboard-element docker-hover-effect', style={'animationDelay': '0.8s', 'height': '600px'})
                 ], className="charts-row", style={'height': '620px'})
-            ], className="right-panel dashboard-element", style={'animationDelay': '0.7s', 'width': '40%'})
+            ], className="right-panel dashboard-element docker-hover-effect", style={'animationDelay': '0.8s', 'width': '40%'})
         ], className="main-content", style={'display': 'flex', 'gap': '20px'})
     ], style={'padding': '10px'})

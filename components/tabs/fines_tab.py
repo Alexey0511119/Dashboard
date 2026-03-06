@@ -7,23 +7,23 @@ def create_fines_tab():
         html.Div([
             html.Div([
                 html.Div("Сотрудник с наиб. кол-вом штрафов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="max-fines-employee-kpi", style={'color': '#B71C1C', 'fontSize': '20px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div(id="max-fines-count-kpi", style={'color': '#B71C1C', 'fontSize': '16px', 'textAlign': 'center'})
+                html.Div(id="max-fines-employee-kpi", style={'color': '#1976D2', 'fontSize': '20px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
+                html.Div(id="max-fines-count-kpi", style={'color': '#1976D2', 'fontSize': '16px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s'}),
             html.Div([
                 html.Div("Сотрудник с наиб. суммой штрафов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="max-amount-employee-kpi", style={'color': '#D32F2F', 'fontSize': '20px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div(id="max-amount-kpi", style={'color': '#D32F2F', 'fontSize': '16px', 'textAlign': 'center'})
+                html.Div(id="max-amount-employee-kpi", style={'color': '#1565C0', 'fontSize': '20px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
+                html.Div(id="max-amount-kpi", style={'color': '#1565C0', 'fontSize': '16px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.3s'}),
             html.Div([
                 html.Div("Количество штрафов за период", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="total-fines-kpi", style={'color': '#F44336', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div("за выбранный период", style={'color': '#F44336', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div(id="total-fines-kpi", style={'color': '#0D47A1', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
+                html.Div("за выбранный период", style={'color': '#0D47A1', 'fontSize': '14px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
             html.Div([
                 html.Div("Средняя сумма штрафа", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="avg-fine-amount-kpi", style={'color': '#E57373', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div("за выбранный период", style={'color': '#E57373', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div(id="avg-fine-amount-kpi", style={'color': '#1E88E5', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
+                html.Div("за выбранный период", style={'color': '#1E88E5', 'fontSize': '14px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s'})
         ], className="kpi-row"),
         
@@ -47,7 +47,7 @@ def create_fines_tab():
                         ])),
                         html.Tbody(id='fines-table-body')
                     ], style={'width': '100%', 'borderCollapse': 'collapse'})
-                ], className="table-container", style={'height': '500px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
+                ], className="table-container", style={'height': '700px', 'overflowY': 'auto', 'borderRadius': '0 0 12px 12px'})
             ], className="left-panel dashboard-element", style={'animationDelay': '0.6s', 'width': '40%'}),
             
             html.Div([

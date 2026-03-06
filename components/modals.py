@@ -138,20 +138,20 @@ def create_fines_modal():
                 'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
             }),
             html.Div([
-                html.Div(id="fines-employee-name", 
-                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#B71C1C', 'textAlign': 'center'}),
+                html.Div(id="fines-employee-name",
+                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#1976D2', 'textAlign': 'center'}),
                 html.Div([
                     html.Div([
                         html.Div("Количество штрафов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-count-kpi-modal", style={'color': '#B71C1C', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-count-kpi-modal", style={'color': '#1976D2', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Общая сумма", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-total-kpi", style={'color': '#D32F2F', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-total-kpi", style={'color': '#1565C0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Средний штраф", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-avg-kpi", style={'color': '#F44336', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-avg-kpi", style={'color': '#1E88E5', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Дата последнего", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
@@ -225,7 +225,7 @@ def create_idle_detail_modal():
                     dash_echarts.DashECharts(
                         id="idle-timeline-chart",
                         option={},
-                        style={'height': '500px', 'width': '100%'}
+                        style={'height': 'px700', 'width': '100%'}
                     )
                 ], className='analytics-chart-card', style={'height': '550px'}),
                 
@@ -297,68 +297,279 @@ def create_storage_cells_modal():
                 # Секция с фильтрами
                 html.Div([
                     html.H4("Фильтры", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                    
+                    # Верхняя строка: галочка "Только пустые" + кнопка "Сбросить все"
                     html.Div([
-                        # Тип хранения
-                        html.Div([
-                            html.Label("Тип хранения:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-storage-type',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        # Кнопка "Сбросить все фильтры" (слева)
+                        html.Button(
+                            "🗑️ Сбросить все фильтры",
+                            id="reset-all-filters-btn",
+                            n_clicks=0,
+                            style={
+                                'padding': '8px 16px',
+                                'backgroundColor': '#f8f9fa',
+                                'border': '1px solid #dc3545',
+                                'borderRadius': '6px',
+                                'fontSize': '13px',
+                                'color': '#dc3545',
+                                'cursor': 'pointer',
+                                'display': 'flex',
+                                'alignItems': 'center',
+                                'gap': '8px',
+                                'transition': 'all 0.3s ease',
+                                'marginRight': '15px',
+                                'fontWeight': '500',
+                                'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+                            },
+                            title="Сбросить все фильтры (кроме галочки 'Только пустые')"
+                        ),
                         
-                        # Зона размещения
+                        # Галочка "Только пустые ячейки" (справа)
                         html.Div([
-                            html.Label("Зона размещения:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-locating-zone',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
+                            html.Label(
+                                html.Span("📦 Только пустые ячейки", 
+                                         style={'fontSize': '14px', 'color': '#333', 'marginLeft': '5px', 'fontWeight': '500'}),
+                                htmlFor='filter-only-empty',
+                                style={'display': 'flex', 'alignItems': 'center', 'cursor': 'pointer'}
+                            ),
+                            dcc.Checklist(
+                                id='filter-only-empty',
+                                options=[{'label': '', 'value': 'empty'}],
+                                value=[],
+                                style={'display': 'inline-block', 'marginLeft': '10px'},
+                                inputStyle={
+                                    'marginRight': '5px', 
+                                    'cursor': 'pointer',
+                                    'width': '18px',
+                                    'height': '18px',
+                                    'accentColor': '#2196F3'
+                                }
                             )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        ], style={
+                            'display': 'flex', 
+                            'alignItems': 'center',
+                            'padding': '8px 16px',
+                            'backgroundColor': '#e3f2fd',
+                            'borderRadius': '6px',
+                            'border': '1px solid #bbdefb',
+                            'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+                        })
+                    ], style={
+                        'display': 'flex', 
+                        'justifyContent': 'space-between', 
+                        'alignItems': 'center',
+                        'marginBottom': '20px',
+                        'padding': '10px',
+                        'backgroundColor': '#ffffff',
+                        'borderRadius': '8px',
+                        'border': '1px solid #e0e0e0'
+                    }),
+                    
+                    # Основные фильтры с кнопками сброса
+                    html.Div([
+                        # Тип хранения с кнопкой сброса
+                        html.Div([
+                            html.Div([
+                                html.Label("Тип хранения:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-storage-type',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-storage-type-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
                         
-                        # Зона резервирования
+                        # Зона размещения с кнопкой сброса
                         html.Div([
-                            html.Label("Зона резервирования:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-allocation-zone',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                            html.Div([
+                                html.Label("Зона размещения:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-locating-zone',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-locating-zone-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
                         
-                        # Тип МХ
+                        # Зона резервирования с кнопкой сброса
                         html.Div([
-                            html.Label("Тип МХ:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-location-type',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                            html.Div([
+                                html.Label("Зона резервирования:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-allocation-zone',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-allocation-zone-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
                         
-                        # Рабочая зона
+                        # Тип МХ с кнопкой сброса
                         html.Div([
-                            html.Label("Рабочая зона:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-work-zone',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
+                            html.Div([
+                                html.Label("Тип МХ:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-location-type',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-location-type-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
+                        
+                        # Рабочая зона с кнопкой сброса
+                        html.Div([
+                            html.Div([
+                                html.Label("Рабочая зона:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-work-zone',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-work-zone-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
                         ], style={'flex': '1'})
-                    ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '20px'})
-                ], style={'marginBottom': '20px', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px'}),
+                    ], style={'display': 'flex', 'gap': '15px', 'marginBottom': '20px'})
+                ], style={
+                    'marginBottom': '20px', 
+                    'padding': '20px', 
+                    'backgroundColor': '#ffffff', 
+                    'borderRadius': '10px',
+                    'border': '1px solid #e0e0e0',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)'
+                }),
                 
                 # Секция с диаграммами
                 html.Div([
@@ -401,11 +612,90 @@ def create_storage_cells_modal():
                 
                 # Информация о фильтрах
                 html.Div([
-                    html.P("ℹ️ Фильтры взаимосвязаны: выбор значения в одном фильтре ограничивает доступные значения в других",
-                          style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'padding': '10px',
-                                'background': '#e3f2fd', 'borderRadius': '6px', 'border': '1px solid #bbdefb'})
+                    html.P("ℹ️ Фильтры взаимосвязаны: выбор значения в одном фильтре ограничивает доступные значения в других. Нажмите ✕ чтобы сбросить отдельный фильтр или 🗑️ чтобы сбросить все фильтры.",
+                          style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'padding': '12px',
+                                'background': '#f8f9fa', 'borderRadius': '8px', 'border': '1px solid #e9ecef'})
                 ], style={'marginTop': '20px'})
                 
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
         ], id="storage-modal-content", className="modal-content")
     ], id="storage-cells-modal", className="modal-hidden")
+
+def create_rejected_lines_modal():
+    """Создание модального окна с таблицей отклоненных строк"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детализация отклоненных строк в заказах", 
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕", 
+                    id="close-rejected-lines-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # KPI карточки
+                html.Div([
+                    html.Div([
+                        html.Div("Всего отклоненных строк", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="total-rejected-lines-kpi", style={'color': '#9C27B0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Уникальных заказов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="unique-orders-kpi", style={'color': '#673AB7', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Уникальных товаров", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="unique-items-kpi", style={'color': '#3F51B5', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Последнее отклонение", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="last-rejection-date", style={'color': '#666', 'fontSize': '20px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card')
+                ], className="analytics-kpi-row", style={'marginBottom': '20px', 'gridTemplateColumns': '1fr 1fr 1fr 1fr'}),
+                
+                # Таблица отклоненных строк
+                html.Div([
+                    html.H4("Таблица отклоненных строк", 
+                           style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                    html.Div([
+                        html.Table([
+                            html.Thead(html.Tr([
+                                html.Th("SHIPMENT_ID", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ITEM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ITEM_DESC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("REQUESTED_QTY", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("QUANTITY_UM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("PICK_LOC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("PICK_ZONE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("DATE_TIME_STAMP", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'})
+                            ])),
+                            html.Tbody(id="rejected-lines-table-body")
+                        ], style={'width': '100%', 'borderCollapse': 'collapse'})
+                    ], style={'maxHeight': '500px', 'overflowY': 'auto', 'border': '1px solid #eee', 'borderRadius': '8px'})
+                ], style={'marginTop': '20px'})
+                
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="rejected-lines-modal-content", className="modal-content")
+    ], id="rejected-lines-modal", className="modal-hidden")

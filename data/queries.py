@@ -2195,32 +2195,28 @@ def filter_storage_data(all_data, filters):
     """
     Фильтрация данных по выбранным фильтрам
     и определение доступных значений для других фильтров
-    
-    Parameters:
-    -----------
-    all_data : list
-        Все данные полученные из get_all_storage_data()
-    filters : dict
-        Текущие активные фильтры
-    
-    Returns:
-    --------
-    dict:
-        - filtered_data: отфильтрованные данные
-        - available_filters: доступные значения для каждого фильтра
-        - summary: статистика для KPI
-        - chart_data: данные для диаграмм
     """
     # Сначала фильтруем данные
     filtered_data = all_data.copy()
     
+    # Проверяем фильтр "только пустые"
+    only_empty = filters.get('only_empty', False)
+    
     # Применяем фильтры
     for filter_key, filter_value in filters.items():
-        if filter_value and filter_value != 'Все':
-            filtered_data = [
-                item for item in filtered_data 
-                if item.get(filter_key) == filter_value
-            ]
+        if filter_value is not None:
+            if filter_key == 'only_empty':
+                # Обработка галочки "только пустые"
+                if filter_value == True:
+                    filtered_data = [
+                        item for item in filtered_data 
+                        if item.get('status') == 'Empty'
+                    ]
+            elif filter_value != 'Все':
+                filtered_data = [
+                    item for item in filtered_data 
+                    if item.get(filter_key) == filter_value
+                ]
     
     # Определяем доступные значения для каждого фильтра
     available_filters = {
@@ -2262,23 +2258,35 @@ def filter_storage_data(all_data, filters):
                 'empty': 0,
                 'occupied': 0
             }
-        location_type_stats[loc_type]['total'] += 1
-        if item['status'] == 'Empty':
+        
+        # ВАЖНОЕ ИЗМЕНЕНИЕ: Если фильтр "только пустые" активен, total = empty
+        if only_empty:
+            location_type_stats[loc_type]['total'] += 1
             location_type_stats[loc_type]['empty'] += 1
         else:
-            location_type_stats[loc_type]['occupied'] += 1
+            location_type_stats[loc_type]['total'] += 1
+            if item['status'] == 'Empty':
+                location_type_stats[loc_type]['empty'] += 1
+            else:
+                location_type_stats[loc_type]['occupied'] += 1
     
-    # Преобразуем в список и сортируем
+    # Преобразуем в список
     chart_data_by_type = []
     for loc_type, stats in location_type_stats.items():
-        chart_data_by_type.append({
-            'location_type': loc_type,
-            'total': stats['total'],
-            'empty': stats['empty'],
-            'occupied': stats['occupied']
-        })
+        # В режиме "только пустые" показываем только типы с пустыми ячейками
+        if not only_empty or (only_empty and stats['empty'] > 0):
+            chart_data_by_type.append({
+                'location_type': loc_type,
+                'total': stats['total'],
+                'empty': stats['empty'],
+                'occupied': stats['occupied']
+            })
     
-    chart_data_by_type.sort(key=lambda x: x['total'], reverse=True)
+    # Сортируем: при only_empty сортируем по empty, иначе по total
+    if only_empty:
+        chart_data_by_type.sort(key=lambda x: x['empty'], reverse=True)
+    else:
+        chart_data_by_type.sort(key=lambda x: x['total'], reverse=True)
     
     return {
         'filtered_data': filtered_data,
@@ -2289,7 +2297,7 @@ def filter_storage_data(all_data, filters):
             'occupied': occupied
         },
         'chart_data': {
-            'by_location_type': chart_data_by_type[:100]  # Топ-15 типов
+            'by_location_type': chart_data_by_type[:100]
         }
     }
 
@@ -2504,3 +2512,80 @@ def get_placement_errors():
             'unique_users': 0,
             'unique_items': 0
         }
+    
+# Получение количества отклоненных строк в заказах
+def get_rejected_lines_count(start_date, end_date):
+    """Получение количества отклоненных строк в заказах по полю DATE_TIME_STAMP"""
+    query = """
+    SELECT 
+        COUNT(*) as rejected_lines_count
+    FROM dwh.cube_shipment_detail 
+    WHERE DATE(DATE_TIME_STAMP) BETWEEN %(start_date)s AND %(end_date)s
+        AND DATE_TIME_STAMP IS NOT NULL
+    """
+    
+    result = execute_query_cached(query, {
+        'start_date': start_date,
+        'end_date': end_date
+    })
+    
+    rejected_count = 0
+    if result and result[0] and result[0][0]:
+        rejected_count = int(float(result[0][0]))
+    
+    print(f"[DEBUG] Отклоненных строк за период {start_date} - {end_date}: {rejected_count}")
+    return rejected_count
+
+# Получение детальной информации по отклоненным строкам
+def get_rejected_lines_details(start_date, end_date):
+    """Получение детальной информации по отклоненным строкам"""
+    query = """
+    SELECT 
+        SHIPMENT_ID,
+        ITEM,
+        ITEM_DESC,
+        REQUESTED_QTY,
+        QUANTITY_UM,
+        PICK_LOC,
+        PICK_ZONE,
+        DATE_TIME_STAMP
+    FROM dwh.cube_shipment_detail 
+    WHERE DATE(DATE_TIME_STAMP) BETWEEN %(start_date)s AND %(end_date)s
+        AND DATE_TIME_STAMP IS NOT NULL
+    ORDER BY DATE_TIME_STAMP DESC
+    LIMIT 1000
+    """
+    
+    result = execute_query_cached(query, {
+        'start_date': start_date,
+        'end_date': end_date
+    })
+    
+    rejected_lines = []
+    if result:
+        for row in result:
+            try:
+                # Преобразуем дату в строку для корректного отображения
+                date_str = ""
+                if row[7]:  # DATE_TIME_STAMP
+                    if isinstance(row[7], str):
+                        date_str = row[7]
+                    else:
+                        date_str = str(row[7])
+                
+                rejected_lines.append({
+                    'SHIPMENT_ID': row[0] if row[0] else '',
+                    'ITEM': row[1] if row[1] else '',
+                    'ITEM_DESC': row[2] if row[2] else '',
+                    'REQUESTED_QTY': float(row[3]) if row[3] else 0.0,
+                    'QUANTITY_UM': row[4] if row[4] else '',
+                    'PICK_LOC': row[5] if row[5] else '',
+                    'PICK_ZONE': row[6] if row[6] else '',
+                    'DATE_TIME_STAMP': date_str
+                })
+            except Exception as e:
+                print(f"Ошибка обработки строки отклоненного заказа: {e}")
+                continue
+    
+    print(f"[DEBUG] Детали отклоненных строк: {len(rejected_lines)} записей")
+    return rejected_lines    
