@@ -1034,14 +1034,161 @@ def get_positions_list():
 def get_brigades_list():
     """Получение списка уникальных бригад из dm.v_employees_on_shift_detailed"""
     query = """
-    SELECT DISTINCT brigada 
-    FROM dm.v_employees_on_shift_detailed 
+    SELECT DISTINCT brigada
+    FROM dm.v_employees_on_shift_detailed
     WHERE brigada IS NOT NULL AND brigada != ''
     ORDER BY brigada
     """
-    
+
     result = execute_query_cached(query)
     return [row[0] for row in result] if result else []
+
+
+# ============================================================================
+# НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С dm.v_employees_shift_daily
+# ============================================================================
+
+def get_todays_shift():
+    """
+    Определение, какая смена работает сегодня (4-дневный цикл от 11.12.2025)
+    Возвращает '1' или '2'
+    """
+    today = datetime.now().date()
+    base_date = datetime(2025, 12, 11).date()
+    days_diff = (today - base_date).days
+    cycle_position = days_diff % 4
+    
+    if cycle_position == 0 or cycle_position == 1:
+        today_shift = '1'
+        print(f"Сегодня {today}: работает ПЕРВАЯ смена (smena='1')")
+    else:
+        today_shift = '2'
+        print(f"Сегодня {today}: работает ВТОРАЯ смена (smena='2')")
+    
+    return today_shift
+
+
+def get_employees_on_shift_new():
+    """
+    Получение данных о сотрудниках на текущей смене из dm.v_employees_shift_daily
+    + добавляет статус на основе времени первой операции
+    
+    Возвращает кортеж (employees_data, position_stats)
+    """
+    today_shift = get_todays_shift()
+    
+    # Получаем данные из нового view (оно уже фильтрует по текущему дню)
+    query = """
+    SELECT
+        fio,
+        position,
+        brigada,
+        smena,
+        first_operation_time,
+        total_operations
+    FROM dm.v_employees_shift_daily
+    WHERE smena = ?
+    ORDER BY fio
+    """
+    
+    result = execute_query_cached(query, (today_shift,))
+    
+    employees_data = []
+    if result:
+        for row in result:
+            try:
+                fio = row[0] if row[0] else ''
+                position = row[1] if row[1] else ''
+                brigada = row[2] if row[2] else ''
+                smena = row[3] if row[3] else ''
+                first_operation_time = row[4] if row[4] else None
+                total_operations = row[5] if row[5] else 0
+                
+                # Форматируем время первой операции
+                if first_operation_time:
+                    if hasattr(first_operation_time, 'strftime'):
+                        formatted_time = first_operation_time.strftime('%H:%M')
+                    else:
+                        time_str = str(first_operation_time)
+                        if ' ' in time_str and ':' in time_str:
+                            time_part = time_str.split(' ')[1]
+                            time_parts = time_part.split(':')
+                            formatted_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_part[:5]
+                        elif ':' in time_str:
+                            time_parts = time_str.split(':')
+                            formatted_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_str[:5]
+                        else:
+                            formatted_time = time_str
+                else:
+                    formatted_time = '--:--'
+                
+                # Определяем статус
+                shift_start_hour = 6 if smena == '1' else 14
+                if first_operation_time is None:
+                    status = 'Не вышел'
+                elif total_operations == 0:
+                    status = 'Без операций'
+                elif hasattr(first_operation_time, 'hour') and first_operation_time.hour > shift_start_hour + 0.25:  # +15 минут
+                    status = 'Опоздал'
+                else:
+                    status = 'На смене'
+                
+                employees_data.append({
+                    'ФИО': fio,
+                    'Должность': position,
+                    'Бригада': brigada,
+                    'Смена': smena,
+                    'Статус': status,
+                    'Время_первой_операции': formatted_time
+                })
+            except Exception as e:
+                print(f"Error processing employee row: {e}")
+                continue
+    
+    # Статистика по должностям
+    position_stats = {}
+    for emp in employees_data:
+        pos = emp.get('Должность', 'Не указана')
+        if pos not in position_stats:
+            position_stats[pos] = 0
+        position_stats[pos] += 1
+    
+    return employees_data, position_stats
+
+
+def get_positions_list_new():
+    """Получение списка уникальных должностей из dm.v_employees_shift_daily"""
+    today_shift = get_todays_shift()
+    
+    query = """
+    SELECT DISTINCT position
+    FROM dm.v_employees_shift_daily
+    WHERE smena = ?
+        AND position IS NOT NULL 
+        AND position != ''
+    ORDER BY position
+    """
+    
+    result = execute_query_cached(query, (today_shift,))
+    return [row[0] for row in result] if result else []
+
+
+def get_brigades_list_new():
+    """Получение списка уникальных бригад из dm.v_employees_shift_daily"""
+    today_shift = get_todays_shift()
+    
+    query = """
+    SELECT DISTINCT brigada
+    FROM dm.v_employees_shift_daily
+    WHERE smena = ?
+        AND brigada IS NOT NULL 
+        AND brigada != ''
+    ORDER BY brigada
+    """
+    
+    result = execute_query_cached(query, (today_shift,))
+    return [row[0] for row in result] if result else []
+
 
 # Получение всех данных по ячейкам хранения
 def get_all_storage_data():

@@ -3,6 +3,7 @@ from dash import html, dcc
 import pandas as pd
 import json
 from data.queries_mssql import get_employees_on_shift, get_positions_list, get_brigades_list
+from data.queries_mssql import get_employees_on_shift_new, get_positions_list_new, get_brigades_list_new
 
 def create_performance_table(df, title="", is_best=False, is_worst=False):
     """Создание HTML таблицы производительности с колонкой заработка"""
@@ -86,12 +87,14 @@ def create_performance_table(df, title="", is_best=False, is_worst=False):
     
 
 def create_shift_employees_table():
-    """Создание таблицы 'Сотрудники на смене' - ТОЛЬКО СЕГОДНЯШНЯЯ СМЕНА"""
-    
-    # Получаем данные
-    employees, position_stats = get_employees_on_shift()
-    positions = get_positions_list()
-    brigades = get_brigades_list()
+    """Создание таблицы 'Сотрудники на смене' - ТОЛЬКО СЕГОДНЯШНЯЯ СМЕНА
+    Использует новое view dm.v_employees_shift_daily
+    """
+
+    # Получаем данные из нового view
+    employees, position_stats = get_employees_on_shift_new()
+    positions = get_positions_list_new()
+    brigades = get_brigades_list_new()
     
     # Создаем фильтры
     position_filter = dcc.Dropdown(

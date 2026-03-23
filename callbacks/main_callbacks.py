@@ -9,7 +9,7 @@ from data.queries_mssql import (
     get_orders_timely, get_avg_operation_time, get_total_earnings, get_order_accuracy,
     get_avg_productivity, get_performance_data, get_shift_comparison,
     get_problematic_hours, get_fines_data,
-    get_employees_on_shift, refresh_data, get_error_hours_top_data,
+    get_employees_on_shift, get_employees_on_shift_new, refresh_data, get_error_hours_top_data,
     get_storage_cells_stats, get_all_storage_data, get_revision_stats, get_placement_errors,
     filter_storage_data, get_group_load_monitor
 )
@@ -394,52 +394,52 @@ def reset_filters(all_clicks, storage_clicks, locating_clicks, allocation_clicks
      Input('brigade-filter', 'value')]
 )
 def update_shift_employees_table(position_filter, brigade_filter):
-    """Обновление таблицы сотрудников на смене"""
-    
+    """Обновление таблицы сотрудников на смене (использует dm.v_employees_shift_daily)"""
+
     try:
-        from data.queries_mssql import get_employees_on_shift
-        employees, position_stats = get_employees_on_shift()
-        
+        from data.queries_mssql import get_employees_on_shift_new
+        employees, position_stats = get_employees_on_shift_new()
+
         # Применяем фильтры
         filtered_employees = employees
-        
+
         if position_filter and position_filter != 'all':
             filtered_employees = [e for e in filtered_employees if e.get('Должность') == position_filter]
-        
+
         if brigade_filter and brigade_filter != 'all':
             filtered_employees = [e for e in filtered_employees if e.get('Бригада') == brigade_filter]
-        
+
         # Создаем строки таблицы
         rows = []
         for employee in filtered_employees:
             status = employee.get('Статус', 'Не вышел')
             status_color = '#F44336' if status == 'Не вышел' else '#4CAF50'
-            
+
             rows.append(
                 html.Tr([
-                    html.Td(employee.get('ФИО', ''), 
+                    html.Td(employee.get('ФИО', ''),
                            style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
-                    html.Td(employee.get('Должность', ''), 
+                    html.Td(employee.get('Должность', ''),
                            style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
-                    html.Td(employee.get('Бригада', ''), 
+                    html.Td(employee.get('Бригада', ''),
                            style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
-                    html.Td(status, 
-                           style={'padding': '8px', 'borderBottom': '1px solid #eee', 
+                    html.Td(status,
+                           style={'padding': '8px', 'borderBottom': '1px solid #eee',
                                  'color': status_color, 'fontWeight': 'bold'}),
-                    html.Td(employee.get('Время_первой_операции', '--:--'), 
-                           style={'padding': '8px', 'borderBottom': '1px solid #eee', 
+                    html.Td(employee.get('Время_первой_операции', '--:--'),
+                           style={'padding': '8px', 'borderBottom': '1px solid #eee',
                                  'color': '#666', 'textAlign': 'center'})
                 ])
             )
-        
+
         return rows
-        
+
     except Exception as e:
         print(f"Error in update_shift_employees_table: {e}")
         return [
             html.Tr([
                 html.Td(f"Ошибка загрузки данных: {str(e)}", colSpan=5,
-                       style={'padding': '20px', 'textAlign': 'center', 
+                       style={'padding': '20px', 'textAlign': 'center',
                              'color': '#F44336', 'fontSize': '14px'})
             ])
         ]

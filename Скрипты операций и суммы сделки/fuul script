@@ -1,0 +1,1071 @@
+-- ============================================================================
+-- ПОЛНЫЙ ИСПРАВЛЕННЫЙ СКРИПТ СОЗДАНИЯ ТАБЛИЦ ДЛЯ ДАШБОРДА
+-- Версия 2.1 - Упрощенные PRINT
+-- ============================================================================
+USE olap2_fixed;
+
+PRINT '=== НАЧАЛО ВЫПОЛНЕНИЯ СКРИПТА ===';
+
+-- ====== ШАГ 0: Объявление переменных для дат ======
+DECLARE @start_date DATE;
+DECLARE @end_date DATE;
+DECLARE @DDD DATETIME;
+DECLARE @cnt INT;
+
+-- Получаем динамический период из данных
+SELECT
+    @start_date = MIN(CAST(date_time_stamp AS DATE)),
+    @end_date = MAX(CAST(date_time_stamp AS DATE))
+FROM raw_.WORK_INSTRUCTION_VIEW2
+WHERE CONDITION = 'closed' AND INSTRUCTION_TYPE = 'Detail';
+
+-- Устанавливаем дату для грузчиков (6 месяцев назад от максимальной)
+SET @DDD = DATEADD(MONTH, -6, @end_date);
+
+PRINT 'Период расчета: ' + CONVERT(NVARCHAR(50), @start_date, 104) + ' - ' + CONVERT(NVARCHAR(50), @end_date, 104);
+
+-- ====== ШАГ 1: Создание схем ======
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dwh') EXEC('CREATE SCHEMA dwh');
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dm') EXEC('CREATE SCHEMA dm');
+
+-- ====== ШАГ 2: Очистка всех таблиц ======
+PRINT 'Очистка таблиц...';
+
+DROP TABLE IF EXISTS dwh.fact_operation;
+DROP TABLE IF EXISTS dwh.fact_penalty;
+DROP TABLE IF EXISTS dwh.fact_rejection;
+DROP TABLE IF EXISTS dwh.fact_location_snapshot;
+DROP TABLE IF EXISTS dm.dim_employee;
+DROP TABLE IF EXISTS dm.dim_date;
+DROP TABLE IF EXISTS dm.dim_work_type;
+DROP TABLE IF EXISTS dwh.orders_enriched;
+DROP TABLE IF EXISTS dwh.operations_enriched;
+DROP TABLE IF EXISTS dwh.fines_enriched;
+DROP TABLE IF EXISTS dwh.cube_shipment_detail;
+DROP TABLE IF EXISTS dwh.receipts_status;
+DROP TABLE IF EXISTS dwh.placement_cache;
+DROP TABLE IF EXISTS dwh.pick_cache;
+DROP TABLE IF EXISTS dwh.transaction_events;
+DROP TABLE IF EXISTS dwh.first_operation_time;
+DROP TABLE IF EXISTS raw_.gruz_operations;
+
+DROP TABLE IF EXISTS #pick_groups;
+DROP TABLE IF EXISTS #pick_final;
+DROP TABLE IF EXISTS #placement_groups;
+DROP TABLE IF EXISTS #placement_final;
+DROP TABLE IF EXISTS #temp_priem_correct;
+DROP TABLE IF EXISTS #temp_priem_all;
+DROP TABLE IF EXISTS #gruz_temp;
+
+PRINT 'Таблицы очищены.';
+
+-- ====== ШАГ 3: Создание dim_date ======
+PRINT 'Создание dim_date...';
+
+CREATE TABLE dm.dim_date (
+    date_key DATE NOT NULL PRIMARY KEY,
+    year SMALLINT NOT NULL,
+    quarter TINYINT NOT NULL,
+    month TINYINT NOT NULL,
+    month_name NVARCHAR(10) NOT NULL,
+    day TINYINT NOT NULL,
+    day_of_week TINYINT NOT NULL,
+    day_of_week_name NVARCHAR(10) NOT NULL,
+    is_weekend BIT NOT NULL,
+    is_working_day BIT NOT NULL,
+    week_number TINYINT NOT NULL,
+    year_month CHAR(7) NOT NULL
+);
+
+WITH DateSeries AS (
+    SELECT CAST('2020-01-01' AS DATE) AS date_value
+    UNION ALL
+    SELECT DATEADD(DAY, 1, date_value)
+    FROM DateSeries
+    WHERE date_value < '2028-12-31'
+)
+INSERT INTO dm.dim_date
+SELECT
+    date_value,
+    YEAR(date_value),
+    DATEPART(QUARTER, date_value),
+    MONTH(date_value),
+    DATENAME(MONTH, date_value),
+    DAY(date_value),
+    DATEPART(WEEKDAY, date_value),
+    DATENAME(WEEKDAY, date_value),
+    CASE WHEN DATEPART(WEEKDAY, date_value) IN (1,7) THEN 1 ELSE 0 END,
+    CASE WHEN DATEPART(WEEKDAY, date_value) NOT IN (1,7) THEN 1 ELSE 0 END,
+    DATEPART(WEEK, date_value),
+    FORMAT(date_value, 'yyyy-MM')
+FROM DateSeries
+OPTION (MAXRECURSION 0);
+
+PRINT 'dim_date создан.';
+
+-- ====== ШАГ 4: placement_cache и pick_cache ======
+PRINT 'Создание кэшей...';
+
+SELECT
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_ID,
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_TYPE,
+    CAST(NULL AS NVARCHAR(100)) AS WORK_TYPE,
+    CAST(NULL AS NVARCHAR(50)) AS ITEM,
+    CAST(NULL AS NVARCHAR(50)) AS TO_LOC,
+    CAST(NULL AS NVARCHAR(100)) AS COMPLETED_BY_USER,
+    CAST(NULL AS DATETIME2) AS START_DATE_TIME,
+    CAST(NULL AS DATETIME2) AS END_DATE_TIME
+INTO dwh.placement_cache
+WHERE 1 = 0;
+
+INSERT INTO dwh.placement_cache
+SELECT
+    REFERENCE_ID,
+    REFERENCE_TYPE,
+    WORK_TYPE,
+    ITEM,
+    TO_LOC,
+    COMPLETED_BY_USER,
+    START_DATE_TIME,
+    END_DATE_TIME
+FROM raw_.WORK_INSTRUCTION_VIEW2
+WHERE
+    INSTRUCTION_TYPE = 'Detail'
+    AND CONDITION = 'closed'
+    AND WORK_TYPE LIKE N'Размещение%'
+    AND START_DATE_TIME IS NOT NULL
+    AND END_DATE_TIME IS NOT NULL;
+
+SELECT @cnt = COUNT(*) FROM dwh.placement_cache;
+PRINT 'placement_cache создан. Записей: ' + CAST(@cnt AS NVARCHAR);
+
+SELECT
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_ID,
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_TYPE,
+    CAST(NULL AS NVARCHAR(100)) AS WORK_TYPE,
+    CAST(NULL AS NVARCHAR(50)) AS PARENT_INSTR,
+    CAST(NULL AS NVARCHAR(50)) AS ITEM,
+    CAST(NULL AS NVARCHAR(50)) AS FROM_LOC,
+    CAST(NULL AS NVARCHAR(100)) AS COMPLETED_BY_USER,
+    CAST(NULL AS DATETIME2) AS START_DATE_TIME,
+    CAST(NULL AS DATETIME2) AS END_DATE_TIME
+INTO dwh.pick_cache
+WHERE 1 = 0;
+
+INSERT INTO dwh.pick_cache
+SELECT
+    REFERENCE_ID,
+    REFERENCE_TYPE,
+    WORK_TYPE,
+    PARENT_INSTR,
+    ITEM,
+    FROM_LOC,
+    COMPLETED_BY_USER,
+    START_DATE_TIME,
+    END_DATE_TIME
+FROM raw_.WORK_INSTRUCTION_VIEW2
+WHERE
+    INSTRUCTION_TYPE = 'Detail'
+    AND CONDITION = 'closed'
+    AND WORK_TYPE IN (
+        N'Отбор ME', N'Отбор ZX 10-20', N'Отбор ZX 30-50', N'Отбор ZX 30-50 комп',
+        N'Отбор ZX КПП', N'Отбор негабарит', N'Отбор транзит',
+        N'Отбор WH2 ZX 10-20', N'Отбор WH2 ZX 30-50', N'Отбор WH2 ME', N'Отбор WH2 негабарит'
+    )
+    AND START_DATE_TIME IS NOT NULL
+    AND END_DATE_TIME IS NOT NULL;
+
+SELECT @cnt = COUNT(*) FROM dwh.pick_cache;
+PRINT 'pick_cache создан. Записей: ' + CAST(@cnt AS NVARCHAR);
+
+-- ====== ШАГ 5: transaction_events ======
+PRINT 'Создание transaction_events...';
+
+SELECT
+    TRY_CAST(t.DATE_TIME_STAMP AS DATE) AS date_key,
+    t.USER_STAMP AS user_name,
+    u.fio,
+    u.smena,
+    u.brigada,
+    u.position,
+    TRY_CAST(t.DATE_TIME_STAMP AS DATETIME2(0)) AS event_time
+INTO dwh.transaction_events
+FROM raw_.TRANSACTION_HISTORY t
+JOIN raw_.USER_CADR_EDIT u
+    ON t.USER_STAMP COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+    AND u.deleted = 0
+WHERE
+    t.TRANSACTION_TYPE = '20'
+    AND t.DATE_TIME_STAMP IS NOT NULL
+    AND u.smena IN ('1', '2');
+
+PRINT 'transaction_events создана.';
+
+-- ====== ШАГ 6: operations_enriched ======
+PRINT 'Создание operations_enriched...';
+
+SELECT
+    w.REFERENCE_ID,
+    w.REFERENCE_TYPE,
+    w.WORK_TYPE,
+    w.ITEM,
+    w.TO_LOC,
+    w.COMPLETED_BY_USER AS user_name,
+    w.START_DATE_TIME,
+    w.END_DATE_TIME,
+    DATEDIFF(SECOND, w.START_DATE_TIME, w.END_DATE_TIME) AS duration_sec,
+    COALESCE(sp.price, 0) AS price_per_op,
+    CAST(w.START_DATE_TIME AS DATE) AS date,
+    u.fio,
+    u.smena,
+    u.position
+INTO dwh.operations_enriched
+FROM raw_.WORK_INSTRUCTION_VIEW2 w
+LEFT JOIN raw_.USER_CADR_EDIT u
+    ON w.COMPLETED_BY_USER COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+    AND u.deleted = 0
+LEFT JOIN raw_.sdelka_price sp
+    ON w.WORK_TYPE COLLATE DATABASE_DEFAULT = sp.work_type COLLATE DATABASE_DEFAULT
+LEFT JOIN raw_.ITEM i
+    ON w.ITEM COLLATE DATABASE_DEFAULT = i.ITEM COLLATE DATABASE_DEFAULT
+WHERE
+    w.INSTRUCTION_TYPE = 'Detail'
+    AND w.CONDITION = 'closed'
+    AND w.START_DATE_TIME IS NOT NULL
+    AND w.END_DATE_TIME IS NOT NULL
+    AND u.smena IN ('1', '2')
+    AND w.WORK_TYPE NOT IN (
+        N'Отбор ME', N'Отбор ZX 10-20', N'Отбор ZX 30-50', N'Отбор ZX 30-50 комп',
+        N'Отбор ZX КПП', N'Отбор негабарит', N'Отбор транзит',
+        N'Отбор WH2 ZX 10-20', N'Отбор WH2 ZX 30-50', N'Отбор WH2 ME', N'Отбор WH2 негабарит',
+        N'Размещение ME', N'Размещение ZX 10-15', N'Размещение ZX 20-50', N'Размещение КС',
+        N'Размещение NG', N'Размещение WH2', N'Размещение брака/боя', N'Размещение транзит',
+        N'Размещение ZX КПП'
+    );
+
+
+UPDATE dwh.operations_enriched
+SET price_per_op = CASE 
+    WHEN i.user_def1 = N'AABL' THEN 110.40
+    ELSE 62.80
+END
+FROM dwh.operations_enriched o
+JOIN raw_.ITEM i ON o.ITEM COLLATE DATABASE_DEFAULT = i.ITEM COLLATE DATABASE_DEFAULT
+WHERE o.WORK_TYPE = N'Отбор KSP';
+
+
+INSERT INTO dwh.operations_enriched
+SELECT
+    NULL AS REFERENCE_ID,
+    'Приемка' AS REFERENCE_TYPE,
+    'Приемка' AS WORK_TYPE,
+    NULL AS ITEM,
+    NULL AS TO_LOC,
+    th.USER_STAMP AS user_name,
+    th.DATE_TIME_STAMP AS START_DATE_TIME,
+    DATEADD(SECOND, 60, th.DATE_TIME_STAMP) AS END_DATE_TIME,
+    60 AS duration_sec,
+    18.70 AS price_per_op,
+    CAST(th.DATE_TIME_STAMP AS DATE) AS date,
+    u.fio,
+    u.smena,
+    u.position
+FROM raw_.TRANSACTION_HISTORY th
+JOIN raw_.USER_CADR_EDIT u
+    ON th.USER_STAMP COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+    AND u.deleted = 0
+WHERE
+    th.TRANSACTION_TYPE = '20'
+    AND th.DATE_TIME_STAMP IS NOT NULL
+    AND u.smena IN ('1', '2');
+
+-- Приемка WH2
+INSERT INTO dwh.operations_enriched
+SELECT
+    NULL AS REFERENCE_ID,
+    'Приемка WH2' AS REFERENCE_TYPE,
+    'Приемка WH2' AS WORK_TYPE,
+    NULL AS ITEM,
+    NULL AS TO_LOC,
+    th.USER_STAMP AS user_name,
+    th.DATE_TIME_STAMP AS START_DATE_TIME,
+    DATEADD(SECOND, 60, th.DATE_TIME_STAMP) AS END_DATE_TIME,
+    60 AS duration_sec,
+    8.50 AS price_per_op,
+    CAST(th.DATE_TIME_STAMP AS DATE) AS date,
+    u.fio,
+    u.smena,
+    u.position
+FROM raw_.TRANSACTION_HISTORY th
+JOIN raw_.USER_CADR_EDIT u
+    ON th.USER_STAMP COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+    AND u.deleted = 0
+WHERE
+    th.TRANSACTION_TYPE = '20'
+    AND th.WAREHOUSE = 'WH2'
+    AND th.DATE_TIME_STAMP IS NOT NULL
+    AND u.smena IN ('1', '2');
+
+-- Перемер ZX KPP
+INSERT INTO dwh.operations_enriched
+SELECT
+    NULL AS REFERENCE_ID,
+    'Перемер ZX KPP' AS REFERENCE_TYPE,
+    'Перемер ZX KPP' AS WORK_TYPE,
+    NULL AS ITEM,
+    NULL AS TO_LOC,
+    p.user_name,
+    p.date_time_stamp AS START_DATE_TIME,
+    DATEADD(SECOND, 60, p.date_time_stamp) AS END_DATE_TIME,
+    60 AS duration_sec,
+    52.30 AS price_per_op,
+    CAST(p.date_time_stamp AS DATE) AS date,
+    u.fio,
+    u.smena,
+    u.position
+FROM raw_.eks_peremer_ZX_KPP p
+JOIN raw_.USER_CADR_EDIT u
+    ON p.user_name COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+    AND u.deleted = 0
+WHERE u.smena IN ('1', '2')
+    AND p.date_time_stamp IS NOT NULL;
+
+-- Перемер с прихода
+WITH peremer_prihoda AS (
+    SELECT
+        UPPER(uc.USER_DEF6) AS user_name,
+        urh.DATE_TIME_STAMP
+    FROM raw_.UPLOAD_RECEIPT_HEADER urh
+    JOIN raw_.UPLOAD_RECEIPT_CONTAINER uc
+        ON urh.INTERFACE_RECORD_ID = uc.INTERFACE_LINK_ID
+    JOIN raw_.ITEM i ON uc.ITEM = i.ITEM
+    WHERE
+        urh.INTERFACE_CONDITION = 'End'
+        AND urh.DATE_TIME_STAMP IS NOT NULL
+        AND i.ITEM_CATEGORY1 = '1'
+        AND uc.USER_DEF6 IS NOT NULL
+        AND uc.RECEIPT_ID NOT IN (
+            SELECT uc2.CONTAINER_ID
+            FROM raw_.UPLOAD_RECEIPT_HEADER urh2
+            JOIN raw_.UPLOAD_RECEIPT_CONTAINER uc2 ON urh2.INTERFACE_RECORD_ID = uc2.INTERFACE_LINK_ID
+            JOIN raw_.UPLOAD_RECEIPT_CONTAINER uc1 ON uc2.INTERNAL_REC_CONT_NUM = uc1.Parent
+            WHERE urh2.INTERFACE_CONDITION = 'End'
+            AND uc1.INTERFACE_CONDITION = 'End'
+        )
+)
+INSERT INTO dwh.operations_enriched
+SELECT
+    NULL AS REFERENCE_ID,
+    'Перемер с прихода' AS REFERENCE_TYPE,
+    'Перемер с прихода' AS WORK_TYPE,
+    NULL AS ITEM,
+    NULL AS TO_LOC,
+    p.user_name,
+    p.DATE_TIME_STAMP AS START_DATE_TIME,
+    DATEADD(SECOND, 60, p.DATE_TIME_STAMP) AS END_DATE_TIME,
+    60 AS duration_sec,
+    17.00 AS price_per_op,
+    CAST(p.DATE_TIME_STAMP AS DATE) AS date,
+    u.fio,
+    u.smena,
+    u.position
+FROM peremer_prihoda p
+JOIN raw_.USER_CADR_EDIT u
+    ON p.user_name COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+    AND u.deleted = 0
+WHERE u.smena IN ('1', '2');
+
+PRINT 'operations_enriched создан.';
+
+-- ====== ШАГ 7: Вспомогательные таблицы ======
+PRINT 'Создание вспомогательных таблиц...';
+
+-- orders_enriched
+SELECT
+    s.SHIPMENT_ID,
+    s.ORDER_TYPE,
+    s.STOP,
+    s.ERP_ORDER,
+    s.ROUTING_CODE,
+    o.user_name,
+    u.fio,
+    u.smena,
+    o.START_DATE_TIME,
+    o.END_DATE_TIME,
+    o.duration_sec,
+    CASE
+        WHEN o.END_DATE_TIME <= TRY_CAST(s.STOP AS DATETIME2(0)) THEN 'Вовремя'
+        ELSE 'Просрочено'
+    END AS timeliness_status,
+    TRY_CAST(o.START_DATE_TIME AS DATE) AS date
+INTO dwh.orders_enriched
+FROM raw_.SHIPMENT_HEADER s
+JOIN dwh.operations_enriched o
+    ON s.SHIPMENT_ID COLLATE DATABASE_DEFAULT = o.REFERENCE_ID COLLATE DATABASE_DEFAULT
+LEFT JOIN raw_.USER_CADR_EDIT u
+    ON o.user_name COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+WHERE
+    s.STOP IS NOT NULL
+    AND o.START_DATE_TIME IS NOT NULL
+    AND o.END_DATE_TIME IS NOT NULL
+    AND o.REFERENCE_TYPE IN ('Клиент', 'Филиал', 'Ювелс');
+
+-- fines_enriched
+SELECT
+    TRY_CAST(f.date_time_stamp AS DATETIME2(0)) AS date_time_stamp,
+    f.[user] AS user_name,
+    f.reference_id,
+    f.name AS fine_category,
+    CAST(f.price AS DECIMAL(18,2)) AS fine_amount,
+    CAST(NULL AS NVARCHAR(500)) AS comment,
+    u.fio,
+    u.smena,
+    TRY_CAST(f.date_time_stamp AS DATE) AS date
+INTO dwh.fines_enriched
+FROM raw_.Shtraf_Edit f
+LEFT JOIN raw_.USER_CADR_EDIT u
+    ON f.[user] COLLATE DATABASE_DEFAULT = u.user_name COLLATE DATABASE_DEFAULT
+    AND u.deleted = 0
+WHERE
+    f.date_time_stamp IS NOT NULL
+    AND f.[user] IS NOT NULL
+    AND u.smena IN ('1', '2');
+
+-- cube_shipment_detail
+SELECT
+    SHIPMENT_ID,
+    ITEM,
+    ITEM_DESC,
+    REQUESTED_QTY,
+    QUANTITY_UM,
+    PICK_LOC,
+    PICK_ZONE,
+    TRY_CAST(DATE_TIME_STAMP AS DATETIME2(0)) AS DATE_TIME_STAMP
+INTO dwh.cube_shipment_detail
+FROM raw_.SHIPMENT_DETAIL
+WHERE
+    STATUS1 = '900'
+    AND DATE_TIME_STAMP IS NOT NULL;
+
+-- receipts_status
+WITH headers AS (
+    SELECT
+        RECEIPT_ID,
+        MIN(CAST(CREATION_DATE_TIME_STAMP AS DATETIME2(0))) AS date_created,
+        MAX(CAST(CLOSE_DATE AS DATETIME2(0))) AS date_closed,
+        MAX(RECEIPT_TYPE) AS receipt_type,
+        CAST(MIN(CAST(CREATION_DATE_TIME_STAMP AS DATETIME2(0))) AS DATE) AS date_key
+    FROM raw_.UPLOAD_RECEIPT_HEADER
+    WHERE CREATION_DATE_TIME_STAMP IS NOT NULL
+    GROUP BY RECEIPT_ID
+),
+details AS (
+    SELECT
+        RECEIPT_ID,
+        MIN(CASE WHEN INTERFACE_CONDITION = 'End' THEN CAST(DATE_TIME_STAMP AS DATETIME2(0)) END) AS date_started,
+        COUNT(*) AS items_total,
+        COUNT(CASE WHEN INTERFACE_CONDITION = 'End' THEN 1 END) AS items_completed
+    FROM raw_.UPLOAD_RECEIPT_DETAIL
+    WHERE RECEIPT_ID IS NOT NULL AND DATE_TIME_STAMP IS NOT NULL
+    GROUP BY RECEIPT_ID
+)
+SELECT
+    h.RECEIPT_ID,
+    h.receipt_type,
+    h.date_created,
+    d.date_started,
+    h.date_closed,
+    DATEADD(HOUR, 24, h.date_created) AS deadline,
+    h.date_key,
+    COALESCE(d.items_total, 0) AS items_total,
+    COALESCE(d.items_completed, 0) AS items_completed,
+    CASE
+        WHEN h.date_closed IS NOT NULL THEN
+            CASE WHEN h.date_closed <= DATEADD(HOUR, 24, h.date_created) THEN '✅ Сделано вовремя' ELSE '❌ Просрочено' END
+        WHEN d.items_completed > 0 THEN '🛠 В работе'
+        WHEN d.items_completed = 0 OR d.items_completed IS NULL THEN
+            CASE
+                WHEN GETDATE() >= DATEADD(HOUR, 24, h.date_created) THEN '🔴 Просрочена (не начата)'
+                WHEN GETDATE() >= DATEADD(HOUR, 22, h.date_created) THEN '⚠️ Просрочится через ≤2 часа'
+                ELSE '⏳ Ожидает приёма'
+            END
+        ELSE 'Неизвестно'
+    END AS status
+INTO dwh.receipts_status
+FROM headers h
+LEFT JOIN details d ON h.RECEIPT_ID = d.RECEIPT_ID
+WHERE h.date_created IS NOT NULL;
+
+PRINT 'Вспомогательные таблицы созданы.';
+
+-- ====== ШАГ 8: dim_employee ======
+PRINT 'Создание dim_employee...';
+
+DROP TABLE IF EXISTS dm.dim_employee;
+
+CREATE TABLE dm.dim_employee (
+    employee_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_name NVARCHAR(100) COLLATE DATABASE_DEFAULT NOT NULL,
+    fio NVARCHAR(200) COLLATE DATABASE_DEFAULT NOT NULL,
+    smena NVARCHAR(30) COLLATE DATABASE_DEFAULT NOT NULL,
+    brigada NVARCHAR(100) COLLATE DATABASE_DEFAULT NOT NULL,
+    position NVARCHAR(100) COLLATE DATABASE_DEFAULT NULL,
+    is_active BIT NOT NULL,
+    valid_from DATE NOT NULL,
+    valid_to DATE NOT NULL DEFAULT '2099-12-31'
+);
+
+-- Вставляем всех активных сотрудников из USER_CADR_EDIT
+INSERT INTO dm.dim_employee (user_name, fio, smena, brigada, position, is_active, valid_from)
+SELECT DISTINCT
+    user_name,
+    ISNULL(fio, user_name) AS fio,
+    ISNULL(smena, '-') AS smena,
+    ISNULL(brigada, '-') AS brigada,
+    position,
+    CASE WHEN deleted = 0 THEN 1 ELSE 0 END,
+    CAST(GETDATE() AS DATE)
+FROM raw_.USER_CADR_EDIT
+WHERE user_name IS NOT NULL;
+
+-- Дополнительно добавляем сотрудников из transaction_events (если их нет)
+INSERT INTO dm.dim_employee (user_name, fio, smena, brigada, position, is_active, valid_from)
+SELECT DISTINCT
+    te.user_name,
+    ISNULL(te.fio, te.user_name) AS fio,
+    ISNULL(te.smena, '-') AS smena,
+    ISNULL(te.brigada, '-') AS brigada,
+    te.position,
+    1,
+    CAST(GETDATE() AS DATE)
+FROM dwh.transaction_events te
+WHERE NOT EXISTS (
+    SELECT 1 FROM dm.dim_employee de WHERE de.user_name COLLATE DATABASE_DEFAULT = te.user_name COLLATE DATABASE_DEFAULT
+);
+
+PRINT 'dim_employee создан.';
+
+-- ====== ШАГ 9: dim_work_type ======
+PRINT 'Создание dim_work_type...';
+
+CREATE TABLE dm.dim_work_type (
+    work_type_id INT IDENTITY(1,1) PRIMARY KEY,
+    work_type_name NVARCHAR(100) COLLATE DATABASE_DEFAULT NOT NULL,
+    work_category NVARCHAR(50) COLLATE DATABASE_DEFAULT NOT NULL,
+    complexity_level TINYINT NOT NULL
+);
+
+INSERT INTO dm.dim_work_type (work_type_name, work_category, complexity_level)
+SELECT DISTINCT
+    work_type,
+    CASE
+        WHEN work_type LIKE '%Ревизия%' THEN 'Ревизия'
+        WHEN work_type LIKE '%Размещение%' THEN 'Размещение'
+        WHEN work_type LIKE '%Отбор%' THEN 'Отбор'
+        WHEN work_type LIKE '%Прием%' THEN 'Приемка'
+        WHEN work_type LIKE '%Перемещение%' THEN 'Перемещение'
+        WHEN work_type LIKE '%Пополнение%' THEN 'Пополнение'
+        WHEN work_type LIKE '%Погрузка%' THEN 'Погрузка'
+        WHEN work_type LIKE '%Накопление%' THEN 'Накопление'
+        WHEN work_type LIKE '%Трансферт%' THEN 'Трансферт'
+        ELSE 'Прочее'
+    END,
+    CASE
+        WHEN work_type LIKE '%Ревизия%' THEN 3
+        WHEN work_type LIKE '%Размещение%' THEN 2
+        WHEN work_type LIKE '%Отбор%' THEN 2
+        ELSE 1
+    END
+FROM dwh.operations_enriched
+WHERE work_type IS NOT NULL;
+
+IF NOT EXISTS (SELECT 1 FROM dm.dim_work_type WHERE work_type_name = N'Приемка')
+    INSERT INTO dm.dim_work_type VALUES (N'Приемка', N'Приемка', 1);
+IF NOT EXISTS (SELECT 1 FROM dm.dim_work_type WHERE work_type_name = N'Приемка WH2')
+    INSERT INTO dm.dim_work_type VALUES (N'Приемка WH2', N'Приемка', 1);
+IF NOT EXISTS (SELECT 1 FROM dm.dim_work_type WHERE work_type_name = N'Перемер ZX KPP')
+    INSERT INTO dm.dim_work_type VALUES (N'Перемер ZX KPP', N'Перемер', 2);
+IF NOT EXISTS (SELECT 1 FROM dm.dim_work_type WHERE work_type_name = N'Перемер с прихода')
+    INSERT INTO dm.dim_work_type VALUES (N'Перемер с прихода', N'Перемер', 2);
+
+INSERT INTO dm.dim_work_type (work_type_name, work_category, complexity_level)
+SELECT DISTINCT
+    w.WORK_TYPE,
+    CASE WHEN w.WORK_TYPE LIKE N'Размещение%' THEN N'Размещение' ELSE N'Отбор' END,
+    2
+FROM (
+    SELECT WORK_TYPE FROM dwh.placement_cache
+    UNION
+    SELECT WORK_TYPE FROM dwh.pick_cache
+) w
+WHERE NOT EXISTS (
+    SELECT 1 FROM dm.dim_work_type dt WHERE dt.work_type_name = w.WORK_TYPE
+);
+
+PRINT 'dim_work_type создан.';
+
+-- ====== ШАГ 10: fact_operation ======
+PRINT 'Создание fact_operation...';
+
+CREATE TABLE dwh.fact_operation (
+    date_key DATE NOT NULL,
+    employee_id INT NOT NULL,
+    work_type_id INT NOT NULL,
+    reference_id NVARCHAR(25) NULL,
+    reference_type NVARCHAR(25) NULL,
+    start_time DATETIME2(0) NOT NULL,
+    end_time DATETIME2(0) NOT NULL,
+    duration_sec INT NOT NULL,
+    price_per_op DECIMAL(18,2) NULL,
+    is_order BIT NOT NULL,
+    source_system NVARCHAR(20) NOT NULL
+);
+
+ALTER TABLE dwh.fact_operation ADD CONSTRAINT FK_fact_operation_date FOREIGN KEY (date_key) REFERENCES dm.dim_date(date_key);
+ALTER TABLE dwh.fact_operation ADD CONSTRAINT FK_fact_operation_employee FOREIGN KEY (employee_id) REFERENCES dm.dim_employee(employee_id);
+ALTER TABLE dwh.fact_operation ADD CONSTRAINT FK_fact_operation_work_type FOREIGN KEY (work_type_id) REFERENCES dm.dim_work_type(work_type_id);
+
+PRINT 'fact_operation создана.';
+
+-- ====== ШАГ 11: Простые операции ======
+PRINT 'Вставка простых операций...';
+
+INSERT INTO dwh.fact_operation
+SELECT
+    CAST(o.START_DATE_TIME AS DATE),
+    e.employee_id,
+    wt.work_type_id,
+    o.REFERENCE_ID,
+    o.REFERENCE_TYPE,
+    o.START_DATE_TIME,
+    o.END_DATE_TIME,
+    o.duration_sec,
+    o.price_per_op,
+    CASE WHEN o.REFERENCE_TYPE IN ('Клиент', 'Филиал', 'Ювелс') THEN 1 ELSE 0 END,
+    'WMS'
+FROM dwh.operations_enriched o
+JOIN dm.dim_employee e
+    ON o.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+    AND e.is_active = 1
+JOIN dm.dim_work_type wt
+    ON o.WORK_TYPE COLLATE DATABASE_DEFAULT = wt.work_type_name COLLATE DATABASE_DEFAULT
+WHERE o.WORK_TYPE NOT IN (
+    N'Отбор ME', N'Отбор ZX 10-20', N'Отбор ZX 30-50', N'Отбор ZX 30-50 комп',
+    N'Отбор ZX КПП', N'Отбор негабарит', N'Отбор транзит',
+    N'Отбор WH2 ZX 10-20', N'Отбор WH2 ZX 30-50', N'Отбор WH2 ME', N'Отбор WH2 негабарит',
+    N'Размещение ME', N'Размещение ZX 10-15', N'Размещение ZX 20-50', N'Размещение КС',
+    N'Размещение NG', N'Размещение WH2', N'Размещение брака/боя', N'Размещение транзит',
+    N'Размещение ZX КПП',
+    N'Приемка', N'Приемка WH2', N'Перемер ZX KPP', N'Перемер с прихода'
+);
+
+-- ====== ШАГ 12: Сложные отборы ======
+PRINT 'Вставка сложных отборов...';
+
+SELECT
+    PARENT_INSTR,
+    ITEM,
+    FROM_LOC,
+    COMPLETED_BY_USER,
+    MAX(END_DATE_TIME) AS max_end_time
+INTO #pick_groups
+FROM dwh.pick_cache
+GROUP BY PARENT_INSTR, ITEM, FROM_LOC, COMPLETED_BY_USER;
+
+SELECT
+    CAST(NULL AS NVARCHAR(100)) AS WORK_TYPE,
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_ID,
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_TYPE,
+    CAST(NULL AS NVARCHAR(50)) AS PARENT_INSTR,
+    CAST(NULL AS NVARCHAR(50)) AS ITEM,
+    CAST(NULL AS NVARCHAR(50)) AS FROM_LOC,
+    CAST(NULL AS NVARCHAR(100)) AS COMPLETED_BY_USER,
+    CAST(NULL AS DATETIME2) AS start_time,
+    CAST(NULL AS DATETIME2) AS end_time,
+    CAST(0 AS INT) AS duration_sec,
+    CAST(0.0 AS DECIMAL(18,2)) AS price_per_op
+INTO #pick_final
+WHERE 1 = 0;
+
+INSERT INTO #pick_final
+SELECT
+    r.WORK_TYPE,
+    r.REFERENCE_ID,
+    r.REFERENCE_TYPE,
+    r.PARENT_INSTR,
+    r.ITEM,
+    r.FROM_LOC,
+    r.COMPLETED_BY_USER,
+    MIN(r.START_DATE_TIME) AS start_time,
+    g.max_end_time AS end_time,
+    DATEDIFF(SECOND, MIN(r.START_DATE_TIME), g.max_end_time) AS duration_sec,
+    COALESCE(sp.price, 0) AS price_per_op
+FROM #pick_groups g
+JOIN dwh.pick_cache r
+    ON g.PARENT_INSTR = r.PARENT_INSTR
+    AND g.ITEM = r.ITEM
+    AND g.FROM_LOC = r.FROM_LOC
+    AND g.COMPLETED_BY_USER = r.COMPLETED_BY_USER
+    AND g.max_end_time = r.END_DATE_TIME
+LEFT JOIN raw_.sdelka_price sp
+    ON r.WORK_TYPE COLLATE DATABASE_DEFAULT = sp.work_type COLLATE DATABASE_DEFAULT
+GROUP BY
+    r.WORK_TYPE,
+    r.REFERENCE_ID,
+    r.REFERENCE_TYPE,
+    r.PARENT_INSTR,
+    r.ITEM,
+    r.FROM_LOC,
+    r.COMPLETED_BY_USER,
+    g.max_end_time,
+    sp.price;
+
+INSERT INTO dwh.fact_operation
+SELECT
+    CAST(p.start_time AS DATE),
+    e.employee_id,
+    wt.work_type_id,
+    p.REFERENCE_ID,
+    p.REFERENCE_TYPE,
+    p.start_time,
+    p.end_time,
+    p.duration_sec,
+    p.price_per_op,
+    CASE WHEN p.REFERENCE_TYPE IN ('Клиент', 'Филиал', 'Ювелс') THEN 1 ELSE 0 END,
+    'WMS'
+FROM #pick_final p
+JOIN dm.dim_employee e
+    ON p.COMPLETED_BY_USER COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+    AND e.is_active = 1
+JOIN dm.dim_work_type wt
+    ON p.WORK_TYPE COLLATE DATABASE_DEFAULT = wt.work_type_name COLLATE DATABASE_DEFAULT;
+
+-- ====== ШАГ 13: Размещения ======
+PRINT 'Вставка размещений...';
+
+SELECT
+    REFERENCE_ID,
+    REFERENCE_TYPE,
+    ITEM,
+    TO_LOC,
+    MAX(END_DATE_TIME) AS max_end_time
+INTO #placement_groups
+FROM dwh.placement_cache
+GROUP BY REFERENCE_ID, REFERENCE_TYPE, ITEM, TO_LOC;
+
+SELECT
+    CAST(NULL AS NVARCHAR(100)) AS WORK_TYPE,
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_ID,
+    CAST(NULL AS NVARCHAR(50)) AS REFERENCE_TYPE,
+    CAST(NULL AS NVARCHAR(50)) AS ITEM,
+    CAST(NULL AS NVARCHAR(50)) AS TO_LOC,
+    CAST(NULL AS NVARCHAR(100)) AS COMPLETED_BY_USER,
+    CAST(NULL AS DATETIME2) AS start_time,
+    CAST(NULL AS DATETIME2) AS end_time,
+    CAST(0 AS INT) AS duration_sec,
+    CAST(0.0 AS DECIMAL(18,2)) AS price_per_op
+INTO #placement_final
+WHERE 1 = 0;
+
+INSERT INTO #placement_final
+SELECT
+    r.WORK_TYPE,
+    g.REFERENCE_ID,
+    g.REFERENCE_TYPE,
+    g.ITEM,
+    g.TO_LOC,
+    r.COMPLETED_BY_USER,
+    MIN(r.START_DATE_TIME) AS start_time,
+    g.max_end_time AS end_time,
+    DATEDIFF(SECOND, MIN(r.START_DATE_TIME), g.max_end_time) AS duration_sec,
+    COALESCE(sp.price, 0) AS price_per_op
+FROM #placement_groups g
+JOIN dwh.placement_cache r
+    ON g.REFERENCE_ID = r.REFERENCE_ID
+    AND g.ITEM = r.ITEM
+    AND g.TO_LOC = r.TO_LOC
+    AND g.max_end_time = r.END_DATE_TIME
+LEFT JOIN raw_.sdelka_price sp
+    ON r.WORK_TYPE COLLATE DATABASE_DEFAULT = sp.work_type COLLATE DATABASE_DEFAULT
+GROUP BY
+    r.WORK_TYPE,
+    g.REFERENCE_ID,
+    g.REFERENCE_TYPE,
+    g.ITEM,
+    g.TO_LOC,
+    r.COMPLETED_BY_USER,
+    g.max_end_time,
+    sp.price;
+
+INSERT INTO dwh.fact_operation
+SELECT
+    CAST(p.start_time AS DATE),
+    e.employee_id,
+    wt.work_type_id,
+    p.REFERENCE_ID,
+    p.REFERENCE_TYPE,
+    p.start_time,
+    p.end_time,
+    p.duration_sec,
+    p.price_per_op,
+    CASE WHEN p.REFERENCE_TYPE IN ('Клиент', 'Филиал', 'Ювелс') THEN 1 ELSE 0 END,
+    'WMS'
+FROM #placement_final p
+JOIN dm.dim_employee e
+    ON p.COMPLETED_BY_USER COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+    AND e.is_active = 1
+JOIN dm.dim_work_type wt
+    ON p.WORK_TYPE COLLATE DATABASE_DEFAULT = wt.work_type_name COLLATE DATABASE_DEFAULT;
+
+-- ====== ШАГ 14: Приемка и Перемер ======
+PRINT 'Вставка приемки и перемера...';
+
+INSERT INTO dwh.fact_operation
+SELECT
+    fe.date,
+    e.employee_id,
+    wt.work_type_id,
+    NULL,
+    'Приемка',
+    fe.START_DATE_TIME,
+    fe.END_DATE_TIME,
+    fe.duration_sec,
+    fe.price_per_op,
+    0,
+    'WMS'
+FROM dwh.operations_enriched fe
+JOIN dm.dim_employee e
+    ON fe.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+    AND e.is_active = 1
+JOIN dm.dim_work_type wt
+    ON fe.WORK_TYPE COLLATE DATABASE_DEFAULT = wt.work_type_name COLLATE DATABASE_DEFAULT
+WHERE fe.WORK_TYPE IN (N'Приемка', N'Приемка WH2', N'Перемер ZX KPP', N'Перемер с прихода');
+
+-- ====== ШАГ 15: Грузчики (через процедуру) ======
+PRINT 'Расчет грузчиков через процедуру...';
+
+-- Принудительно удаляем старую таблицу
+DROP TABLE IF EXISTS #gruz_temp;
+IF OBJECT_ID('raw_.gruz_operations', 'U') IS NOT NULL
+    DROP TABLE raw_.gruz_operations;
+
+-- Создаем временную таблицу для результатов процедуры
+CREATE TABLE #gruz_temp (
+    [user] NVARCHAR(100) COLLATE DATABASE_DEFAULT NOT NULL,
+    [Разгрузка_механизмами] DECIMAL(18,2) NOT NULL DEFAULT 0,
+    [Разгрузка_ручная] DECIMAL(18,2) NOT NULL DEFAULT 0,
+    [Загрузка механизмами] DECIMAL(18,2) NOT NULL DEFAULT 0,
+    [Загрузка ручная] DECIMAL(18,2) NOT NULL DEFAULT 0,
+    [Сортировка товаров приемка] DECIMAL(18,2) NOT NULL DEFAULT 0,
+    [Сортировка товаров отгрузка] DECIMAL(18,2) NOT NULL DEFAULT 0
+);
+
+-- Вызываем процедуру для расчета грузчиков (за весь период)
+INSERT INTO #gruz_temp
+EXEC raw_.eks_sdelka_gruz @start_date, @end_date;
+
+-- Создаем постоянную таблицу с данными по дням (на основе labor_management)
+SELECT
+    LOWER(g.[user]) AS user_name,
+    CAST(lm.date_time_stamp AS DATE) AS date_key,
+    g.[Разгрузка_механизмами] / NULLIF(COUNT(DISTINCT CAST(lm.date_time_stamp AS DATE)), 0) AS [Разгрузка_механизмами],
+    g.[Разгрузка_ручная] / NULLIF(COUNT(DISTINCT CAST(lm.date_time_stamp AS DATE)), 0) AS [Разгрузка_ручная],
+    g.[Загрузка механизмами] / NULLIF(COUNT(DISTINCT CAST(lm.date_time_stamp AS DATE)), 0) AS [Загрузка механизмами],
+    g.[Загрузка ручная] / NULLIF(COUNT(DISTINCT CAST(lm.date_time_stamp AS DATE)), 0) AS [Загрузка ручная],
+    g.[Сортировка товаров приемка] / NULLIF(COUNT(DISTINCT CAST(lm.date_time_stamp AS DATE)), 0) AS [Сортировка товаров приемка],
+    g.[Сортировка товаров отгрузка] / NULLIF(COUNT(DISTINCT CAST(lm.date_time_stamp AS DATE)), 0) AS [Сортировка товаров отгрузка]
+INTO raw_.gruz_operations
+FROM #gruz_temp g
+JOIN raw_.labor_management lm ON LOWER(g.[user]) COLLATE DATABASE_DEFAULT = lm.USER_NAME COLLATE DATABASE_DEFAULT
+WHERE lm.user_def1 IN ('Receipt_doc', 'Shipping_doc')
+GROUP BY LOWER(g.[user]), CAST(lm.date_time_stamp AS DATE), 
+    g.[Разгрузка_механизмами], g.[Разгрузка_ручная], 
+    g.[Загрузка механизмами], g.[Загрузка ручная],
+    g.[Сортировка товаров приемка], g.[Сортировка товаров отгрузка];
+
+PRINT 'Грузчики рассчитаны.';
+
+-- Вставка грузчиков в fact_operation (данные уже распределены по дням)
+PRINT 'Вставка грузчиков в fact_operation...';
+
+-- Разгрузка механизмами
+INSERT INTO dwh.fact_operation (date_key, employee_id, work_type_id, reference_id, reference_type, start_time, end_time, duration_sec, price_per_op, is_order, source_system)
+SELECT
+    g.date_key,
+    e.employee_id,
+    wt.work_type_id,
+    NULL,
+    'Разгрузка механизмами',
+    MIN(lm.date_time_stamp),
+    MAX(lm.date_time_stamp),
+    DATEDIFF(SECOND, MIN(lm.date_time_stamp), MAX(lm.date_time_stamp)),
+    g.[Разгрузка_механизмами] * 22.50,
+    0,
+    'GRUZ'
+FROM raw_.gruz_operations g
+JOIN dm.dim_employee e ON g.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+JOIN dm.dim_work_type wt ON wt.work_type_name = N'Разгрузка механизмами'
+JOIN raw_.labor_management lm ON g.user_name COLLATE DATABASE_DEFAULT = lm.USER_NAME COLLATE DATABASE_DEFAULT
+    AND lm.user_def1 = 'Receipt_doc'
+    AND lm.activity_type = N'Разгрузка механизмами'
+    AND CAST(lm.date_time_stamp AS DATE) = g.date_key
+WHERE g.[Разгрузка_механизмами] > 0
+GROUP BY g.date_key, e.employee_id, wt.work_type_id, g.[Разгрузка_механизмами], g.user_name;
+
+-- Разгрузка ручная
+INSERT INTO dwh.fact_operation (date_key, employee_id, work_type_id, reference_id, reference_type, start_time, end_time, duration_sec, price_per_op, is_order, source_system)
+SELECT
+    g.date_key,
+    e.employee_id,
+    wt.work_type_id,
+    NULL,
+    'Разгрузка ручная',
+    MIN(lm.date_time_stamp),
+    MAX(lm.date_time_stamp),
+    DATEDIFF(SECOND, MIN(lm.date_time_stamp), MAX(lm.date_time_stamp)),
+    g.[Разгрузка_ручная] * 22.50,
+    0,
+    'GRUZ'
+FROM raw_.gruz_operations g
+JOIN dm.dim_employee e ON g.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+JOIN dm.dim_work_type wt ON wt.work_type_name = N'Разгрузка ручная'
+JOIN raw_.labor_management lm ON g.user_name COLLATE DATABASE_DEFAULT = lm.USER_NAME COLLATE DATABASE_DEFAULT
+    AND lm.user_def1 = 'Receipt_doc'
+    AND lm.activity_type = N'Разгрузка ручная'
+    AND CAST(lm.date_time_stamp AS DATE) = g.date_key
+WHERE g.[Разгрузка_ручная] > 0
+GROUP BY g.date_key, e.employee_id, wt.work_type_id, g.[Разгрузка_ручная], g.user_name;
+
+-- Загрузка механизмами
+INSERT INTO dwh.fact_operation (date_key, employee_id, work_type_id, reference_id, reference_type, start_time, end_time, duration_sec, price_per_op, is_order, source_system)
+SELECT
+    g.date_key,
+    e.employee_id,
+    wt.work_type_id,
+    NULL,
+    'Загрузка механизмами',
+    MIN(lm.date_time_stamp),
+    MAX(lm.date_time_stamp),
+    DATEDIFF(SECOND, MIN(lm.date_time_stamp), MAX(lm.date_time_stamp)),
+    g.[Загрузка механизмами] * 68.40,
+    0,
+    'GRUZ'
+FROM raw_.gruz_operations g
+JOIN dm.dim_employee e ON g.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+JOIN dm.dim_work_type wt ON wt.work_type_name = N'Загрузка механизмами'
+JOIN raw_.labor_management lm ON g.user_name COLLATE DATABASE_DEFAULT = lm.USER_NAME COLLATE DATABASE_DEFAULT
+    AND lm.user_def1 = 'Shipping_doc'
+    AND lm.activity_type = N'Загрузка механизмами'
+    AND CAST(lm.date_time_stamp AS DATE) = g.date_key
+WHERE g.[Загрузка механизмами] > 0
+GROUP BY g.date_key, e.employee_id, wt.work_type_id, g.[Загрузка механизмами], g.user_name;
+
+-- Загрузка ручная
+INSERT INTO dwh.fact_operation (date_key, employee_id, work_type_id, reference_id, reference_type, start_time, end_time, duration_sec, price_per_op, is_order, source_system)
+SELECT
+    g.date_key,
+    e.employee_id,
+    wt.work_type_id,
+    NULL,
+    'Загрузка ручная',
+    MIN(lm.date_time_stamp),
+    MAX(lm.date_time_stamp),
+    DATEDIFF(SECOND, MIN(lm.date_time_stamp), MAX(lm.date_time_stamp)),
+    g.[Загрузка ручная] * 68.40,
+    0,
+    'GRUZ'
+FROM raw_.gruz_operations g
+JOIN dm.dim_employee e ON g.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+JOIN dm.dim_work_type wt ON wt.work_type_name = N'Загрузка ручная'
+JOIN raw_.labor_management lm ON g.user_name COLLATE DATABASE_DEFAULT = lm.USER_NAME COLLATE DATABASE_DEFAULT
+    AND lm.user_def1 = 'Shipping_doc'
+    AND lm.activity_type <> N'Загрузка механизмами'
+    AND CAST(lm.date_time_stamp AS DATE) = g.date_key
+WHERE g.[Загрузка ручная] > 0
+GROUP BY g.date_key, e.employee_id, wt.work_type_id, g.[Загрузка ручная], g.user_name;
+
+PRINT 'Грузчики вставлены.';
+
+-- ====== ШАГ 16: fact_penalty ======
+PRINT 'Создание fact_penalty...';
+
+CREATE TABLE dwh.fact_penalty (
+    date_key DATE NOT NULL,
+    employee_id INT NOT NULL,
+    penalty_id INT IDENTITY(1,1) PRIMARY KEY,
+    reference_id NVARCHAR(50) NULL,
+    fine_category NVARCHAR(100) NOT NULL,
+    fine_amount DECIMAL(18,2) NOT NULL,
+    comment NVARCHAR(500) NULL,
+    source_system NVARCHAR(20) NOT NULL DEFAULT 'SHTRAF'
+);
+
+ALTER TABLE dwh.fact_penalty ADD CONSTRAINT FK_fact_penalty_date FOREIGN KEY (date_key) REFERENCES dm.dim_date(date_key);
+ALTER TABLE dwh.fact_penalty ADD CONSTRAINT FK_fact_penalty_employee FOREIGN KEY (employee_id) REFERENCES dm.dim_employee(employee_id);
+
+INSERT INTO dwh.fact_penalty (date_key, employee_id, reference_id, fine_category, fine_amount, source_system)
+SELECT
+    fe.date,
+    e.employee_id,
+    fe.reference_id,
+    fe.fine_category,
+    fe.fine_amount,
+    'SHTRAF'
+FROM dwh.fines_enriched fe
+JOIN dm.dim_employee e
+    ON fe.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
+    AND e.is_active = 1;
+
+PRINT 'fact_penalty создана.';
+
+-- ====== ШАГ 17: fact_location_snapshot ======
+PRINT 'Создание fact_location_snapshot...';
+
+CREATE TABLE dwh.fact_location_snapshot (
+    date_key DATE NOT NULL,
+    location NVARCHAR(50) NOT NULL,
+    status NVARCHAR(50) NOT NULL,
+    location_type NVARCHAR(25) NOT NULL,
+    locating_zone NVARCHAR(25) NULL,
+    allocation_zone NVARCHAR(25) NULL,
+    work_zone NVARCHAR(25) NULL,
+    source_system NVARCHAR(20) NOT NULL DEFAULT 'WMS'
+);
+
+ALTER TABLE dwh.fact_location_snapshot ADD CONSTRAINT FK_fact_location_snapshot_date FOREIGN KEY (date_key) REFERENCES dm.dim_date(date_key);
+
+-- Заполнение fact_location_snapshot (как в скрипт 1)
+PRINT 'Заполнение fact_location_snapshot...';
+
+WITH LatestLocation AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY LOCATION ORDER BY DATE_TIME_STAMP DESC) AS rn
+    FROM raw_.LOCATION
+    WHERE
+        LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
+),
+OccupiedLocations AS (
+    SELECT DISTINCT LOCATION
+    FROM raw_.LOCATION_INVENTORY
+    WHERE LOCATION IS NOT NULL
+)
+INSERT INTO dwh.fact_location_snapshot (date_key, location, status, location_type, locating_zone, allocation_zone, work_zone, source_system)
+SELECT
+    CAST(GETDATE() AS DATE) AS date_key,
+    l.LOCATION AS location,
+    CASE
+        WHEN o.LOCATION IS NOT NULL THEN 'Storage'
+        ELSE 'Available'
+    END AS status,
+    l.LOCATION_TYPE AS location_type,
+    l.LOCATING_ZONE AS locating_zone,
+    l.ALLOCATION_ZONE AS allocation_zone,
+    l.WORK_ZONE AS work_zone,
+    'WMS' AS source_system
+FROM LatestLocation l
+LEFT JOIN OccupiedLocations o ON l.LOCATION = o.LOCATION
+WHERE l.rn = 1;
+
