@@ -7,11 +7,11 @@ import random
 
 from data.queries_mssql import (
     get_orders_timely, get_avg_operation_time, get_total_earnings, get_order_accuracy,
-    get_avg_productivity, get_performance_data, get_shift_comparison, 
+    get_avg_productivity, get_performance_data, get_shift_comparison,
     get_problematic_hours, get_fines_data,
     get_employees_on_shift, refresh_data, get_error_hours_top_data,
     get_storage_cells_stats, get_all_storage_data, get_revision_stats, get_placement_errors,
-    filter_storage_data
+    filter_storage_data, get_group_load_monitor
 )
 from components.charts import (
     create_order_accuracy_chart, create_problematic_hours_chart,
@@ -526,3 +526,89 @@ def switch_performance_table_view(prev_clicks, next_clicks, current_view):
             classes[i] = 'table-view active'
 
     return classes[0], classes[1], classes[2], new_view
+
+
+# Callback для обновления статистики смены на главной вкладке
+@callback(
+    Output('shift-stats-info', 'children'),
+    [Input('global-date-range', 'data')]
+)
+def update_shift_stats_info(date_range):
+    """Обновление информации о смене в общей сводке с данными мониторинга нагрузки групп"""
+    
+    try:
+        # Получаем данные мониторинга нагрузки групп из VIEW
+        groups_data = get_group_load_monitor()
+        
+        if not groups_data:
+            return html.Div("Смена отдыхает или нет данных о нагрузке",
+                          style={'color': '#666', 'textAlign': 'center', 'padding': '20px', 'fontSize': '14px'})
+        
+        # Цветовая карта
+        color_map = {
+            'GREEN': '#4CAF50',
+            'YELLOW': '#FF9800',
+            'RED': '#F44336',
+            'GRAY': '#9E9E9E'
+        }
+        
+        # Создаем строки таблицы
+        table_rows = []
+        
+        # Заголовок таблицы
+        table_rows.append(
+            html.Thead([
+                html.Tr([
+                    html.Th('Группа', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                    html.Th('Тип работы', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                    html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
+                ])
+            ])
+        )
+        
+        # Данные таблицы
+        tbody_rows = []
+        for item in groups_data:
+            group_name = item.get('group_name', '')
+            work_type = item.get('work_type', '')
+            status_color = item.get('status_color', 'GRAY')
+            
+            color = color_map.get(status_color, '#9E9E9E')
+            
+            tbody_rows.append(
+                html.Tr([
+                    html.Td(group_name, style={'padding': '10px 12px', 'fontSize': '13px', 'borderBottom': '1px solid #f0f0f0'}),
+                    html.Td(work_type, style={'padding': '10px 12px', 'fontSize': '13px', 'borderBottom': '1px solid #f0f0f0'}),
+                    html.Td(
+                        html.Span(
+                            '●',
+                            style={
+                                'color': color,
+                                'fontSize': '28px',
+                                'fontWeight': 'bold'
+                            }
+                        ),
+                        style={'padding': '10px 12px', 'textAlign': 'center', 'borderBottom': '1px solid #f0f0f0'}
+                    )
+                ], className='table-row-hover')
+            )
+        
+        table_rows.append(html.Tbody(tbody_rows))
+        
+        # Создаем таблицу
+        stats_table = html.Table(
+            table_rows,
+            style={'width': '100%', 'borderCollapse': 'collapse'}
+        )
+        
+        return html.Div([
+            html.H4("Мониторинг нагрузки групп",
+                   style={'marginBottom': '12px', 'color': '#1976d2', 'fontSize': '18px', 'fontWeight': 'bold'}),
+            
+            html.Div(stats_table, style={'maxHeight': '450px', 'overflowY': 'auto'})
+        ], style={'height': '100%', 'overflow': 'hidden'})
+        
+    except Exception as e:
+        print(f"Error in update_shift_stats_info: {e}")
+        return html.Div(f"Ошибка загрузки данных: {str(e)}",
+                       style={'color': '#F44336', 'padding': '15px', 'textAlign': 'center', 'fontSize': '14px'})

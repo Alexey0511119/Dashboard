@@ -5,7 +5,7 @@ import threading
 
 # MSSQL конфигурация
 MSSQL_CONFIG = {
-    'server': '10.7.0.48',
+    'server': '10.7.0.27',
     'port': 1433,
     'database': 'olap2_fixed',
     'user': 'sa',
@@ -16,7 +16,7 @@ class MSSQLClient:
     """Клиент для MS SQL Server"""
     
     def __init__(self):
-        self.server = '10.7.0.48'
+        self.server = '10.7.0.27'
         self.port = MSSQL_CONFIG['port']
         self.database = MSSQL_CONFIG['database']
         self.user = MSSQL_CONFIG['user']

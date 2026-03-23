@@ -1518,6 +1518,37 @@ def filter_storage_data(storage_data, filters):
         'chart_data': chart_data
     }
 
+
+# Получение данных мониторинга нагрузки групп отбора
+def get_group_load_monitor():
+    """Получение данных из VIEW raw_.VW_GROUP_LOAD_MONITOR"""
+    query = """
+    SELECT
+        group_name,
+        work_type,
+        status_color
+    FROM raw_.VW_GROUP_LOAD_MONITOR
+    ORDER BY group_name, work_type
+    """
+    
+    result = execute_query_cached(query)
+    
+    groups_data = []
+    if result:
+        for row in result:
+            try:
+                groups_data.append({
+                    'group_name': row[0] if row[0] else '',
+                    'work_type': row[1] if row[1] else '',
+                    'status_color': row[2] if row[2] else 'GRAY'
+                })
+            except Exception as e:
+                print(f"Error processing group load row: {e}")
+                continue
+    
+    return groups_data
+
+
 if __name__ == "__main__":
     # Тестирование основных функций
     refresh_data('2024-01-01', '2024-12-31')
