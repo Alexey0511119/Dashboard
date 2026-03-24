@@ -47,7 +47,7 @@ def create_general_tab():
             # Карточка 2: Ошибки при размещении
             html.Div([
                 html.Div([
-                    html.Span("Ошибки при размещении", 
+                    html.Span("Ошибки при размещении",
                              style={'verticalAlign': 'middle'}),
                     html.Button(
                         "ℹ️",
@@ -77,16 +77,14 @@ def create_general_tab():
                     html.Div([
                         html.Span("❌ Ошибок: ", style={'fontWeight': 'bold'}),
                         html.Span(id="placement-errors-count-kpi", style={'color': '#f44336'})
-                    ], style={'marginBottom': '4px'}),
-                    html.Div(id="placement-percentage-kpi", style={'fontSize': '11px', 'color': '#666'})
+                    ], style={})
                 ], style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'lineHeight': '1.4'})
             ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.3s'}),
-            
+
             # Карточка 3: Точность заказов
             html.Div([
                 html.Div("Точность заказов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="order-accuracy-kpi", style={'color': '#ed6c02', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="order-accuracy-detail", style={'color': '#ed6c02', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div(id="order-accuracy-kpi", style={'color': '#ed6c02', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.4s'}),
             
             # Карточка 4: Ячейки хранения

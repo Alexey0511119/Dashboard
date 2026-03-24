@@ -31,11 +31,9 @@ from components.tables import create_performance_table
      Output('placement-errors-kpi', 'children'),
      Output('placement-correct-kpi', 'children'),
      Output('placement-errors-count-kpi', 'children'),
-     Output('placement-percentage-kpi', 'children'),
      Output('storage-cells-kpi', 'children'),
      Output('storage-cells-detail', 'children'),
-     Output('order-accuracy-kpi', 'children'),
-     Output('order-accuracy-detail', 'children')],
+     Output('order-accuracy-kpi', 'children')],
     [Input('global-date-range', 'data')],
     prevent_initial_call=False
 )
@@ -45,12 +43,12 @@ def update_main_kpi_cards(date_range):
     try:
         revision_stats = get_revision_stats()
         storage_stats = get_storage_cells_stats()
-        
+
         # Форматируем KPI значения для ревизий
         total_revisions = f"{revision_stats['total_revisions']:,}"
         open_revisions = f"{revision_stats['open_revisions']:,}"
         in_process_revisions = f"{revision_stats['in_process_revisions']:,}"
-        
+
         # Форматируем KPI значения для ячеек
         storage_kpi = f"{storage_stats['occupied_cells']}/{storage_stats['free_cells']}"
         storage_detail = f"{storage_stats['occupied_percent']}% занято | {storage_stats['free_percent']}% своб."
@@ -61,17 +59,17 @@ def update_main_kpi_cards(date_range):
         in_process_revisions = "0"
         storage_kpi = "0/0"
         storage_detail = "0% занято | 0% своб."
-    
+
     # Если date_range пустой, возвращаем данные только для карточек, не зависящих от дат
     if not date_range:
         return (
             total_revisions,
             open_revisions,
             in_process_revisions,
-            "0%", "0", "0", "Нет данных",
+            "0%", "0", "0",
             storage_kpi,
             storage_detail,
-            "100%", "0 заказов без ошибок"
+            "100%"
         )
 
     start_date = date_range['start_date']
@@ -83,7 +81,7 @@ def update_main_kpi_cards(date_range):
 
         # Получаем остальные данные
         accuracy, orders_without_errors, total_orders_accuracy, error_orders = get_order_accuracy(start_date, end_date)
-        
+
         # Форматируем KPI значения
 
         # Ошибки размещения
@@ -91,21 +89,9 @@ def update_main_kpi_cards(date_range):
         correct_count = f"{placement_stats['correct_count']:,}"
         error_count = f"{placement_stats['error_count']:,}"
 
-        # Формируем детали для ошибок размещения
-        placement_detail = ""
-        if placement_stats['total_count'] > 0:
-            placement_detail = f"{placement_stats['total_count']:,} всего"
-            if placement_stats['unique_users'] > 0:
-                placement_detail += f" | {placement_stats['unique_users']} пользователей"
-            if placement_stats['unique_items'] > 0:
-                placement_detail += f" | {placement_stats['unique_items']} позиций"
-        else:
-            placement_detail = "Нет данных"
-
         # Точность заказов
         accuracy_str = f"{accuracy:.1f}%"
-        accuracy_detail = f"↗ {orders_without_errors:,} заказов без ошибок"
-        
+
         return (
             total_revisions,
             open_revisions,
@@ -113,16 +99,14 @@ def update_main_kpi_cards(date_range):
             error_percentage,
             correct_count,
             error_count,
-            placement_detail,
             storage_kpi,
             storage_detail,
-            accuracy_str,
-            accuracy_detail
+            accuracy_str
         )
     except Exception as e:
         print(f"Error in update_main_kpi_cards: {e}")
-        return ("0", "0", "0", "0%", "0", "0", "Ошибка загрузки", "0/0", 
-                "0% занято | 0% своб.", "100%", "0 заказов без ошибок")
+        return ("0", "0", "0", "0%", "0", "0", "0/0",
+                "0% занято | 0% своб.", "100%")
 
 # Callback для обновления времени последнего обновления
 @callback(
