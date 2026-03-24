@@ -7,18 +7,18 @@ from components.tabs.general_tab import create_general_tab
 from components.tabs.productivity_tab import create_productivity_tab
 from components.tabs.timeliness_tab import create_timeliness_tab
 from components.tabs.fines_tab import create_fines_tab
-from components.tabs.shift_tab import create_shift_tab
+# from components.tabs.shift_tab import create_shift_tab
 
 def create_layout():
     """Создание основного layout приложения"""
-    
-    # ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
-    print("=== LAYOUT DEBUG ===")
-    print("Проверка наличия функций:")
-    print("- create_analytics_modal:", "create_analytics_modal" in globals())
-    print("- create_fines_modal:", "create_fines_modal" in globals())
-    print("- create_idle_detail_modal:", "create_idle_detail_modal" in globals())
-    
+
+    # # ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
+    # print("=== LAYOUT DEBUG ===")
+    # print("Проверка наличия функций:")
+    # print("- create_analytics_modal:", "create_analytics_modal" in globals())
+    # print("- create_fines_modal:", "create_fines_modal" in globals())
+    # print("- create_idle_detail_modal:", "create_idle_detail_modal" in globals())
+
     # Загрузка фонового изображения
     try:
         with open("Рисунок1.png", "rb") as image_file:
@@ -179,14 +179,14 @@ def create_layout():
                     className='custom-tab',
                     selected_className='custom-tab--selected',
                     children=[create_fines_tab()]
-                ),
-                dcc.Tab(
-                    label='Сравнение смен',
-                    value='shift-comparison',
-                    className='custom-tab',
-                    selected_className='custom-tab--selected',
-                    children=[create_shift_tab()]
                 )
+                # dcc.Tab(
+                #     label='Сравнение смен',
+                #     value='shift-comparison',
+                #     className='custom-tab',
+                #     selected_className='custom-tab--selected',
+                #     children=[create_shift_tab()]
+                # )
             ], style={'marginBottom': '20px'})
         ], className="dashboard-container", id="dashboard-content")
     ], className="app-container")

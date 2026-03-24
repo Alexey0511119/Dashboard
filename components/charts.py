@@ -389,10 +389,10 @@ def create_problematic_hours_chart(problematic_hours):
 def create_error_hours_chart(error_hours):
     """Создание диаграммы часов с ошибками"""
 
-    print(f"DEBUG [create_error_hours_chart]: Получены данные: {len(error_hours) if error_hours else 0} записей")
+    # print(f"DEBUG [create_error_hours_chart]: Получены данные: {len(error_hours) if error_hours else 0} записей")
 
     if not error_hours:
-        print("DEBUG: Нет данных для диаграммы часов с ошибками - показываем заглушку")
+        # print("DEBUG: Нет данных для диаграммы часов с ошибками - показываем заглушку")
         return {
             "title": {
                 "text": "Топ-5 часов с ошибками",
@@ -434,10 +434,10 @@ def create_error_hours_chart(error_hours):
     total_counts = [item['total_orders_in_hour'] for item in error_hours]
     error_types = [item['error_types'] for item in error_hours]
 
-    print(f"DEBUG: Часы: {hours}")
-    print(f"DEBUG: Проценты ошибок: {error_percentages}")
-    print(f"DEBUG: Количество ошибок: {error_counts}")
-    print(f"DEBUG: Всего заказов: {total_counts}")
+    # print(f"DEBUG: Часы: {hours}")
+    # print(f"DEBUG: Проценты ошибок: {error_percentages}")
+    # print(f"DEBUG: Количество ошибок: {error_counts}")
+    # print(f"DEBUG: Всего заказов: {total_counts}")
 
     return {
         "title": {

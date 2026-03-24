@@ -555,9 +555,9 @@ def get_problematic_hours(start_date, end_date):
 # Получение данных для топ-5 часов с наибольшим процентом ошибок
 def get_error_hours_top_data(start_date, end_date):
     """Получение данных для топ-5 часов с наибольшим процентом ошибок"""
-    
-    print(f"DEBUG [get_error_hours_top_data]: Начало обработки периода {start_date} - {end_date}")
-    
+
+    # print(f"DEBUG [get_error_hours_top_data]: Начало обработки периода {start_date} - {end_date}")
+
     # 1. Проверяем, есть ли вообще заказы с ошибками
     check_errors_query = """
     SELECT 
@@ -575,9 +575,9 @@ def get_error_hours_top_data(start_date, end_date):
         'start_date': start_date,
         'end_date': end_date
     })
-    
-    print(f"DEBUG: Всего ошибок в raw_shtraf_edit: {check_result[0][0] if check_result else 0}")
-    
+
+    # print(f"DEBUG: Всего ошибок в raw_shtraf_edit: {check_result[0][0] if check_result else 0}")
+
     # Основной запрос с простой и понятной логикой
     query = """
     WITH error_hours_base AS (
@@ -632,17 +632,17 @@ def get_error_hours_top_data(start_date, end_date):
     ORDER BY error_percentage DESC
     LIMIT 5
     """
-    
-    print(f"DEBUG: Выполняем основной запрос для периода {start_date} - {end_date}")
-    
+
+    # print(f"DEBUG: Выполняем основной запрос для периода {start_date} - {end_date}")
+
     result = execute_query_cached(query, {
         'start_date': start_date,
         'end_date': end_date
     })
-    
+
     error_hours_data = []
     if result:
-        print(f"DEBUG: Основной запрос вернул {len(result)} записей")
+        # print(f"DEBUG: Основной запрос вернул {len(result)} записей")
         for i, row in enumerate(result):
             try:
                 hour = int(float(row[0])) if row[0] else 0
@@ -650,7 +650,7 @@ def get_error_hours_top_data(start_date, end_date):
                 total_orders = int(float(row[2])) if row[2] else 0
                 error_percentage = float(row[3]) if row[3] else 0
                 error_types = row[4] if row[4] else ''
-                
+
                 error_hours_data.append({
                     'hour': hour,
                     'error_orders_count': error_count,
@@ -658,18 +658,18 @@ def get_error_hours_top_data(start_date, end_date):
                     'error_percentage': error_percentage,
                     'error_types': error_types
                 })
-                print(f"DEBUG: Запись {i+1}: Час {hour}: {error_count} ошибок из {total_orders} заказов ({error_percentage}%)")
+                # print(f"DEBUG: Запись {i+1}: Час {hour}: {error_count} ошибок из {total_orders} заказов ({error_percentage}%)")
             except Exception as e:
                 print(f"ERROR processing row {row}: {e}")
                 continue
-    
+
     # Упрощаем логику демо-данных: только если ВООБЩЕ нет ошибок
     if not error_hours_data and check_result and check_result[0][0] == 0:
-        print(f"DEBUG: ВНИМАНИЕ: Вообще нет ошибок за период {start_date} - {end_date}")
-        print(f"DEBUG: Показываем сообщение 'Нет данных' вместо демо-данных")
+        # print(f"DEBUG: ВНИМАНИЕ: Вообще нет ошибок за период {start_date} - {end_date}")
+        # print(f"DEBUG: Показываем сообщение 'Нет данных' вместо демо-данных")
         return []
-    
-    print(f"DEBUG: Итоговые данные: {len(error_hours_data)} записей")
+
+    # print(f"DEBUG: Итоговые данные: {len(error_hours_data)} записей")
     return error_hours_data
 
 # Получение данных для сравнения смен (УПРОЩЕННЫЙ ЗАПРОС)
@@ -2307,8 +2307,8 @@ def get_revision_stats(start_date=None, end_date=None):
     Получение статистики по ревизиям по событию
     В таблице нет поля date, поэтому используем все записи
     """
-    print(f"[DEBUG] get_revision_stats вызвана")
-    
+    # print(f"[DEBUG] get_revision_stats вызвана")
+
     # Тестовый запрос: посмотреть все данные в таблице
     query_test = """
     SELECT 
@@ -2324,16 +2324,16 @@ def get_revision_stats(start_date=None, end_date=None):
     try:
         # Сначала выполняем тестовый запрос
         test_result = execute_query_cached(query_test)
-        
-        print(f"[DEBUG] Всего найдено {len(test_result)} комбинаций данных:")
-        for row in test_result:
-            work_type = row[0] if row[0] else ''
-            instr_type = row[1] if row[1] else ''
-            condition = row[2] if row[2] else ''
-            count = int(float(row[3])) if row[3] else 0
-            
-            print(f"[DEBUG] WORK_TYPE='{work_type}', INSTRUCTION_TYPE='{instr_type}', CONDITION='{condition}': {count} шт.")
-        
+
+        # print(f"[DEBUG] Всего найдено {len(test_result)} комбинаций данных:")
+        # for row in test_result:
+        #     work_type = row[0] if row[0] else ''
+        #     instr_type = row[1] if row[1] else ''
+        #     condition = row[2] if row[2] else ''
+        #     count = int(float(row[3])) if row[3] else 0
+
+        #     print(f"[DEBUG] WORK_TYPE='{work_type}', INSTRUCTION_TYPE='{instr_type}', CONDITION='{condition}': {count} шт.")
+
         # Основные запросы (БЕЗ ФИЛЬТРА ПО DATE - его нет в таблице!)
         
         # 1. Открытые ревизии (Detail + Open)
@@ -2369,15 +2369,15 @@ def get_revision_stats(start_date=None, end_date=None):
         
         if in_process_result and in_process_result[0] and in_process_result[0][0]:
             in_process_revisions = int(float(in_process_result[0][0]))
-        
+
         # Общее количество (сумма открытых и на согласовании)
         total_revisions = open_revisions + in_process_revisions
-        
-        print(f"[DEBUG] Статистика по ревизиям:")
-        print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Detail', CONDITION='Open': {open_revisions} шт.")
-        print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Header', CONDITION='In Process': {in_process_revisions} шт.")
-        print(f"[DEBUG] - Всего ревизий: {total_revisions}")
-        
+
+        # print(f"[DEBUG] Статистика по ревизиям:")
+        # print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Detail', CONDITION='Open': {open_revisions} шт.")
+        # print(f"[DEBUG] - WORK_TYPE='Ревизия по событию', INSTRUCTION_TYPE='Header', CONDITION='In Process': {in_process_revisions} шт.")
+        # print(f"[DEBUG] - Всего ревизий: {total_revisions}")
+
         return {
             'total_revisions': total_revisions,
             'open_revisions': open_revisions,
@@ -2454,12 +2454,12 @@ def get_placement_errors():
     FROM categorized_data
     GROUP BY placement_status
     """
-    
+
     try:
         result = execute_query_cached(query)
-        
-        print(f"[DEBUG] get_placement_errors результат: {result}")
-        
+
+        # print(f"[DEBUG] get_placement_errors результат: {result}")
+
         # Извлекаем значения
         correct_count = 0
         error_count = 0
@@ -2483,14 +2483,14 @@ def get_placement_errors():
                 unique_items = max(unique_items, items)
         
         total_count = correct_count + error_count
-        
+
         # Рассчитываем процент ошибок
         error_percentage = 0
         if total_count > 0:
             error_percentage = round((error_count / total_count) * 100, 1)
-        
-        print(f"[DEBUG] Итог: Верно={correct_count}, Ошибок={error_count}, Всего={total_count}, % ошибок={error_percentage}%")
-        
+
+        # print(f"[DEBUG] Итог: Верно={correct_count}, Ошибок={error_count}, Всего={total_count}, % ошибок={error_percentage}%")
+
         return {
             'correct_count': correct_count,
             'error_count': error_count,
@@ -2532,8 +2532,8 @@ def get_rejected_lines_count(start_date, end_date):
     rejected_count = 0
     if result and result[0] and result[0][0]:
         rejected_count = int(float(result[0][0]))
-    
-    print(f"[DEBUG] Отклоненных строк за период {start_date} - {end_date}: {rejected_count}")
+
+    # print(f"[DEBUG] Отклоненных строк за период {start_date} - {end_date}: {rejected_count}")
     return rejected_count
 
 # Получение детальной информации по отклоненным строкам
@@ -2586,6 +2586,6 @@ def get_rejected_lines_details(start_date, end_date):
             except Exception as e:
                 print(f"Ошибка обработки строки отклоненного заказа: {e}")
                 continue
-    
-    print(f"[DEBUG] Детали отклоненных строк: {len(rejected_lines)} записей")
-    return rejected_lines    
+
+    # print(f"[DEBUG] Детали отклоненных строк: {len(rejected_lines)} записей")
+    return rejected_lines

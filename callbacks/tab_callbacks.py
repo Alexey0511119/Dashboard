@@ -404,21 +404,21 @@ def update_fines_data(date_range):
 def update_fines_charts(fines_data):
     """Обновление диаграмм штрафов"""
     try:
-        print(f"DEBUG: update_fines_charts called with data: {fines_data is not None}")
-        
+        # print(f"DEBUG: update_fines_charts called with data: {fines_data is not None}")
+
         if not fines_data or 'category_data' not in fines_data:
-            print("DEBUG: No fines data or missing category_data, returning empty charts")
+            # print("DEBUG: No fines data or missing category_data, returning empty charts")
             empty_pie = {"title": {"text": "Нет данных", "left": "center"}}
             empty_bar = {"title": {"text": "Нет данных", "left": "center"}}
             return empty_pie, empty_bar
-        
+
         category_data = fines_data['category_data']
-        print(f"DEBUG: Processing category_data: {len(category_data) if category_data else 0} items")
-        
+        # print(f"DEBUG: Processing category_data: {len(category_data) if category_data else 0} items")
+
         pie_chart = create_fines_pie_chart(category_data)
         amount_chart = create_fines_amount_bar_chart(category_data)
-        
-        print(f"DEBUG: Charts created successfully")
+
+        # print(f"DEBUG: Charts created successfully")
         return pie_chart, amount_chart
         
     except Exception as e:
@@ -549,18 +549,18 @@ def update_problematic_hours_chart(problematic_hours):
 )
 def update_error_hours_chart(error_hours):
     """Обновление диаграммы часов с ошибками"""
-    print(f"DEBUG: Колбэк update_error_hours_chart вызван с данными: {error_hours}")
-    
+    # print(f"DEBUG: Колбэк update_error_hours_chart вызван с данными: {error_hours}")
+
     if not error_hours:
-        print("DEBUG: error_hours пуст, возвращаем пустую диаграмму")
+        # print("DEBUG: error_hours пуст, возвращаем пустую диаграмму")
         # Импортируем функцию здесь чтобы избежать циклических импортов
         from components.charts import create_error_hours_chart
         return create_error_hours_chart([])
-    
+
     # Импортируем функцию здесь чтобы избежать циклических импортов
     from components.charts import create_error_hours_chart
     result = create_error_hours_chart(error_hours)
-    print(f"DEBUG: Диаграмма создана, возвращаем результат")
+    # print(f"DEBUG: Диаграмма создана, возвращаем результат")
     return result
 
 # Callback для обновления KPI отклоненных строк
