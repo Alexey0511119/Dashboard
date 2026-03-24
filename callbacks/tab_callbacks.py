@@ -489,10 +489,6 @@ def update_shift_comparison_table(data):
                     style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'className': ops_color}
                 ),
                 html.Td(
-                    row.get('Время_работы', '--:--'),
-                    style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'color': '#9c27b0', 'fontWeight': 'bold'}
-                ),
-                html.Td(
                     f"{busy_percent:.1f}%",
                     style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'className': busy_color}
                 ),

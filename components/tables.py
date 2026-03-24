@@ -14,21 +14,20 @@ def create_performance_table(df, title="", is_best=False, is_worst=False):
                 html.Th('Операции', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
                 html.Th('Время', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
                 html.Th('Заработок', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                html.Th('Оп/час', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                html.Th('Время работы', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
+                html.Th('Оп/час', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
             ])),
             html.Tbody([
                 html.Tr([
-                    html.Td("Нет данных", colSpan=6, style={'textAlign': 'center', 'padding': '20px', 'color': '#666'})
+                    html.Td("Нет данных", colSpan=5, style={'textAlign': 'center', 'padding': '20px', 'color': '#666'})
                 ])
             ])
         ], style={'width': '100%', 'borderCollapse': 'collapse'})
-    
+
     rows = []
     for idx, row in df.iterrows():
         # Определяем цвет для времени на операцию
         time_color = '#d32f2f' if row.get('Ср_время_на_операцию', 0) > 2.5 else '#2e7d32'
-        
+
         # Определяем цвет для операций в час
         ops_per_hour = row.get('Операций_в_час', 0)
         if ops_per_hour >= 15:
@@ -37,16 +36,16 @@ def create_performance_table(df, title="", is_best=False, is_worst=False):
             ops_color = 'medium-performance'
         else:
             ops_color = 'poor-performance'
-        
+
         # Определяем цвет для заработка (чем больше, тем зеленее)
         earnings = row.get('Заработок', 0)
         earnings_color = '#2e7d32'  # зеленый по умолчанию
-        
+
         if earnings < 1000:
             earnings_color = '#d32f2f'  # красный для низкого заработка
         elif earnings < 3000:
             earnings_color = '#ed6c02'  # оранжевый для среднего
-        
+
         # Используем индекс строки как идентификатор (как в других таблицах)
         rows.append(
             html.Tr([
@@ -59,27 +58,24 @@ def create_performance_table(df, title="", is_best=False, is_worst=False):
                     ),
                     style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'transition': 'all 0.3s ease'}
                 ),
-                html.Td(str(int(row.get('Общее_кол_операций', 0))), 
+                html.Td(str(int(row.get('Общее_кол_операций', 0))),
                        style={'color': '#333', 'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'transition': 'all 0.3s ease'}),
-                html.Td(f"{row.get('Ср_время_на_операцию', 0):.1f} мин", 
+                html.Td(f"{row.get('Ср_время_на_операцию', 0):.1f} мин",
                        style={'color': time_color, 'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'transition': 'all 0.3s ease'}),
-                html.Td(f"{earnings:,.2f} ₽", 
+                html.Td(f"{earnings:,.2f} ₽",
                        style={'color': earnings_color, 'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'transition': 'all 0.3s ease'}),
-                html.Td(f"{ops_per_hour:.1f}", 
-                       style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'transition': 'all 0.3s ease', 'className': ops_color}),
-                html.Td(row.get('Время_работы', '--:--'), 
-                       style={'color': '#9c27b0', 'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'transition': 'all 0.3s ease'})
+                html.Td(f"{ops_per_hour:.1f}",
+                       style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'transition': 'all 0.3s ease', 'className': ops_color})
             ])
         )
-    
+
     return html.Table([
         html.Thead(html.Tr([
             html.Th('Сотрудник', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
             html.Th('Операции', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
             html.Th('Время', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
             html.Th('Заработок', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-            html.Th('Оп/час', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-            html.Th('Время работы', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
+            html.Th('Оп/час', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
         ])),
         html.Tbody(rows)
     ], style={'width': '100%', 'borderCollapse': 'collapse'})
