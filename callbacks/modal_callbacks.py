@@ -4,7 +4,8 @@ import json
 import re
 from data.queries_mssql import (
     get_employee_analytics, get_employee_operations_detail,
-    get_employee_fines_details, get_employee_idle_data, get_all_storage_data, filter_storage_data
+    get_employee_fines_details, get_employee_idle_data, get_all_storage_data, filter_storage_data,
+    get_employee_idle_intervals, get_employee_work_idle_detail
 )
 from components.charts import (
     create_operations_type_chart, create_time_distribution_pie_echarts,
@@ -137,18 +138,39 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                 # РАСЧЕТ ЗАРАБОТКА В ЧАС
                 earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
 
+                # ПОЛУЧАЕМ ДАННЫЕ О ВРЕМЕНИ РАБОТЫ И ПРОСТОЯ ИЗ НОВОЙ ТАБЛИЦЫ
+                print(f"\n{'='*60}")
+                print(f"=== ОТЛАДКА: Получение данных о времени работы ===")
+                print(f"Сотрудник (ФИО): {employee_name}")
+                print(f"Период: {date_range['start_date']} - {date_range['end_date']}")
+                
+                idle_data = get_employee_idle_intervals(employee_name,
+                                                        date_range['start_date'],
+                                                        date_range['end_date'])
+                
+                print(f"Получены данные: {idle_data}")
+                print(f"{'='*60}\n")
+
+                # Используем реальные данные из новой таблицы
+                total_work_minutes = idle_data.get('total_work_minutes', 0)
+                total_idle_minutes = idle_data.get('total_idle_minutes', 0)
+                work_percentage = idle_data.get('work_percentage', 0)
+                idle_percentage = idle_data.get('idle_percentage', 0)
+                
                 # Форматирование времени работы
-                work_duration = f"{int(work_hours)}ч 0м"
+                work_hours_val = total_work_minutes // 60
+                work_mins_val = total_work_minutes % 60
+                work_duration = f"{work_hours_val}ч {work_mins_val}м"
 
                 # Получаем данные для диаграмм
-                from data.queries_mssql import get_employee_operations_by_type, get_employee_idle_intervals
+                from data.queries_mssql import get_employee_operations_by_type
 
                 operations_by_type = get_employee_operations_by_type(employee_name,
                                                                     date_range['start_date'],
                                                                     date_range['end_date'])
-                idle_intervals = get_employee_idle_intervals(employee_name,
-                                                           date_range['start_date'],
-                                                           date_range['end_date'])
+                
+                # Используем данные из новой таблицы для диаграммы простоя
+                idle_intervals = idle_data
 
                 # Создаем СТОЛБЧАТУЮ диаграмму типов операций (цвета как в ячейках хранения)
                 operations_chart = {
@@ -197,14 +219,13 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                     }]
                 }
 
-                # Круговая диаграмма распределения времени
-                work_minutes = int(work_hours * 60)
-                idle_minutes_value = total_idle_minutes
-                from components.charts import create_time_distribution_pie_echarts
-                time_distribution_pie = create_time_distribution_pie_echarts(work_minutes, idle_minutes_value)
+                # Круговая диаграмма распределения времени с реальными данными
+                time_distribution_pie = create_time_distribution_pie_echarts(
+                    total_work_minutes, 
+                    total_idle_minutes
+                )
 
-                # Столбчатая диаграмма периодов простоя
-                from components.charts import create_idle_intervals_bar_echarts
+                # Столбчатая диаграмма периодов простоя с новыми данными
                 idle_intervals_bar = create_idle_intervals_bar_echarts(idle_intervals)
 
                 return [

@@ -583,64 +583,92 @@ def get_employee_operations_by_type(employee_name, start_date, end_date):
     
     return operations_data
 
-def get_employee_idle_intervals(employee_name, start_date, end_date):
-    """Получение данных о простоях сотрудника по интервалам"""
+def get_employee_idle_intervals(fio, start_date, end_date):
+    """Получение данных о простоях сотрудника по интервалам из новой таблицы dm.employee_work_idle_summary"""
     query = """
-    SELECT 
-        total_idle_minutes
-    FROM dm.v_employee_modal_detail 
-    WHERE fio = ? 
+    SELECT
+        idle_10_20,
+        idle_20_30,
+        idle_30_60,
+        idle_60plus,
+        total_idle_min,
+        total_work_min,
+        work_percentage,
+        idle_percentage
+    FROM dm.employee_work_idle_summary
+    WHERE (LOWER(user_name) = LOWER(?) OR LOWER(fio) = LOWER(?))
         AND date_key BETWEEN ? AND ?
-        AND total_idle_minutes > 0
     """
-    
-    result = execute_query_cached(query, (employee_name, start_date, end_date))
-    
-    # Распределяем по интервалам
-    intervals = {
-        '5-10 мин': 0,
-        '10-30 мин': 0,
-        '30-60 мин': 0,
-        '>1 часа': 0
-    }
-    
+
+    result = execute_query_cached(query, (fio, fio, start_date, end_date))
+
+    # Суммируем по всем дням
+    total_idle_10_20 = 0
+    total_idle_20_30 = 0
+    total_idle_30_60 = 0
+    total_idle_60plus = 0
+    total_idle_minutes = 0
+    total_work_minutes = 0
+    avg_work_percentage = 0
+    avg_idle_percentage = 0
+    days_count = 0
+
     if result:
         for row in result:
             try:
-                idle_minutes = int(row[0]) if row[0] else 0
-                
-                if idle_minutes > 0 and idle_minutes <= 10:
-                    intervals['5-10 мин'] += 1
-                elif idle_minutes > 10 and idle_minutes <= 30:
-                    intervals['10-30 мин'] += 1
-                elif idle_minutes > 30 and idle_minutes <= 60:
-                    intervals['30-60 мин'] += 1
-                elif idle_minutes > 60:
-                    intervals['>1 часа'] += 1
-                    
+                idle_10_20 = int(row[0]) if row[0] else 0
+                idle_20_30 = int(row[1]) if row[1] else 0
+                idle_30_60 = int(row[2]) if row[2] else 0
+                idle_60plus = int(row[3]) if row[3] else 0
+                idle_min = int(row[4]) if row[4] else 0
+                work_min = int(row[5]) if row[5] else 0
+                work_pct = float(row[6]) if row[6] else 0
+                idle_pct = float(row[7]) if row[7] else 0
+
+                total_idle_10_20 += idle_10_20
+                total_idle_20_30 += idle_20_30
+                total_idle_30_60 += idle_30_60
+                total_idle_60plus += idle_60plus
+                total_idle_minutes += idle_min
+                total_work_minutes += work_min
+                avg_work_percentage += work_pct
+                avg_idle_percentage += idle_pct
+                days_count += 1
+
             except Exception as e:
                 print(f"Error processing idle interval row: {e}")
                 continue
-    
-    return intervals
+
+    # Возвращаем данные с новыми категориями
+    return {
+        'idle_10_20': total_idle_10_20,
+        'idle_20_30': total_idle_20_30,
+        'idle_30_60': total_idle_30_60,
+        'idle_60plus': total_idle_60plus,
+        'total_idle_minutes': total_idle_minutes,
+        'total_work_minutes': total_work_minutes,
+        'work_percentage': avg_work_percentage / days_count if days_count > 0 else 0,
+        'idle_percentage': avg_idle_percentage / days_count if days_count > 0 else 0,
+        'days_count': days_count
+    }
 
 # Получение данных о простоях сотрудника
 def get_employee_idle_data(employee_name, start_date, end_date):
     query = """
-    SELECT 
+    SELECT
         COUNT(*) as idle_intervals,
         AVG(CAST(total_minutes as float)) as avg_idle_time
-    FROM dm.v_employee_idle_time 
+    FROM dm.v_employee_idle_time
     WHERE fio = ?
         AND date_key BETWEEN ? AND ?
     """
-    
+
     result = execute_query_cached(query, (employee_name, start_date, end_date))
-    
+
     if result and result[0]:
         idle_intervals = int(result[0][0]) if result[0][0] else 0
         avg_idle_time = float(result[0][1]) if result[0][1] else 0.0
-        
+
         return {
             'total_work_minutes': 480.0,  # Упрощенно 8 часов
             'total_idle_minutes': avg_idle_time * idle_intervals,
@@ -662,6 +690,73 @@ def get_employee_idle_data(employee_name, start_date, end_date):
                 '>1 часа': 0
             }
         }
+
+def get_employee_work_idle_detail(employee_name, start_date, end_date):
+    """Получение детальных данных о времени работы и простоя по дням из dm.employee_work_idle_summary"""
+    query = """
+    SELECT
+        user_name,
+        fio,
+        date_key,
+        first_op_time,
+        last_op_time,
+        total_period_min,
+        total_work_min,
+        total_idle_min,
+        work_percentage,
+        idle_percentage,
+        idle_10_20,
+        idle_20_30,
+        idle_30_60,
+        idle_60plus
+    FROM dm.employee_work_idle_summary
+    WHERE LOWER(user_name) = LOWER(?)
+        AND date_key BETWEEN ? AND ?
+    ORDER BY date_key DESC
+    """
+
+    result = execute_query_cached(query, (employee_name, start_date, end_date))
+
+    detail_data = []
+    if result:
+        for row in result:
+            try:
+                user_name = row[0] if row[0] else ''
+                fio = row[1] if row[1] else ''
+                date_key = row[2] if row[2] else ''
+                first_op_time = row[3] if row[3] else ''
+                last_op_time = row[4] if row[4] else ''
+                total_period_min = int(row[5]) if row[5] else 0
+                total_work_min = int(row[6]) if row[6] else 0
+                total_idle_min = int(row[7]) if row[7] else 0
+                work_percentage = float(row[8]) if row[8] else 0
+                idle_percentage = float(row[9]) if row[9] else 0
+                idle_10_20 = int(row[10]) if row[10] else 0
+                idle_20_30 = int(row[11]) if row[11] else 0
+                idle_30_60 = int(row[12]) if row[12] else 0
+                idle_60plus = int(row[13]) if row[13] else 0
+
+                detail_data.append({
+                    'user_name': user_name,
+                    'fio': fio,
+                    'date_key': date_key,
+                    'first_op_time': first_op_time,
+                    'last_op_time': last_op_time,
+                    'total_period_min': total_period_min,
+                    'total_work_min': total_work_min,
+                    'total_idle_min': total_idle_min,
+                    'work_percentage': round(work_percentage, 2),
+                    'idle_percentage': round(idle_percentage, 2),
+                    'idle_10_20': idle_10_20,
+                    'idle_20_30': idle_20_30,
+                    'idle_30_60': idle_30_60,
+                    'idle_60plus': idle_60plus
+                })
+            except Exception as e:
+                print(f"Error processing employee work idle detail row: {e}")
+                continue
+
+    return detail_data
 
 # Получение данных для топ-5 проблемных часов
 def get_problematic_hours(start_date, end_date):
@@ -1078,6 +1173,7 @@ def get_employees_on_shift_new():
     today_shift = get_todays_shift()
     
     # Получаем данные из нового view (оно уже фильтрует по текущему дню)
+    # Теперь view возвращает всех сотрудников смены, включая тех, кто не работал
     query = """
     SELECT
         fio,
@@ -1085,7 +1181,8 @@ def get_employees_on_shift_new():
         brigada,
         smena,
         first_operation_time,
-        total_operations
+        total_operations,
+        status_on_shift
     FROM dm.v_employees_shift_daily
     WHERE smena = ?
     ORDER BY fio
@@ -1103,6 +1200,7 @@ def get_employees_on_shift_new():
                 smena = row[3] if row[3] else ''
                 first_operation_time = row[4] if row[4] else None
                 total_operations = row[5] if row[5] else 0
+                status_on_shift = row[6] if row[6] else 'Не вышел'
                 
                 # Форматируем время первой операции
                 if first_operation_time:
@@ -1122,23 +1220,12 @@ def get_employees_on_shift_new():
                 else:
                     formatted_time = '--:--'
                 
-                # Определяем статус
-                shift_start_hour = 6 if smena == '1' else 14
-                if first_operation_time is None:
-                    status = 'Не вышел'
-                elif total_operations == 0:
-                    status = 'Без операций'
-                elif hasattr(first_operation_time, 'hour') and first_operation_time.hour > shift_start_hour + 0.25:  # +15 минут
-                    status = 'Опоздал'
-                else:
-                    status = 'На смене'
-                
                 employees_data.append({
                     'ФИО': fio,
                     'Должность': position,
                     'Бригада': brigada,
                     'Смена': smena,
-                    'Статус': status,
+                    'Статус': status_on_shift,
                     'Время_первой_операции': formatted_time
                 })
             except Exception as e:
@@ -1551,7 +1638,7 @@ def get_employee_analytics(employee_name, start_date, end_date):
     }
 
 def get_employee_operations_detail(employee_name, start_date, end_date):
-    """Получение детализации операций сотрудника (упрощенная версия)"""
+    """Получени�� детализации операций сотрудника (упрощенная версия)"""
     return []
 
 def get_employee_fines_details(employee_name, start_date, end_date):

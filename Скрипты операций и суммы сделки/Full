@@ -46,6 +46,7 @@ DROP TABLE IF EXISTS dwh.receipts_status;
 DROP TABLE IF EXISTS dwh.placement_cache;
 DROP TABLE IF EXISTS dwh.pick_cache;
 DROP TABLE IF EXISTS dwh.transaction_events;
+DROP TABLE IF EXISTS dwh.first_operation_time;
 DROP TABLE IF EXISTS raw_.gruz_operations;
 
 DROP TABLE IF EXISTS #pick_groups;
@@ -199,6 +200,8 @@ WHERE
     AND u.smena IN ('1', '2');
 
 PRINT 'transaction_events создана.';
+
+-- ====== ШАГ 6: operations_enriched ======
 PRINT 'Создание operations_enriched...';
 
 SELECT
@@ -1012,4 +1015,57 @@ FROM dwh.fines_enriched fe
 JOIN dm.dim_employee e
     ON fe.user_name COLLATE DATABASE_DEFAULT = e.user_name COLLATE DATABASE_DEFAULT
     AND e.is_active = 1;
+
+PRINT 'fact_penalty создана.';
+
+-- ====== ШАГ 17: fact_location_snapshot ======
+PRINT 'Создание fact_location_snapshot...';
+
+CREATE TABLE dwh.fact_location_snapshot (
+    date_key DATE NOT NULL,
+    location NVARCHAR(50) NOT NULL,
+    status NVARCHAR(50) NOT NULL,
+    location_type NVARCHAR(25) NOT NULL,
+    locating_zone NVARCHAR(25) NULL,
+    allocation_zone NVARCHAR(25) NULL,
+    work_zone NVARCHAR(25) NULL,
+    source_system NVARCHAR(20) NOT NULL DEFAULT 'WMS'
+);
+
+ALTER TABLE dwh.fact_location_snapshot ADD CONSTRAINT FK_fact_location_snapshot_date FOREIGN KEY (date_key) REFERENCES dm.dim_date(date_key);
+
+-- Заполнение fact_location_snapshot (как в скрипт 1)
+PRINT 'Заполнение fact_location_snapshot...';
+
+WITH LatestLocation AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY LOCATION ORDER BY DATE_TIME_STAMP DESC) AS rn
+    FROM raw_.LOCATION
+    WHERE
+        LOCATION_STS IS NOT NULL
+        AND LOCATION_STS != 'Frozen'
+        AND LOCATION_TYPE NOT IN ('Брак/бой DMG', 'Напольная', 'Улица KC', 'Ячейки KSP')
+        AND (LOCATION_CLASS = 'Inventory' OR LOCATION_CLASS IS NULL)
+),
+OccupiedLocations AS (
+    SELECT DISTINCT LOCATION
+    FROM raw_.LOCATION_INVENTORY
+    WHERE LOCATION IS NOT NULL
+)
+INSERT INTO dwh.fact_location_snapshot (date_key, location, status, location_type, locating_zone, allocation_zone, work_zone, source_system)
+SELECT
+    CAST(GETDATE() AS DATE) AS date_key,
+    l.LOCATION AS location,
+    CASE
+        WHEN o.LOCATION IS NOT NULL THEN 'Storage'
+        ELSE 'Available'
+    END AS status,
+    l.LOCATION_TYPE AS location_type,
+    l.LOCATING_ZONE AS locating_zone,
+    l.ALLOCATION_ZONE AS allocation_zone,
+    l.WORK_ZONE AS work_zone,
+    'WMS' AS source_system
+FROM LatestLocation l
+LEFT JOIN OccupiedLocations o ON l.LOCATION = o.LOCATION
+WHERE l.rn = 1;
 

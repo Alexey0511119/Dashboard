@@ -70,11 +70,19 @@ def create_time_distribution_pie_echarts(work_minutes, idle_minutes):
     }
 
 def create_idle_intervals_bar_echarts(idle_counts):
-    """Столбчатая диаграмма периодов простоя"""
-    interval_order = ['5-10 мин', '10-30 мин', '30-60 мин', '>1 часа']
+    """Столбчатая диаграмма периодов простоя с новыми категориями (10-20, 20-30, 30-60, 60+)"""
+    # Новые категории вместо старых
+    interval_order = ['10-20 мин', '20-30 мин', '30-60 мин', '60+ мин']
     colors = ['#0D47A1', '#1565C0', '#1976D2', '#59D478']  # Темно-синие и зеленый как в ячейках хранения
-    data = [idle_counts.get(k, 0) for k in interval_order]
     
+    # Получаем данные из нового формата словаря
+    data = [
+        idle_counts.get('idle_10_20', 0),
+        idle_counts.get('idle_20_30', 0),
+        idle_counts.get('idle_30_60', 0),
+        idle_counts.get('idle_60plus', 0)
+    ]
+
     # Подготавливаем данные с информацией для кликов
     chart_data = []
     for i, (interval, value, color) in enumerate(zip(interval_order, data, colors)):
@@ -83,7 +91,7 @@ def create_idle_intervals_bar_echarts(idle_counts):
             "value": value,
             "itemStyle": {"color": color}
         })
-    
+
     return {
         "title": {
             "text": "Количество простоев по интервалам",
@@ -143,12 +151,6 @@ def create_idle_intervals_bar_echarts(idle_counts):
             "top": "20%",
             "containLabel": True
         },
-        # УБЕРИТЕ toolbox если не хотите кнопку сохранения
-        # "toolbox": {
-        #     "feature": {
-        #         "saveAsImage": {}
-        #     }
-        # },
         "animationDuration": 800,
         "animationEasing": "cubicInOut"
     }
