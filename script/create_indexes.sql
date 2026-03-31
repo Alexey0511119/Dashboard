@@ -1,0 +1,479 @@
+-- ============================================================================
+-- СКРИПТ СОЗДАНИЯ ИНДЕКСОВ ДЛЯ УСКОРЕНИЯ ETL
+-- База данных: olap2_fixed
+-- ============================================================================
+USE olap2_fixed;
+GO
+
+PRINT '=== НАЧАЛО СОЗДАНИЯ ИНДЕКСОВ ===';
+PRINT 'Дата: ' + CAST(GETDATE() AS NVARCHAR(50));
+
+-- ============================================================================
+-- ЧАСТЬ 1: ИНДЕКСЫ ДЛЯ RAW_.ТАБЛИЦ (ускорение DELETE и SELECT)
+-- ============================================================================
+PRINT '';
+PRINT '=== ЧАСТЬ 1: Индексы для raw_.таблиц ===';
+
+-- ORDER_HEADER
+PRINT 'Создание индекса для raw_.ORDER_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ORDER_HEADER_ORDER_DATE' AND object_id = OBJECT_ID('raw_.ORDER_HEADER'))
+    DROP INDEX IX_ORDER_HEADER_ORDER_DATE ON raw_.ORDER_HEADER;
+CREATE NONCLUSTERED INDEX IX_ORDER_HEADER_ORDER_DATE 
+ON raw_.ORDER_HEADER(ORDER_DATE)
+INCLUDE (ORDER_ID)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- RECEIPT_HEADER
+PRINT 'Создание индекса для raw_.RECEIPT_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_RECEIPT_HEADER_RECEIPT_DATE' AND object_id = OBJECT_ID('raw_.RECEIPT_HEADER'))
+    DROP INDEX IX_RECEIPT_HEADER_RECEIPT_DATE ON raw_.RECEIPT_HEADER;
+CREATE NONCLUSTERED INDEX IX_RECEIPT_HEADER_RECEIPT_DATE 
+ON raw_.RECEIPT_HEADER(RECEIPT_DATE)
+INCLUDE (RECEIPT_ID)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- SHIPMENT_HEADER
+PRINT 'Создание индекса для raw_.SHIPMENT_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SHIPMENT_HEADER_SHIP_DATE' AND object_id = OBJECT_ID('raw_.SHIPMENT_HEADER'))
+    DROP INDEX IX_SHIPMENT_HEADER_SHIP_DATE ON raw_.SHIPMENT_HEADER;
+CREATE NONCLUSTERED INDEX IX_SHIPMENT_HEADER_SHIP_DATE 
+ON raw_.SHIPMENT_HEADER(PLANNED_SHIP_DATE)
+INCLUDE (SHIPMENT_ID)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- ORDER_DETAIL
+PRINT 'Создание индекса для raw_.ORDER_DETAIL...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ORDER_DETAIL_DATE' AND object_id = OBJECT_ID('raw_.ORDER_DETAIL'))
+    DROP INDEX IX_ORDER_DETAIL_DATE ON raw_.ORDER_DETAIL;
+CREATE NONCLUSTERED INDEX IX_ORDER_DETAIL_DATE 
+ON raw_.ORDER_DETAIL(DATE_TIME_STAMP)
+INCLUDE (ORDER_ID, LINE_NUM)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- RECEIPT_DETAIL
+PRINT 'Создание индекса для raw_.RECEIPT_DETAIL...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_RECEIPT_DETAIL_DATE' AND object_id = OBJECT_ID('raw_.RECEIPT_DETAIL'))
+    DROP INDEX IX_RECEIPT_DETAIL_DATE ON raw_.RECEIPT_DETAIL;
+CREATE NONCLUSTERED INDEX IX_RECEIPT_DETAIL_DATE 
+ON raw_.RECEIPT_DETAIL(DATE_TIME_STAMP)
+INCLUDE (RECEIPT_ID)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- SHIPMENT_DETAIL
+PRINT 'Создание индекса для raw_.SHIPMENT_DETAIL...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SHIPMENT_DETAIL_DATE' AND object_id = OBJECT_ID('raw_.SHIPMENT_DETAIL'))
+    DROP INDEX IX_SHIPMENT_DETAIL_DATE ON raw_.SHIPMENT_DETAIL;
+CREATE NONCLUSTERED INDEX IX_SHIPMENT_DETAIL_DATE 
+ON raw_.SHIPMENT_DETAIL(DATE_TIME_STAMP)
+INCLUDE (SHIPMENT_ID)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- TRANSACTION_HISTORY
+PRINT 'Создание индекса для raw_.TRANSACTION_HISTORY...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TRANSACTION_HISTORY_DATE' AND object_id = OBJECT_ID('raw_.TRANSACTION_HISTORY'))
+    DROP INDEX IX_TRANSACTION_HISTORY_DATE ON raw_.TRANSACTION_HISTORY;
+CREATE NONCLUSTERED INDEX IX_TRANSACTION_HISTORY_DATE 
+ON raw_.TRANSACTION_HISTORY(DATE_TIME_STAMP)
+INCLUDE (TRANSACTION_TYPE, USER_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- WORK_INSTRUCTION_VIEW2
+PRINT 'Создание индекса для raw_.WORK_INSTRUCTION_VIEW2...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_WIV_DATE' AND object_id = OBJECT_ID('raw_.WORK_INSTRUCTION_VIEW2'))
+    DROP INDEX IX_WIV_DATE ON raw_.WORK_INSTRUCTION_VIEW2;
+CREATE NONCLUSTERED INDEX IX_WIV_DATE 
+ON raw_.WORK_INSTRUCTION_VIEW2(DATE_TIME_STAMP)
+INCLUDE (INSTRUCTION_TYPE, CONDITION)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- DOWNLOAD_ORDER_DETAIL
+PRINT 'Создание индекса для raw_.DOWNLOAD_ORDER_DETAIL...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DOWNLOAD_OD_DATE' AND object_id = OBJECT_ID('raw_.DOWNLOAD_ORDER_DETAIL'))
+    DROP INDEX IX_DOWNLOAD_OD_DATE ON raw_.DOWNLOAD_ORDER_DETAIL;
+CREATE NONCLUSTERED INDEX IX_DOWNLOAD_OD_DATE 
+ON raw_.DOWNLOAD_ORDER_DETAIL(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- DOWNLOAD_ORDER_HEADER
+PRINT 'Создание индекса для raw_.DOWNLOAD_ORDER_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DOWNLOAD_OH_DATE' AND object_id = OBJECT_ID('raw_.DOWNLOAD_ORDER_HEADER'))
+    DROP INDEX IX_DOWNLOAD_OH_DATE ON raw_.DOWNLOAD_ORDER_HEADER;
+CREATE NONCLUSTERED INDEX IX_DOWNLOAD_OH_DATE 
+ON raw_.DOWNLOAD_ORDER_HEADER(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- DOWNLOAD_RECEIPT_DETAIL
+PRINT 'Создание индекса для raw_.DOWNLOAD_RECEIPT_DETAIL...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DOWNLOAD_RD_DATE' AND object_id = OBJECT_ID('raw_.DOWNLOAD_RECEIPT_DETAIL'))
+    DROP INDEX IX_DOWNLOAD_RD_DATE ON raw_.DOWNLOAD_RECEIPT_DETAIL;
+CREATE NONCLUSTERED INDEX IX_DOWNLOAD_RD_DATE 
+ON raw_.DOWNLOAD_RECEIPT_DETAIL(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- DOWNLOAD_RECEIPT_HEADER
+PRINT 'Создание индекса для raw_.DOWNLOAD_RECEIPT_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DOWNLOAD_RH_DATE' AND object_id = OBJECT_ID('raw_.DOWNLOAD_RECEIPT_HEADER'))
+    DROP INDEX IX_DOWNLOAD_RH_DATE ON raw_.DOWNLOAD_RECEIPT_HEADER;
+CREATE NONCLUSTERED INDEX IX_DOWNLOAD_RH_DATE 
+ON raw_.DOWNLOAD_RECEIPT_HEADER(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- UPLOAD_ORDER_DETAIL
+PRINT 'Создание индекса для raw_.UPLOAD_ORDER_DETAIL...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UPLOAD_OD_DATE' AND object_id = OBJECT_ID('raw_.UPLOAD_ORDER_DETAIL'))
+    DROP INDEX IX_UPLOAD_OD_DATE ON raw_.UPLOAD_ORDER_DETAIL;
+CREATE NONCLUSTERED INDEX IX_UPLOAD_OD_DATE 
+ON raw_.UPLOAD_ORDER_DETAIL(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- UPLOAD_ORDER_HEADER
+PRINT 'Создание индекса для raw_.UPLOAD_ORDER_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UPLOAD_OH_DATE' AND object_id = OBJECT_ID('raw_.UPLOAD_ORDER_HEADER'))
+    DROP INDEX IX_UPLOAD_OH_DATE ON raw_.UPLOAD_ORDER_HEADER;
+CREATE NONCLUSTERED INDEX IX_UPLOAD_OH_DATE 
+ON raw_.UPLOAD_ORDER_HEADER(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- UPLOAD_RECEIPT_DETAIL
+PRINT 'Создание индекса для raw_.UPLOAD_RECEIPT_DETAIL...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UPLOAD_RD_DATE' AND object_id = OBJECT_ID('raw_.UPLOAD_RECEIPT_DETAIL'))
+    DROP INDEX IX_UPLOAD_RD_DATE ON raw_.UPLOAD_RECEIPT_DETAIL;
+CREATE NONCLUSTERED INDEX IX_UPLOAD_RD_DATE 
+ON raw_.UPLOAD_RECEIPT_DETAIL(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- UPLOAD_RECEIPT_HEADER
+PRINT 'Создание индекса для raw_.UPLOAD_RECEIPT_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UPLOAD_RH_DATE' AND object_id = OBJECT_ID('raw_.UPLOAD_RECEIPT_HEADER'))
+    DROP INDEX IX_UPLOAD_RH_DATE ON raw_.UPLOAD_RECEIPT_HEADER;
+CREATE NONCLUSTERED INDEX IX_UPLOAD_RH_DATE 
+ON raw_.UPLOAD_RECEIPT_HEADER(DATE_TIME_STAMP)
+INCLUDE (INTERFACE_CONDITION)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- CYCLE_COUNT_REQUEST
+PRINT 'Создание индекса для raw_.CYCLE_COUNT_REQUEST...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_CYCLE_COUNT_DATE' AND object_id = OBJECT_ID('raw_.CYCLE_COUNT_REQUEST'))
+    DROP INDEX IX_CYCLE_COUNT_DATE ON raw_.CYCLE_COUNT_REQUEST;
+CREATE NONCLUSTERED INDEX IX_CYCLE_COUNT_DATE 
+ON raw_.CYCLE_COUNT_REQUEST(DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- labor_management (из labor_management_detail_view)
+PRINT 'Создание индекса для raw_.labor_management...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_LABOR_DATE' AND object_id = OBJECT_ID('raw_.labor_management'))
+    DROP INDEX IX_LABOR_DATE ON raw_.labor_management;
+CREATE NONCLUSTERED INDEX IX_LABOR_DATE 
+ON raw_.labor_management(DATE_TIME_STAMP)
+INCLUDE (USER_NAME, user_def1, activity_type)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- UPLOAD_RECEIPT_CONTAINER
+PRINT 'Создание индекса для raw_.UPLOAD_RECEIPT_CONTAINER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_URC_DATE' AND object_id = OBJECT_ID('raw_.UPLOAD_RECEIPT_CONTAINER'))
+    DROP INDEX IX_URC_DATE ON raw_.UPLOAD_RECEIPT_CONTAINER;
+CREATE NONCLUSTERED INDEX IX_URC_DATE 
+ON raw_.UPLOAD_RECEIPT_CONTAINER(DATE_TIME_STAMP)
+INCLUDE (INTERFACE_LINK_ID, ITEM)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- eks_peremer_ZX_KPP
+PRINT 'Создание индекса для raw_.eks_peremer_ZX_KPP...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_EKS_DATE' AND object_id = OBJECT_ID('raw_.eks_peremer_ZX_KPP'))
+    DROP INDEX IX_EKS_DATE ON raw_.eks_peremer_ZX_KPP;
+CREATE NONCLUSTERED INDEX IX_EKS_DATE 
+ON raw_.eks_peremer_ZX_KPP(date_time_stamp)
+INCLUDE (user_name)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- Shtraf_Edit
+PRINT 'Создание индекса для raw_.Shtraf_Edit...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SHTRAF_DATE' AND object_id = OBJECT_ID('raw_.Shtraf_Edit'))
+    DROP INDEX IX_SHTRAF_DATE ON raw_.Shtraf_Edit;
+CREATE NONCLUSTERED INDEX IX_SHTRAF_DATE 
+ON raw_.Shtraf_Edit(date_time_stamp)
+INCLUDE ([user], reference_id, name)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+PRINT '✅ Индексы для raw_.таблиц созданы';
+
+-- ============================================================================
+-- ЧАСТЬ 2: ИНДЕКСЫ ДЛЯ DWH.ТАБЛИЦ (ускорение JOIN)
+-- ============================================================================
+PRINT '';
+PRINT '=== ЧАСТЬ 2: Индексы для dwh.таблиц ===';
+
+-- dwh.operations_enriched
+PRINT 'Создание индексов для dwh.operations_enriched...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_OPS_USER_DATE' AND object_id = OBJECT_ID('dwh.operations_enriched'))
+    DROP INDEX IX_OPS_USER_DATE ON dwh.operations_enriched;
+CREATE NONCLUSTERED INDEX IX_OPS_USER_DATE 
+ON dwh.operations_enriched(user_name, date)
+INCLUDE (WORK_TYPE, START_DATE_TIME, END_DATE_TIME)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_OPS_WORK_TYPE' AND object_id = OBJECT_ID('dwh.operations_enriched'))
+    DROP INDEX IX_OPS_WORK_TYPE ON dwh.operations_enriched;
+CREATE NONCLUSTERED INDEX IX_OPS_WORK_TYPE 
+ON dwh.operations_enriched(WORK_TYPE)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dm.dim_employee
+PRINT 'Создание индекса для dm.dim_employee...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_EMP_USER_ACTIVE' AND object_id = OBJECT_ID('dm.dim_employee'))
+    DROP INDEX IX_EMP_USER_ACTIVE ON dm.dim_employee;
+CREATE NONCLUSTERED INDEX IX_EMP_USER_ACTIVE 
+ON dm.dim_employee(user_name, is_active)
+INCLUDE (fio, smena, brigada)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dm.dim_work_type
+PRINT 'Создание индекса для dm.dim_work_type...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_WT_NAME' AND object_id = OBJECT_ID('dm.dim_work_type'))
+    DROP INDEX IX_WT_NAME ON dm.dim_work_type;
+CREATE NONCLUSTERED INDEX IX_WT_NAME 
+ON dm.dim_work_type(work_type_name)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dwh.placement_cache
+PRINT 'Создание индексов для dwh.placement_cache...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PLACEMENT_USER_ENDTIME' AND object_id = OBJECT_ID('dwh.placement_cache'))
+    DROP INDEX IX_PLACEMENT_USER_ENDTIME ON dwh.placement_cache;
+CREATE NONCLUSTERED INDEX IX_PLACEMENT_USER_ENDTIME 
+ON dwh.placement_cache(COMPLETED_BY_USER, END_DATE_TIME)
+INCLUDE (REFERENCE_ID, ITEM, TO_LOC)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PLACEMENT_REF_ITEM' AND object_id = OBJECT_ID('dwh.placement_cache'))
+    DROP INDEX IX_PLACEMENT_REF_ITEM ON dwh.placement_cache;
+CREATE NONCLUSTERED INDEX IX_PLACEMENT_REF_ITEM 
+ON dwh.placement_cache(REFERENCE_ID, ITEM, TO_LOC)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dwh.pick_cache
+PRINT 'Создание индексов для dwh.pick_cache...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PICK_PARENT_ENDTIME' AND object_id = OBJECT_ID('dwh.pick_cache'))
+    DROP INDEX IX_PICK_PARENT_ENDTIME ON dwh.pick_cache;
+CREATE NONCLUSTERED INDEX IX_PICK_PARENT_ENDTIME 
+ON dwh.pick_cache(PARENT_INSTR, END_DATE_TIME)
+INCLUDE (REFERENCE_ID, ITEM, FROM_LOC)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PICK_USER_ENDTIME' AND object_id = OBJECT_ID('dwh.pick_cache'))
+    DROP INDEX IX_PICK_USER_ENDTIME ON dwh.pick_cache;
+CREATE NONCLUSTERED INDEX IX_PICK_USER_ENDTIME 
+ON dwh.pick_cache(COMPLETED_BY_USER, END_DATE_TIME)
+INCLUDE (REFERENCE_ID, ITEM, FROM_LOC)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dwh.fact_operation
+PRINT 'Создание индексов для dwh.fact_operation...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_FACT_DATE' AND object_id = OBJECT_ID('dwh.fact_operation'))
+    DROP INDEX IX_FACT_DATE ON dwh.fact_operation;
+CREATE NONCLUSTERED INDEX IX_FACT_DATE 
+ON dwh.fact_operation(date_key)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_FACT_EMPLOYEE' AND object_id = OBJECT_ID('dwh.fact_operation'))
+    DROP INDEX IX_FACT_EMPLOYEE ON dwh.fact_operation;
+CREATE NONCLUSTERED INDEX IX_FACT_EMPLOYEE 
+ON dwh.fact_operation(employee_id)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_FACT_WORKTYPE' AND object_id = OBJECT_ID('dwh.fact_operation'))
+    DROP INDEX IX_FACT_WORKTYPE ON dwh.fact_operation;
+CREATE NONCLUSTERED INDEX IX_FACT_WORKTYPE 
+ON dwh.fact_operation(work_type_id)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_FACT_COVERING' AND object_id = OBJECT_ID('dwh.fact_operation'))
+    DROP INDEX IX_FACT_COVERING ON dwh.fact_operation;
+CREATE NONCLUSTERED INDEX IX_FACT_COVERING 
+ON dwh.fact_operation(date_key, employee_id, work_type_id)
+INCLUDE (reference_id, reference_type, start_time, end_time, duration_sec, price_per_op, is_order, source_system)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dwh.fines_enriched
+PRINT 'Создание индекса для dwh.fines_enriched...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_FINES_USER_DATE' AND object_id = OBJECT_ID('dwh.fines_enriched'))
+    DROP INDEX IX_FINES_USER_DATE ON dwh.fines_enriched;
+CREATE NONCLUSTERED INDEX IX_FINES_USER_DATE 
+ON dwh.fines_enriched(user_name, date)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dwh.transaction_events
+PRINT 'Создание индекса для dwh.transaction_events...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TRANS_DATE_USER' AND object_id = OBJECT_ID('dwh.transaction_events'))
+    DROP INDEX IX_TRANS_DATE_USER ON dwh.transaction_events;
+CREATE NONCLUSTERED INDEX IX_TRANS_DATE_USER 
+ON dwh.transaction_events(date_key, user_name)
+INCLUDE (fio, smena, event_time)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dwh.orders_enriched
+PRINT 'Создание индекса для dwh.orders_enriched...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ORDERS_REF_DATE' AND object_id = OBJECT_ID('dwh.orders_enriched'))
+    DROP INDEX IX_ORDERS_REF_DATE ON dwh.orders_enriched;
+CREATE NONCLUSTERED INDEX IX_ORDERS_REF_DATE 
+ON dwh.orders_enriched(REFERENCE_ID, date)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- dwh.orders_timeliness
+PRINT 'Создание индекса для dwh.orders_timeliness...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ORDERTIME_DATE' AND object_id = OBJECT_ID('dwh.orders_timeliness'))
+    DROP INDEX IX_ORDERTIME_DATE ON dwh.orders_timeliness;
+CREATE NONCLUSTERED INDEX IX_ORDERTIME_DATE 
+ON dwh.orders_timeliness(date)
+INCLUDE (SHIPMENT_ID, ORDER_TYPE, timeliness_status)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+PRINT '✅ Индексы для dwh.таблиц созданы';
+
+-- ============================================================================
+-- ЧАСТЬ 3: ИНДЕКСЫ ДЛЯ СПРАВОЧНИКОВ (ускорение JOIN)
+-- ============================================================================
+PRINT '';
+PRINT '=== ЧАСТЬ 3: Индексы для справочников ===';
+
+-- raw_.USER_CADR_EDIT
+PRINT 'Создание индекса для raw_.USER_CADR_EDIT...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_USER_NAME_DELETED' AND object_id = OBJECT_ID('raw_.USER_CADR_EDIT'))
+    DROP INDEX IX_USER_NAME_DELETED ON raw_.USER_CADR_EDIT;
+CREATE NONCLUSTERED INDEX IX_USER_NAME_DELETED 
+ON raw_.USER_CADR_EDIT(user_name, deleted)
+INCLUDE (fio, smena, brigada, position)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.sdelka_price
+PRINT 'Создание индекса для raw_.sdelka_price...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PRICE_WORKTYPE' AND object_id = OBJECT_ID('raw_.sdelka_price'))
+    DROP INDEX IX_PRICE_WORKTYPE ON raw_.sdelka_price;
+CREATE NONCLUSTERED INDEX IX_PRICE_WORKTYPE 
+ON raw_.sdelka_price(work_type)
+INCLUDE (price)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.ITEM
+PRINT 'Создание индекса для raw_.ITEM...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ITEM_CODE' AND object_id = OBJECT_ID('raw_.ITEM'))
+    DROP INDEX IX_ITEM_CODE ON raw_.ITEM;
+CREATE NONCLUSTERED INDEX IX_ITEM_CODE 
+ON raw_.ITEM(ITEM)
+INCLUDE (DESCRIPTION, user_def1, ITEM_CATEGORY1, ITEM_CATEGORY9)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.SHIPMENT_HEADER
+PRINT 'Создание индексов для raw_.SHIPMENT_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SHIPMENT_INTERNAL' AND object_id = OBJECT_ID('raw_.SHIPMENT_HEADER'))
+    DROP INDEX IX_SHIPMENT_INTERNAL ON raw_.SHIPMENT_HEADER;
+CREATE NONCLUSTERED INDEX IX_SHIPMENT_INTERNAL 
+ON raw_.SHIPMENT_HEADER(INTERNAL_SHIPMENT_NUM)
+INCLUDE (SHIPMENT_ID, STOP, ORDER_TYPE)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SHIPMENT_ID' AND object_id = OBJECT_ID('raw_.SHIPMENT_HEADER'))
+    DROP INDEX IX_SHIPMENT_ID ON raw_.SHIPMENT_HEADER;
+CREATE NONCLUSTERED INDEX IX_SHIPMENT_ID 
+ON raw_.SHIPMENT_HEADER(SHIPMENT_ID)
+INCLUDE (INTERNAL_SHIPMENT_NUM, STOP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.WORK_INSTRUCTION_VIEW2
+PRINT 'Создание индексов для raw_.WORK_INSTRUCTION_VIEW2...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_WI_INTERNAL' AND object_id = OBJECT_ID('raw_.WORK_INSTRUCTION_VIEW2'))
+    DROP INDEX IX_WI_INTERNAL ON raw_.WORK_INSTRUCTION_VIEW2;
+CREATE NONCLUSTERED INDEX IX_WI_INTERNAL 
+ON raw_.WORK_INSTRUCTION_VIEW2(INTERNAL_NUM)
+INCLUDE (REFERENCE_ID, REFERENCE_TYPE, INSTRUCTION_TYPE, CONDITION)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_WI_REF_TYPE' AND object_id = OBJECT_ID('raw_.WORK_INSTRUCTION_VIEW2'))
+    DROP INDEX IX_WI_REF_TYPE ON raw_.WORK_INSTRUCTION_VIEW2;
+CREATE NONCLUSTERED INDEX IX_WI_REF_TYPE 
+ON raw_.WORK_INSTRUCTION_VIEW2(REFERENCE_TYPE, CONDITION, INSTRUCTION_TYPE)
+INCLUDE (INTERNAL_NUM, WORK_TYPE, DATE_TIME_STAMP)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_WI_USER_STAMP' AND object_id = OBJECT_ID('raw_.WORK_INSTRUCTION_VIEW2'))
+    DROP INDEX IX_WI_USER_STAMP ON raw_.WORK_INSTRUCTION_VIEW2;
+CREATE NONCLUSTERED INDEX IX_WI_USER_STAMP 
+ON raw_.WORK_INSTRUCTION_VIEW2(USER_STAMP, DATE_TIME_STAMP)
+INCLUDE (WORK_TYPE, INSTRUCTION_TYPE, CONDITION)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.TRANSACTION_HISTORY
+PRINT 'Создание индексов для raw_.TRANSACTION_HISTORY...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TRANS_HIST_TYPE_STAMP' AND object_id = OBJECT_ID('raw_.TRANSACTION_HISTORY'))
+    DROP INDEX IX_TRANS_HIST_TYPE_STAMP ON raw_.TRANSACTION_HISTORY;
+CREATE NONCLUSTERED INDEX IX_TRANS_HIST_TYPE_STAMP 
+ON raw_.TRANSACTION_HISTORY(TRANSACTION_TYPE, DATE_TIME_STAMP)
+INCLUDE (USER_STAMP, WAREHOUSE)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TRANS_HIST_USER' AND object_id = OBJECT_ID('raw_.TRANSACTION_HISTORY'))
+    DROP INDEX IX_TRANS_HIST_USER ON raw_.TRANSACTION_HISTORY;
+CREATE NONCLUSTERED INDEX IX_TRANS_HIST_USER 
+ON raw_.TRANSACTION_HISTORY(USER_STAMP, DATE_TIME_STAMP)
+INCLUDE (TRANSACTION_TYPE)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.Shtraf_Edit (дополнительный)
+PRINT 'Создание индекса для raw_.Shtraf_Edit (reference_id)...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SHTRAF_REF_USER' AND object_id = OBJECT_ID('raw_.Shtraf_Edit'))
+    DROP INDEX IX_SHTRAF_REF_USER ON raw_.Shtraf_Edit;
+CREATE NONCLUSTERED INDEX IX_SHTRAF_REF_USER 
+ON raw_.Shtraf_Edit(reference_id, [user])
+INCLUDE (name, price)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.UPLOAD_RECEIPT_HEADER (дополнительный)
+PRINT 'Создание индекса для raw_.UPLOAD_RECEIPT_HEADER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_URH_CONDITION' AND object_id = OBJECT_ID('raw_.UPLOAD_RECEIPT_HEADER'))
+    DROP INDEX IX_URH_CONDITION ON raw_.UPLOAD_RECEIPT_HEADER;
+CREATE NONCLUSTERED INDEX IX_URH_CONDITION 
+ON raw_.UPLOAD_RECEIPT_HEADER(INTERFACE_CONDITION, DATE_TIME_STAMP)
+INCLUDE (RECEIPT_ID, INTERFACE_RECORD_ID)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.UPLOAD_RECEIPT_CONTAINER (дополнительный)
+PRINT 'Создание индекса для raw_.UPLOAD_RECEIPT_CONTAINER...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_URC_LINK' AND object_id = OBJECT_ID('raw_.UPLOAD_RECEIPT_CONTAINER'))
+    DROP INDEX IX_URC_LINK ON raw_.UPLOAD_RECEIPT_CONTAINER;
+CREATE NONCLUSTERED INDEX IX_URC_LINK 
+ON raw_.UPLOAD_RECEIPT_CONTAINER(INTERFACE_LINK_ID, ITEM)
+INCLUDE (USER_DEF6, RECEIPT_ID)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+-- raw_.labor_management (дополнительный)
+PRINT 'Создание индекса для raw_.labor_management...';
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_LABOR_USER_DEF1' AND object_id = OBJECT_ID('raw_.labor_management'))
+    DROP INDEX IX_LABOR_USER_DEF1 ON raw_.labor_management;
+CREATE NONCLUSTERED INDEX IX_LABOR_USER_DEF1 
+ON raw_.labor_management(USER_NAME, user_def1, DATE_TIME_STAMP)
+INCLUDE (activity_type)
+WITH (DROP_EXISTING = OFF, ONLINE = OFF);
+
+PRINT '✅ Индексы для справочников созданы';
+
+-- ============================================================================
+-- ИТОГИ
+-- ============================================================================
+PRINT '';
+PRINT '=== СОЗДАНИЕ ИНДЕКСОВ ЗАВЕРШЕНО ===';
+PRINT 'Дата завершения: ' + CAST(GETDATE() AS NVARCHAR(50));
+PRINT '';
+PRINT 'Создано индексов:';
+PRINT '  - raw_.таблицы: 21 индекс';
+PRINT '  - dwh.таблицы: 18 индексов';
+PRINT '  - справочники: 12 индексов';
+PRINT '  - ВСЕГО: 51 индекс';
+PRINT '';
+PRINT '⚠️ ВНИМАНИЕ: После создания индексов рекомендуется:';
+PRINT '  1. Обновить статистику: EXEC sp_updatestats';
+PRINT '  2. Перезапустить ETL-скрипт';
+
+-- Обновление статистики
+PRINT '';
+PRINT 'Обновление статистики...';
+EXEC sp_updatestats;
+PRINT '✅ Статистика обновлена';

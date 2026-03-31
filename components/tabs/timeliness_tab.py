@@ -7,23 +7,19 @@ def create_timeliness_tab():
         html.Div([
             html.Div([
                 html.Div("Приходов принято в срок", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="timely-arrivals-kpi", style={'color': '#4CAF50', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div("↗ за последнюю неделю", style={'color': '#4CAF50', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div(id="timely-arrivals-kpi", style={'color': '#4CAF50', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s'}),
             html.Div([
                 html.Div("Собрано заказов в срок", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="timely-orders-kpi", style={'color': '#2196F3', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div("↗ за последнюю неделю", style={'color': '#2196F3', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div(id="timely-orders-kpi", style={'color': '#2196F3', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.3s'}),
             html.Div([
                 html.Div("Просроченных приходов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="delayed-arrivals-kpi", style={'color': '#F44336', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div("↘ с предыдущего периода", style={'color': '#F44336', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div(id="delayed-arrivals-kpi", style={'color': '#F44336', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
             html.Div([
                 html.Div("Просроченных заказов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="delayed-orders-kpi", style={'color': '#FF9800', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div("↘ с предыдущего периода", style={'color': '#FF9800', 'fontSize': '14px', 'textAlign': 'center'})
+                html.Div(id="delayed-orders-kpi", style={'color': '#FF9800', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
             ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s'})
         ], className="kpi-row"),
         
@@ -31,28 +27,32 @@ def create_timeliness_tab():
             # Левая панель: таблица заказов (уменьшаем высоту)
             html.Div([
                 html.Div([
-                    html.H3("Таблица заказов", 
+                    html.H3("Список прихода",
                            style={'color': '#333', 'margin': '0', 'fontSize': '20px', 'flex': '1', 'fontWeight': 'bold', 'padding': '20px'}),
                 ], style={
-                    'background': 'white', 
-                    'padding': '0', 
-                    'borderRadius': '12px 12px 0 0', 
+                    'background': 'white',
+                    'padding': '0',
+                    'borderRadius': '12px 12px 0 0',
                     'margin': '0'
                 }),
                 html.Div([
                     html.Table([
                         html.Thead(html.Tr([
-                            html.Th('ID заказа', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Тип', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                            html.Th('Номер в WMS', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                            html.Th('Номер Веста', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                            html.Th('Поставщик', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                            html.Th('Тип прихода', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
                             html.Th('Дата создания', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('До просрочки', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
+                            html.Th('Строк', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                            html.Th('Время выполнения', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                            html.Th('Просрочится через', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                            html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
                         ])),
-                        html.Tbody(id='orders-table-body')
+                        html.Tbody(id='receipt-list-table-body')
                     ], style={'width': '100%', 'borderCollapse': 'collapse'})
                 ], className="table-container", style={
-                    'height': '680px',  # Уменьшаем высоту для выравнивания
-                    'overflowY': 'auto', 
+                    'height': '680px',
+                    'overflowY': 'auto',
                     'borderRadius': '0 0 12px 12px'
                 })
             ], className="left-panel dashboard-element", style={

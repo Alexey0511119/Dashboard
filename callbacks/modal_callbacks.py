@@ -139,17 +139,18 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                 earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
 
                 # ПОЛУЧАЕМ ДАННЫЕ О ВРЕМЕНИ РАБОТЫ И ПРОСТОЯ ИЗ НОВОЙ ТАБЛИЦЫ
-                print(f"\n{'='*60}")
-                print(f"=== ОТЛАДКА: Получение данных о времени работы ===")
-                print(f"Сотрудник (ФИО): {employee_name}")
-                print(f"Период: {date_range['start_date']} - {date_range['end_date']}")
-                
+                # Отладка отключена
+                # print(f"\n{'='*60}")
+                # print(f"=== ОТЛАДКА: Получение данных о времени работы ===")
+                # print(f"Сотрудник (ФИО): {employee_name}")
+                # print(f"Период: {date_range['start_date']} - {date_range['end_date']}")
+
                 idle_data = get_employee_idle_intervals(employee_name,
                                                         date_range['start_date'],
                                                         date_range['end_date'])
-                
-                print(f"Получены данные: {idle_data}")
-                print(f"{'='*60}\n")
+
+                # print(f"Получены данные: {idle_data}")
+                # print(f"{'='*60}\n")
 
                 # Используем реальные данные из новой таблицы
                 total_work_minutes = idle_data.get('total_work_minutes', 0)

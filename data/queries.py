@@ -556,6 +556,7 @@ def get_problematic_hours(start_date, end_date):
 def get_error_hours_top_data(start_date, end_date):
     """Получение данных для топ-5 часов с наибольшим процентом ошибок"""
 
+    # Отладка отключена
     # print(f"DEBUG [get_error_hours_top_data]: Начало обработки периода {start_date} - {end_date}")
 
     # 1. Проверяем, есть ли вообще заказы с ошибками
@@ -576,6 +577,7 @@ def get_error_hours_top_data(start_date, end_date):
         'end_date': end_date
     })
 
+    # Отладка отключена
     # print(f"DEBUG: Всего ошибок в raw_shtraf_edit: {check_result[0][0] if check_result else 0}")
 
     # Основной запрос с простой и понятной логикой
@@ -633,6 +635,7 @@ def get_error_hours_top_data(start_date, end_date):
     LIMIT 5
     """
 
+    # Отладка отключена
     # print(f"DEBUG: Выполняем основной запрос для периода {start_date} - {end_date}")
 
     result = execute_query_cached(query, {
@@ -642,6 +645,7 @@ def get_error_hours_top_data(start_date, end_date):
 
     error_hours_data = []
     if result:
+        # Отладка отключена
         # print(f"DEBUG: Основной запрос вернул {len(result)} записей")
         for i, row in enumerate(result):
             try:
@@ -658,6 +662,7 @@ def get_error_hours_top_data(start_date, end_date):
                     'error_percentage': error_percentage,
                     'error_types': error_types
                 })
+                # Отладка отключена
                 # print(f"DEBUG: Запись {i+1}: Час {hour}: {error_count} ошибок из {total_orders} заказов ({error_percentage}%)")
             except Exception as e:
                 print(f"ERROR processing row {row}: {e}")
@@ -665,10 +670,12 @@ def get_error_hours_top_data(start_date, end_date):
 
     # Упрощаем логику демо-данных: только если ВООБЩЕ нет ошибок
     if not error_hours_data and check_result and check_result[0][0] == 0:
+        # Отладка отключена
         # print(f"DEBUG: ВНИМАНИЕ: Вообще нет ошибок за период {start_date} - {end_date}")
         # print(f"DEBUG: Показываем сообщение 'Нет данных' вместо демо-данных")
         return []
 
+    # Отладка отключена
     # print(f"DEBUG: Итоговые данные: {len(error_hours_data)} записей")
     return error_hours_data
 

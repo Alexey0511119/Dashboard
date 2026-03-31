@@ -44,14 +44,19 @@ def update_main_kpi_cards(date_range):
         revision_stats = get_revision_stats()
         storage_stats = get_storage_cells_stats()
 
-        # Форматируем KPI значения для ревизий
-        total_revisions = f"{revision_stats['total_revisions']:,}"
-        open_revisions = f"{revision_stats['open_revisions']:,}"
-        in_process_revisions = f"{revision_stats['in_process_revisions']:,}"
+        # Форматируем KPI значения для ревизий - защищаемся от None
+        total_revisions = f"{revision_stats.get('total_revisions') or 0:,}"
+        open_revisions = f"{revision_stats.get('open_revisions') or 0:,}"
+        in_process_revisions = f"{revision_stats.get('in_process_revisions') or 0:,}"
 
-        # Форматируем KPI значения для ячеек
-        storage_kpi = f"{storage_stats['occupied_cells']}/{storage_stats['free_cells']}"
-        storage_detail = f"{storage_stats['occupied_percent']}% занято | {storage_stats['free_percent']}% своб."
+        # Форматируем KPI значения для ячеек - защищаемся от None
+        occupied = storage_stats.get('occupied_cells') or 0
+        free = storage_stats.get('free_cells') or 0
+        storage_kpi = f"{occupied}/{free}"
+        
+        occ_pct = storage_stats.get('occupied_percent') or 0
+        free_pct = storage_stats.get('free_percent') or 0
+        storage_detail = f"{occ_pct}% занято | {free_pct}% своб."
     except Exception as e:
         print(f"Error getting revision/storage stats: {e}")
         total_revisions = "0"
@@ -82,15 +87,17 @@ def update_main_kpi_cards(date_range):
         # Получаем остальные данные
         accuracy, orders_without_errors, total_orders_accuracy, error_orders = get_order_accuracy(start_date, end_date)
 
-        # Форматируем KPI значения
+        # Форматируем KPI значения - защищаемся от None
 
         # Ошибки размещения
-        error_percentage = f"{placement_stats['error_percentage']}%"
-        correct_count = f"{placement_stats['correct_count']:,}"
-        error_count = f"{placement_stats['error_count']:,}"
+        error_pct = placement_stats.get('error_percentage') or 0
+        error_percentage = f"{error_pct}%"
+        correct_count = f"{placement_stats.get('correct_count') or 0:,}"
+        error_count = f"{placement_stats.get('error_count') or 0:,}"
 
-        # Точность заказов
-        accuracy_str = f"{accuracy:.1f}%"
+        # Точность заказов - защищаемся от None
+        accuracy_val = accuracy if accuracy is not None else 0
+        accuracy_str = f"{accuracy_val:.1f}%"
 
         return (
             total_revisions,

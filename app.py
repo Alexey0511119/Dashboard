@@ -506,6 +506,30 @@ app.index_string = f'''
             .DateRangePickerInput__withBorder {{
                 border-radius: 4px;
                 border: 1px solid #ddd;
+                background: white;
+                padding: 4px 8px;
+            }}
+            /* Делаем поле ввода компактным */
+            .DateRangePickerInput, .DateInput {{
+                display: inline-block !important;
+                width: auto !important;
+            }}
+            .DateInput_input {{
+                font-size: 12px !important;
+                padding: 4px 6px !important;
+                width: 90px !important;
+                height: 28px !important;
+                border: 1px solid #ddd !important;
+                border-radius: 3px !important;
+                text-align: center !important;
+            }}
+            /* Скрываем разделитель между датами */
+            .DateRangePickerInput_arrow {{
+                display: none !important;
+            }}
+            /* СКРЫВАЕМ ТОЛЬКО КАЛЕНДАРЬ */
+            .DayPicker, .DayPicker-wrapper, .DayPicker-portal {{
+                display: none !important;
             }}
             /* Для мобильных устройств */
             @media (max-width: 768px) {{

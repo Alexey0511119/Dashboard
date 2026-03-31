@@ -1,0 +1,219 @@
+2026-03-25 13:32:02,140 - INFO - ╔==============================================================================╗
+2026-03-25 13:32:02,142 - INFO - ║                    3-ДНЕВНЫЙ ETL ПАЙПЛАЙН                                 ║
+2026-03-25 13:32:02,163 - INFO - ╚==============================================================================╝
+2026-03-25 13:32:02,163 - INFO - 📅 Время запуска: 2026-03-25 13:32:02
+2026-03-25 13:32:02,164 - INFO - 📁 Директория: C:\Users\A.Gorbatenko\Documents\Dashboard\script
+2026-03-25 13:32:02,172 - INFO - ================================================================================
+2026-03-25 13:32:02,173 - INFO - ================================================================================
+2026-03-25 13:32:02,183 - INFO - ШАГ 1: Обновление сырых данных (reload_3days.py)
+2026-03-25 13:32:02,183 - INFO - ================================================================================
+2026-03-25 13:32:02,208 - INFO - 🚀 Запуск: C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py
+2026-03-25 13:32:02,216 - INFO - --------------------------------------------------------------------------------
+2026-03-25 13:32:02,356 - INFO -   2026-03-25 13:32:02,355 - INFO - ================================================================================
+2026-03-25 13:32:02,356 - INFO -   2026-03-25 13:32:02,356 - INFO - \U0001f680 BULK INSERT: ОЧЕНЬ БЫСТРОЕ ОБНОВЛЕНИЕ ЗА 3 ДНЯ
+2026-03-25 13:32:02,357 - INFO -   2026-03-25 13:32:02,356 - INFO - ================================================================================
+2026-03-25 13:32:02,357 - INFO -   2026-03-25 13:32:02,356 - INFO - \U0001f4ca Всего таблиц: 21
+2026-03-25 13:32:02,358 - INFO -   2026-03-25 13:32:02,357 - INFO - \U0001f3af Целевая БД: olap2_fixed.raw_
+2026-03-25 13:32:02,358 - INFO -   2026-03-25 13:32:02,357 - INFO - ================================================================================
+2026-03-25 13:32:02,358 - INFO -   2026-03-25 13:32:02,357 - INFO -
+2026-03-25 13:32:02,358 - INFO -   \U0001f4cc [1/21] Обработка: ORDER_DETAIL
+2026-03-25 13:32:02,358 - INFO -   2026-03-25 13:32:02,357 - INFO -
+2026-03-25 13:32:02,359 - INFO -   2026-03-25 13:32:02,357 - INFO - ============================================================
+2026-03-25 13:32:02,359 - INFO -   2026-03-25 13:32:02,357 - INFO - ТАБЛИЦА [1/21]: ORDER_DETAIL
+2026-03-25 13:32:02,359 - INFO -   2026-03-25 13:32:02,357 - INFO - ============================================================
+2026-03-25 13:32:02,359 - INFO -   2026-03-25 13:32:02,357 - INFO -    \U0001f4c1 Источник: ils, Поле даты: DATE_TIME_STAMP
+2026-03-25 13:32:02,359 - INFO -   2026-03-25 13:32:02,357 - INFO -    \U0001f50c Шаг 1/6: Подключение к источнику (ils)...
+2026-03-25 13:32:02,390 - INFO -   2026-03-25 13:32:02,390 - INFO -       \u2705 Подключено
+2026-03-25 13:32:02,391 - INFO -   2026-03-25 13:32:02,390 - INFO -    \U0001f50c Шаг 2/6: Подключение к целевой БД...
+2026-03-25 13:32:02,479 - INFO -   2026-03-25 13:32:02,478 - INFO -       \u2705 Подключено
+2026-03-25 13:32:02,480 - INFO -   2026-03-25 13:32:02,479 - INFO -    \U0001f4cb Шаг 3/6: Получение структуры таблицы...
+2026-03-25 13:32:02,490 - INFO -   2026-03-25 13:32:02,489 - INFO -       \u2705 Найдено колонок: 126
+2026-03-25 13:32:02,490 - INFO -   2026-03-25 13:32:02,489 - INFO -    \U0001f4e5 Шаг 4/6: Чтение данных из источника...
+2026-03-25 13:32:02,504 - INFO -   2026-03-25 13:32:02,503 - INFO -       \u2705 Прочитано: 0 строк (за 0.01 сек)
+2026-03-25 13:32:02,508 - INFO -   2026-03-25 13:32:02,504 - INFO -       \u2139\ufe0f Нет данных
+2026-03-25 13:32:02,509 - INFO -   2026-03-25 13:32:02,505 - INFO -
+2026-03-25 13:32:02,509 - INFO -   \U0001f4cc [2/21] Обработка: ORDER_HEADER
+2026-03-25 13:32:02,510 - INFO -   2026-03-25 13:32:02,505 - INFO -
+2026-03-25 13:32:02,511 - INFO -   2026-03-25 13:32:02,506 - INFO - ============================================================
+2026-03-25 13:32:02,511 - INFO -   2026-03-25 13:32:02,506 - INFO - ТАБЛИЦА [2/21]: ORDER_HEADER
+2026-03-25 13:32:02,511 - INFO -   2026-03-25 13:32:02,506 - INFO - ============================================================
+2026-03-25 13:32:02,511 - INFO -   2026-03-25 13:32:02,506 - INFO -    \U0001f4c1 Источник: ils, Поле даты: ORDER_DATE
+2026-03-25 13:32:02,512 - INFO -   2026-03-25 13:32:02,507 - INFO -    \U0001f50c Шаг 1/6: Подключение к источнику (ils)...
+2026-03-25 13:32:02,526 - INFO -   2026-03-25 13:32:02,526 - INFO -       \u2705 Подключено
+2026-03-25 13:32:02,527 - INFO -   2026-03-25 13:32:02,526 - INFO -    \U0001f50c Шаг 2/6: Подключение к целевой БД...
+2026-03-25 13:32:02,579 - INFO -   2026-03-25 13:32:02,579 - INFO -       \u2705 Подключено
+2026-03-25 13:32:02,580 - INFO -   2026-03-25 13:32:02,579 - INFO -    \U0001f4cb Шаг 3/6: Получение структуры таблицы...
+2026-03-25 13:32:02,587 - INFO -   2026-03-25 13:32:02,586 - INFO -       \u2705 Найдено колонок: 114
+2026-03-25 13:32:02,590 - INFO -   2026-03-25 13:32:02,586 - INFO -    \U0001f4e5 Шаг 4/6: Чтение данных из источника...
+2026-03-25 13:32:02,592 - INFO -   2026-03-25 13:32:02,592 - INFO -       \u2705 Прочитано: 0 строк (за 0.01 сек)
+2026-03-25 13:32:02,592 - INFO -   2026-03-25 13:32:02,592 - INFO -       \u2139\ufe0f Нет данных
+2026-03-25 13:32:02,593 - INFO -   2026-03-25 13:32:02,592 - INFO -
+2026-03-25 13:32:02,593 - INFO -   \U0001f4cc [3/21] Обработка: RECEIPT_DETAIL
+2026-03-25 13:32:02,594 - INFO -   2026-03-25 13:32:02,593 - INFO -
+2026-03-25 13:32:02,595 - INFO -   2026-03-25 13:32:02,593 - INFO - ============================================================
+2026-03-25 13:32:02,596 - INFO -   2026-03-25 13:32:02,593 - INFO - ТАБЛИЦА [3/21]: RECEIPT_DETAIL
+2026-03-25 13:32:02,597 - INFO -   2026-03-25 13:32:02,593 - INFO - ============================================================
+2026-03-25 13:32:02,597 - INFO -   2026-03-25 13:32:02,593 - INFO -    \U0001f4c1 Источник: ils, Поле даты: DATE_TIME_STAMP
+2026-03-25 13:32:02,598 - INFO -   2026-03-25 13:32:02,594 - INFO -    \U0001f50c Шаг 1/6: Подключение к источнику (ils)...
+2026-03-25 13:32:02,609 - INFO -   2026-03-25 13:32:02,609 - INFO -       \u2705 Подключено
+2026-03-25 13:32:02,610 - INFO -   2026-03-25 13:32:02,609 - INFO -    \U0001f50c Шаг 2/6: Подключение к целевой БД...
+2026-03-25 13:32:02,650 - INFO -   2026-03-25 13:32:02,650 - INFO -       \u2705 Подключено
+2026-03-25 13:32:02,651 - INFO -   2026-03-25 13:32:02,650 - INFO -    \U0001f4cb Шаг 3/6: Получение структуры таблицы...
+2026-03-25 13:32:02,655 - INFO -   2026-03-25 13:32:02,655 - INFO -       \u2705 Найдено колонок: 83
+2026-03-25 13:32:02,656 - INFO -   2026-03-25 13:32:02,655 - INFO -    \U0001f4e5 Шаг 4/6: Чтение данных из источника...
+2026-03-25 13:32:02,814 - INFO -   2026-03-25 13:32:02,813 - INFO -       \u2705 Прочитано: 1,563 строк (за 0.16 сек)
+2026-03-25 13:32:02,814 - INFO -   2026-03-25 13:32:02,814 - INFO -    \U0001f5d1\ufe0f Шаг 5/6: Удаление старых данных...
+2026-03-25 13:32:02,829 - INFO -   2026-03-25 13:32:02,828 - INFO -       \U0001f5d1\ufe0f Удалено: 0 строк (за 0.01 сек)
+2026-03-25 13:32:02,829 - INFO -   2026-03-25 13:32:02,829 - INFO -    \U0001f4ca Шаг 6/6: BULK INSERT...
+2026-03-25 13:32:02,865 - INFO -   2026-03-25 13:32:02,865 - INFO -       \U0001f4c1 CSV создан: 0.85 MB (за 0.04 сек)
+2026-03-25 13:32:02,917 - INFO -   2026-03-25 13:32:02,917 - ERROR -       \u274c Ошибка вставки: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:02,925 - INFO -   2026-03-25 13:32:02,925 - ERROR -    \u274c ОШИБКА: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:02,931 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:02,932 - INFO -   File "src/pymssql/_pymssql.pyx", line 447, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:02,932 - INFO -   File "src/pymssql/_mssql.pyx", line 1125, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:02,932 - INFO -   File "src/pymssql/_mssql.pyx", line 1156, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:02,932 - INFO -   File "src/pymssql/_mssql.pyx", line 1289, in pymssql._mssql.MSSQLConnection.format_and_run_query
+2026-03-25 13:32:02,934 - INFO -   File "src/pymssql/_mssql.pyx", line 1855, in pymssql._mssql.check_cancel_and_raise
+2026-03-25 13:32:02,935 - INFO -   File "src/pymssql/_mssql.pyx", line 1901, in pymssql._mssql.raise_MSSQLDatabaseException
+2026-03-25 13:32:02,936 - INFO -   pymssql._mssql.MSSQLDatabaseException: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:02,937 - INFO -   During handling of the above exception, another exception occurred:
+2026-03-25 13:32:02,937 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:02,938 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 310, in reload_table_bulk
+2026-03-25 13:32:02,938 - INFO -   inserted = bulk_insert_table(csv_file, target_table, columns, logger)
+2026-03-25 13:32:02,939 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 139, in bulk_insert_table
+2026-03-25 13:32:02,939 - INFO -   cursor.execute(f"ALTER DATABASE {DST_DATABASE} SET RECOVERY SIMPLE")
+2026-03-25 13:32:02,939 - INFO -   ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-25 13:32:02,939 - INFO -   File "src/pymssql/_pymssql.pyx", line 465, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:02,939 - INFO -   pymssql.exceptions.OperationalError: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:02,942 - INFO -   2026-03-25 13:32:02,941 - INFO -
+2026-03-25 13:32:02,942 - INFO -   \U0001f4cc [4/21] Обработка: RECEIPT_HEADER
+2026-03-25 13:32:02,943 - INFO -   2026-03-25 13:32:02,942 - INFO -
+2026-03-25 13:32:02,943 - INFO -   2026-03-25 13:32:02,942 - INFO - ============================================================
+2026-03-25 13:32:02,943 - INFO -   2026-03-25 13:32:02,942 - INFO - ТАБЛИЦА [4/21]: RECEIPT_HEADER
+2026-03-25 13:32:02,944 - INFO -   2026-03-25 13:32:02,942 - INFO - ============================================================
+2026-03-25 13:32:02,944 - INFO -   2026-03-25 13:32:02,942 - INFO -    \U0001f4c1 Источник: ils, Поле даты: RECEIPT_DATE
+2026-03-25 13:32:02,944 - INFO -   2026-03-25 13:32:02,942 - INFO -    \U0001f50c Шаг 1/6: Подключение к источнику (ils)...
+2026-03-25 13:32:02,958 - INFO -   2026-03-25 13:32:02,958 - INFO -       \u2705 Подключено
+2026-03-25 13:32:02,959 - INFO -   2026-03-25 13:32:02,958 - INFO -    \U0001f50c Шаг 2/6: Подключение к целевой БД...
+2026-03-25 13:32:03,005 - INFO -   2026-03-25 13:32:03,005 - INFO -       \u2705 Подключено
+2026-03-25 13:32:03,006 - INFO -   2026-03-25 13:32:03,005 - INFO -    \U0001f4cb Шаг 3/6: Получение структуры таблицы...
+2026-03-25 13:32:03,010 - INFO -   2026-03-25 13:32:03,010 - INFO -       \u2705 Найдено колонок: 81
+2026-03-25 13:32:03,011 - INFO -   2026-03-25 13:32:03,010 - INFO -    \U0001f4e5 Шаг 4/6: Чтение данных из источника...
+2026-03-25 13:32:03,059 - INFO -   2026-03-25 13:32:03,059 - INFO -       \u2705 Прочитано: 341 строк (за 0.05 сек)
+2026-03-25 13:32:03,059 - INFO -   2026-03-25 13:32:03,059 - INFO -    \U0001f5d1\ufe0f Шаг 5/6: Удаление старых данных...
+2026-03-25 13:32:03,074 - INFO -   2026-03-25 13:32:03,074 - INFO -       \U0001f5d1\ufe0f Удалено: 0 строк (за 0.02 сек)
+2026-03-25 13:32:03,075 - INFO -   2026-03-25 13:32:03,074 - INFO -    \U0001f4ca Шаг 6/6: BULK INSERT...
+2026-03-25 13:32:03,091 - INFO -   2026-03-25 13:32:03,090 - INFO -       \U0001f4c1 CSV создан: 0.23 MB (за 0.02 сек)
+2026-03-25 13:32:03,147 - INFO -   2026-03-25 13:32:03,146 - ERROR -       \u274c Ошибка вставки: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:03,153 - INFO -   2026-03-25 13:32:03,152 - ERROR -    \u274c ОШИБКА: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:03,156 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:03,157 - INFO -   File "src/pymssql/_pymssql.pyx", line 447, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:03,158 - INFO -   File "src/pymssql/_mssql.pyx", line 1125, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:03,158 - INFO -   File "src/pymssql/_mssql.pyx", line 1156, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:03,159 - INFO -   File "src/pymssql/_mssql.pyx", line 1289, in pymssql._mssql.MSSQLConnection.format_and_run_query
+2026-03-25 13:32:03,159 - INFO -   File "src/pymssql/_mssql.pyx", line 1855, in pymssql._mssql.check_cancel_and_raise
+2026-03-25 13:32:03,160 - INFO -   File "src/pymssql/_mssql.pyx", line 1901, in pymssql._mssql.raise_MSSQLDatabaseException
+2026-03-25 13:32:03,161 - INFO -   pymssql._mssql.MSSQLDatabaseException: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:03,161 - INFO -   During handling of the above exception, another exception occurred:
+2026-03-25 13:32:03,162 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:03,162 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 310, in reload_table_bulk
+2026-03-25 13:32:03,162 - INFO -   inserted = bulk_insert_table(csv_file, target_table, columns, logger)
+2026-03-25 13:32:03,162 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 139, in bulk_insert_table
+2026-03-25 13:32:03,163 - INFO -   cursor.execute(f"ALTER DATABASE {DST_DATABASE} SET RECOVERY SIMPLE")
+2026-03-25 13:32:03,163 - INFO -   ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-25 13:32:03,163 - INFO -   File "src/pymssql/_pymssql.pyx", line 465, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:03,163 - INFO -   pymssql.exceptions.OperationalError: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:03,164 - INFO -   2026-03-25 13:32:03,158 - INFO -
+2026-03-25 13:32:03,166 - INFO -   \U0001f4cc [5/21] Обработка: SHIPMENT_DETAIL
+2026-03-25 13:32:03,167 - INFO -   2026-03-25 13:32:03,158 - INFO -
+2026-03-25 13:32:03,167 - INFO -   2026-03-25 13:32:03,159 - INFO - ============================================================
+2026-03-25 13:32:03,167 - INFO -   2026-03-25 13:32:03,159 - INFO - ТАБЛИЦА [5/21]: SHIPMENT_DETAIL
+2026-03-25 13:32:03,167 - INFO -   2026-03-25 13:32:03,159 - INFO - ============================================================
+2026-03-25 13:32:03,168 - INFO -   2026-03-25 13:32:03,159 - INFO -    \U0001f4c1 Источник: ils, Поле даты: DATE_TIME_STAMP
+2026-03-25 13:32:03,168 - INFO -   2026-03-25 13:32:03,159 - INFO -    \U0001f50c Шаг 1/6: Подключение к источнику (ils)...
+2026-03-25 13:32:03,177 - INFO -   2026-03-25 13:32:03,177 - INFO -       \u2705 Подключено
+2026-03-25 13:32:03,177 - INFO -   2026-03-25 13:32:03,177 - INFO -    \U0001f50c Шаг 2/6: Подключение к целевой БД...
+2026-03-25 13:32:03,218 - INFO -   2026-03-25 13:32:03,217 - INFO -       \u2705 Подключено
+2026-03-25 13:32:03,218 - INFO -   2026-03-25 13:32:03,217 - INFO -    \U0001f4cb Шаг 3/6: Получение структуры таблицы...
+2026-03-25 13:32:03,223 - INFO -   2026-03-25 13:32:03,223 - INFO -       \u2705 Найдено колонок: 154
+2026-03-25 13:32:03,223 - INFO -   2026-03-25 13:32:03,223 - INFO -    \U0001f4e5 Шаг 4/6: Чтение данных из источника...
+2026-03-25 13:32:05,364 - INFO -   2026-03-25 13:32:05,364 - INFO -       \u2705 Прочитано: 9,134 строк (за 2.14 сек)
+2026-03-25 13:32:05,364 - INFO -   2026-03-25 13:32:05,364 - INFO -    \U0001f5d1\ufe0f Шаг 5/6: Удаление старых данных...
+2026-03-25 13:32:05,429 - INFO -   2026-03-25 13:32:05,429 - INFO -       \U0001f5d1\ufe0f Удалено: 0 строк (за 0.06 сек)
+2026-03-25 13:32:05,430 - INFO -   2026-03-25 13:32:05,429 - INFO -    \U0001f4ca Шаг 6/6: BULK INSERT...
+2026-03-25 13:32:05,783 - INFO -   2026-03-25 13:32:05,783 - INFO -       \U0001f4c1 CSV создан: 7.58 MB (за 0.35 сек)
+2026-03-25 13:32:05,843 - INFO -   2026-03-25 13:32:05,843 - ERROR -       \u274c Ошибка вставки: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:05,882 - INFO -   2026-03-25 13:32:05,881 - ERROR -    \u274c ОШИБКА: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:05,885 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:05,886 - INFO -   File "src/pymssql/_pymssql.pyx", line 447, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:05,886 - INFO -   File "src/pymssql/_mssql.pyx", line 1125, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:05,886 - INFO -   File "src/pymssql/_mssql.pyx", line 1156, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:05,886 - INFO -   File "src/pymssql/_mssql.pyx", line 1289, in pymssql._mssql.MSSQLConnection.format_and_run_query
+2026-03-25 13:32:05,887 - INFO -   File "src/pymssql/_mssql.pyx", line 1855, in pymssql._mssql.check_cancel_and_raise
+2026-03-25 13:32:05,887 - INFO -   File "src/pymssql/_mssql.pyx", line 1901, in pymssql._mssql.raise_MSSQLDatabaseException
+2026-03-25 13:32:05,887 - INFO -   pymssql._mssql.MSSQLDatabaseException: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:05,888 - INFO -   During handling of the above exception, another exception occurred:
+2026-03-25 13:32:05,888 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:05,888 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 310, in reload_table_bulk
+2026-03-25 13:32:05,889 - INFO -   inserted = bulk_insert_table(csv_file, target_table, columns, logger)
+2026-03-25 13:32:05,889 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 139, in bulk_insert_table
+2026-03-25 13:32:05,889 - INFO -   cursor.execute(f"ALTER DATABASE {DST_DATABASE} SET RECOVERY SIMPLE")
+2026-03-25 13:32:05,889 - INFO -   ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-25 13:32:05,889 - INFO -   File "src/pymssql/_pymssql.pyx", line 465, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:05,890 - INFO -   pymssql.exceptions.OperationalError: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:05,909 - INFO -   2026-03-25 13:32:05,909 - INFO -
+2026-03-25 13:32:05,909 - INFO -   \U0001f4cc [6/21] Обработка: SHIPMENT_HEADER
+2026-03-25 13:32:05,909 - INFO -   2026-03-25 13:32:05,909 - INFO -
+2026-03-25 13:32:05,910 - INFO -   2026-03-25 13:32:05,909 - INFO - ============================================================
+2026-03-25 13:32:05,910 - INFO -   2026-03-25 13:32:05,909 - INFO - ТАБЛИЦА [6/21]: SHIPMENT_HEADER
+2026-03-25 13:32:05,910 - INFO -   2026-03-25 13:32:05,909 - INFO - ============================================================
+2026-03-25 13:32:05,910 - INFO -   2026-03-25 13:32:05,909 - INFO -    \U0001f4c1 Источник: ils, Поле даты: PLANNED_SHIP_DATE
+2026-03-25 13:32:05,910 - INFO -   2026-03-25 13:32:05,909 - INFO -    \U0001f50c Шаг 1/6: Подключение к источнику (ils)...
+2026-03-25 13:32:05,925 - INFO -   2026-03-25 13:32:05,925 - INFO -       \u2705 Подключено
+2026-03-25 13:32:05,926 - INFO -   2026-03-25 13:32:05,925 - INFO -    \U0001f50c Шаг 2/6: Подключение к целевой БД...
+2026-03-25 13:32:05,975 - INFO -   2026-03-25 13:32:05,975 - INFO -       \u2705 Подключено
+2026-03-25 13:32:05,975 - INFO -   2026-03-25 13:32:05,975 - INFO -    \U0001f4cb Шаг 3/6: Получение структуры таблицы...
+2026-03-25 13:32:05,981 - INFO -   2026-03-25 13:32:05,980 - INFO -       \u2705 Найдено колонок: 155
+2026-03-25 13:32:05,981 - INFO -   2026-03-25 13:32:05,981 - INFO -    \U0001f4e5 Шаг 4/6: Чтение данных из источника...
+2026-03-25 13:32:06,509 - INFO -   2026-03-25 13:32:06,509 - INFO -       \u2705 Прочитано: 1,065 строк (за 0.53 сек)
+2026-03-25 13:32:06,509 - INFO -   2026-03-25 13:32:06,509 - INFO -    \U0001f5d1\ufe0f Шаг 5/6: Удаление старых данных...
+2026-03-25 13:32:06,529 - INFO -   2026-03-25 13:32:06,529 - INFO -       \U0001f5d1\ufe0f Удалено: 0 строк (за 0.02 сек)
+2026-03-25 13:32:06,530 - INFO -   2026-03-25 13:32:06,529 - INFO -    \U0001f4ca Шаг 6/6: BULK INSERT...
+2026-03-25 13:32:06,594 - INFO -   2026-03-25 13:32:06,594 - INFO -       \U0001f4c1 CSV создан: 1.27 MB (за 0.07 сек)
+2026-03-25 13:32:06,639 - INFO -   2026-03-25 13:32:06,639 - ERROR -       \u274c Ошибка вставки: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:06,644 - INFO -   2026-03-25 13:32:06,644 - ERROR -    \u274c ОШИБКА: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:06,645 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:06,646 - INFO -   File "src/pymssql/_pymssql.pyx", line 447, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:06,646 - INFO -   File "src/pymssql/_mssql.pyx", line 1125, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:06,646 - INFO -   File "src/pymssql/_mssql.pyx", line 1156, in pymssql._mssql.MSSQLConnection.execute_query
+2026-03-25 13:32:06,647 - INFO -   File "src/pymssql/_mssql.pyx", line 1289, in pymssql._mssql.MSSQLConnection.format_and_run_query
+2026-03-25 13:32:06,647 - INFO -   File "src/pymssql/_mssql.pyx", line 1855, in pymssql._mssql.check_cancel_and_raise
+2026-03-25 13:32:06,647 - INFO -   File "src/pymssql/_mssql.pyx", line 1901, in pymssql._mssql.raise_MSSQLDatabaseException
+2026-03-25 13:32:06,647 - INFO -   pymssql._mssql.MSSQLDatabaseException: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:06,647 - INFO -   During handling of the above exception, another exception occurred:
+2026-03-25 13:32:06,648 - INFO -   Traceback (most recent call last):
+2026-03-25 13:32:06,648 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 310, in reload_table_bulk
+2026-03-25 13:32:06,648 - INFO -   inserted = bulk_insert_table(csv_file, target_table, columns, logger)
+2026-03-25 13:32:06,648 - INFO -   File "C:\Users\A.Gorbatenko\Documents\Dashboard\script\reload_3days_bulk.py", line 139, in bulk_insert_table
+2026-03-25 13:32:06,648 - INFO -   cursor.execute(f"ALTER DATABASE {DST_DATABASE} SET RECOVERY SIMPLE")
+2026-03-25 13:32:06,648 - INFO -   ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-25 13:32:06,649 - INFO -   File "src/pymssql/_pymssql.pyx", line 465, in pymssql._pymssql.Cursor.execute
+2026-03-25 13:32:06,649 - INFO -   pymssql.exceptions.OperationalError: (226, b'ALTER DATABASE statement not allowed within multi-statement transaction.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n')
+2026-03-25 13:32:06,649 - INFO -   2026-03-25 13:32:06,648 - INFO -
+2026-03-25 13:32:06,649 - INFO -   \U0001f4cc [7/21] Обработка: TRANSACTION_HISTORY
+2026-03-25 13:32:06,649 - INFO -   2026-03-25 13:32:06,648 - INFO -
+2026-03-25 13:32:06,649 - INFO -   2026-03-25 13:32:06,648 - INFO - ============================================================
+2026-03-25 13:32:06,650 - INFO -   2026-03-25 13:32:06,648 - INFO - ТАБЛИЦА [7/21]: TRANSACTION_HISTORY
+2026-03-25 13:32:06,650 - INFO -   2026-03-25 13:32:06,648 - INFO - ============================================================
+2026-03-25 13:32:06,650 - INFO -   2026-03-25 13:32:06,648 - INFO -    \U0001f4c1 Источник: ils, Поле даты: DATE_TIME_STAMP
+2026-03-25 13:32:06,652 - INFO -   2026-03-25 13:32:06,648 - INFO -    \U0001f50c Шаг 1/6: Подключение к источнику (ils)...
+2026-03-25 13:32:06,664 - INFO -   2026-03-25 13:32:06,663 - INFO -       \u2705 Подключено
+2026-03-25 13:32:06,665 - INFO -   2026-03-25 13:32:06,664 - INFO -    \U0001f50c Шаг 2/6: Подключение к целевой БД...
+2026-03-25 13:32:06,701 - INFO -   2026-03-25 13:32:06,701 - INFO -       \u2705 Подключено
+2026-03-25 13:32:06,702 - INFO -   2026-03-25 13:32:06,701 - INFO -    \U0001f4cb Шаг 3/6: Получение структуры таблицы...
+2026-03-25 13:32:06,705 - INFO -   2026-03-25 13:32:06,705 - INFO -       \u2705 Найдено колонок: 51
+2026-03-25 13:32:06,706 - INFO -   2026-03-25 13:32:06,705 - INFO -    \U0001f4e5 Шаг 4/6: Чтение данных из источника...
+2026-03-25 13:32:15,084 - INFO -   2026-03-25 13:32:15,083 - INFO -       \u2705 Прочитано: 124,708 строк (за 8.38 сек)
+2026-03-25 13:32:15,084 - INFO -   2026-03-25 13:32:15,083 - INFO -    \U0001f5d1\ufe0f Шаг 5/6: Удаление старых данных...
+2026-03-25 13:32:15,111 - INFO -   2026-03-25 13:32:15,111 - INFO -       \U0001f5d1\ufe0f Удалено: 0 строк (за 0.03 сек)
+2026-03-25 13:32:15,112 - INFO -   2026-03-25 13:32:15,111 - INFO -    \U0001f4ca Шаг 6/6: BULK INSERT...

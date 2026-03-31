@@ -63,7 +63,7 @@ def create_analytics_modal():
                 # ПЕРВЫЙ РЯД: Распределение операций по типам (на всю ширину)
                 html.Div([
                     html.Div([
-                        html.H4("Распределение операций по типам", 
+                        html.H4("Распределение операций по типам",
                                style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
                         dash_echarts.DashECharts(
                             id="operations-type-chart",
@@ -71,14 +71,14 @@ def create_analytics_modal():
                             style={'height': '350px', 'width': '100%'},
                             click_data=None
                         )
-                    ], className='analytics-chart-card', style={'height': '400px', 'width': '100%'})
-                ], style={'marginBottom': '20px'}),
+                    ], className='analytics-chart-card', style={'height': '550px', 'width': '100%'})
+                ], style={'marginBottom': '30px'}),
                 
                 # ВТОРОЙ РЯД: Периоды простоя (слева) + Распределение времени работы (справа)
                 html.Div([
                     # ЛЕВАЯ ЧАСТЬ: Периоды простоя (кликабельная)
                     html.Div([
-                        html.H4("Периоды простоя", 
+                        html.H4("Периоды простоя",
                                style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
                         dash_echarts.DashECharts(
                             id="idle-intervals-chart",
@@ -86,10 +86,10 @@ def create_analytics_modal():
                             style={'height': '350px', 'width': '100%'}
                         )
                     ], className='analytics-chart-card', style={'height': '400px', 'width': '48%', 'cursor': 'pointer'}),
-                    
+
                     # ПРАВАЯ ЧАСТЬ: Распределение времени работы
                     html.Div([
-                        html.H4("Распределение времени работы", 
+                        html.H4("Распределение времени работы",
                                style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
                         dash_echarts.DashECharts(
                             id="time-distribution-chart",
@@ -97,7 +97,7 @@ def create_analytics_modal():
                             style={'height': '350px', 'width': '100%'}
                         )
                     ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'})
-                ], style={'display': 'flex', 'justifyContent': 'space-between'})
+                ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '40px'})
                 
                 # БЛОК "Ключевые метрики качества" УДАЛЕН
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})

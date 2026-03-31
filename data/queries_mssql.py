@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timedelta
-from data.mssql_client import execute_query_cached
+from data.mssql_client import execute_query_cached, mssql_client
 
 # Глобальные переменные для кэширования данных
 PERFORMANCE_DATA_CACHE = []
@@ -143,32 +143,35 @@ def get_total_earnings(start_date, end_date):
         return 0.0
 
 def get_storage_cells_stats():
-    """Получение статистики по ячейкам хранения используя v_storage_current_status"""
+    """Получение статистики по ячейкам хранения используя v_storage_current_status
+    БЕЗ КЭШИРОВАНИЯ - для реального времени
+    """
     # Агрегируем данные из v_storage_current_status
     query = """
-    SELECT 
+    SELECT
         SUM(total_cells) as total_cells,
         SUM(occupied_cells) as occupied_cells,
         SUM(free_cells) as free_cells,
         AVG(occupancy_pct) as avg_occupancy
     FROM dm.v_storage_current_status
     """
-    
-    result = execute_query_cached(query)
-    
+
+    # Используем прямой запрос без кэша
+    result = mssql_client.execute(query)
+
     if result and result[0]:
         total_cells = int(result[0][0]) if result[0][0] else 0
         occupied_cells = int(result[0][1]) if result[0][1] else 0
         free_cells = int(result[0][2]) if result[0][2] else 0
         avg_occupancy = float(result[0][3]) if result[0][3] else 0.0
-        
+
         # Рассчитываем проценты
         occupied_percent = 0
         free_percent = 0
         if total_cells > 0:
             occupied_percent = round((occupied_cells / total_cells) * 100, 1)
             free_percent = round((free_cells / total_cells) * 100, 1)
-        
+
         return {
             'total_cells': total_cells,
             'occupied_cells': occupied_cells,
@@ -227,29 +230,32 @@ def get_order_accuracy(start_date, end_date):
 
 # Получение данных по отклоненным строкам для карточки
 def get_rejected_lines_summary(start_date, end_date):
-    """Получение данных по отклоненным строкам для карточки из dm.v_rejected_lines_summary"""
+    """Получение данных по отклоненным строкам для карточки из dm.v_rejected_lines_summary
+    БЕЗ КЭШИРОВАНИЯ - для реального времени
+    """
     try:
         # Основной запрос для получения статистики по отклоненным строкам
         query = """
-        SELECT 
+        SELECT
             total_rejected_lines,
             unique_orders,
             unique_items,
             last_rejection_date
         FROM dm.v_rejected_lines_summary
         """
-        
-        result = execute_query_cached(query)
-        
+
+        # Используем прямой запрос без кэша
+        result = mssql_client.execute(query)
+
         if result and len(result) > 0:
             row = result[0]
-            
+
             # Обрабатываем данные с проверкой на None
             total_rejected_lines = row[0] if row[0] is not None else 0
             unique_orders = row[1] if row[1] is not None else 0
             unique_items = row[2] if row[2] is not None else 0
             last_rejection_date = row[3] if row[3] is not None else None
-            
+
             return {
                 'total_rejected_lines': total_rejected_lines,
                 'unique_orders': unique_orders,
@@ -264,10 +270,10 @@ def get_rejected_lines_summary(start_date, end_date):
                 'unique_items': 0,
                 'last_rejection_date': None
             }
-            
+
     except Exception as e:
         print(f"ERROR: Ошибка в get_rejected_lines_summary: {e}")
-        
+
         # Возвращаем значения по умолчанию в случае ошибки
         return {
             'total_rejected_lines': 0,
@@ -278,7 +284,9 @@ def get_rejected_lines_summary(start_date, end_date):
 
 # Получение детальных данных по отклоненным строкам для модального окна
 def get_rejected_lines_detail(start_date, end_date, limit=100):
-    """Получение детальных данных по отклоненным строкам для модального окна из dm.v_rejected_lines_detail"""
+    """Получение детальных данных по отклоненным строкам для модального окна из dm.v_rejected_lines_detail
+    БЕЗ КЭШИРОВАНИЯ - для реального времени
+    """
     try:
         # Основной запрос для получения детальных данных
         # Используем CONVERT для корректной работы с датами
@@ -296,9 +304,10 @@ def get_rejected_lines_detail(start_date, end_date, limit=100):
         WHERE CAST(DATE_TIME_STAMP AS DATE) BETWEEN ? AND ?
         ORDER BY DATE_TIME_STAMP DESC
         """.format(limit=limit)
-        
-        result = execute_query_cached(query, (start_date, end_date))
-        
+
+        # Используем прямой запрос без кэша
+        result = mssql_client.execute(query, (start_date, end_date))
+
         detail_data = []
         if result:
             for row in result:
@@ -311,7 +320,7 @@ def get_rejected_lines_detail(start_date, end_date, limit=100):
                 pick_loc = row[5] if row[5] is not None else ''
                 pick_zone = row[6] if row[6] is not None else ''
                 date_time_stamp = row[7] if row[7] is not None else None
-                
+
                 detail_data.append({
                     'shipment_id': shipment_id,
                     'item': item,
@@ -322,12 +331,49 @@ def get_rejected_lines_detail(start_date, end_date, limit=100):
                     'pick_zone': pick_zone,
                     'date_time_stamp': date_time_stamp
                 })
-        
+
         return detail_data
-            
+
     except Exception as e:
         print(f"ERROR: Ошибка в get_rejected_lines_detail: {e}")
         return []
+
+# Получение данных списка приходов
+def get_receipt_list_data():
+    """Получение данных списка приходов из dwh.receipt_list"""
+    query = """
+    SELECT 
+        RECEIPT_ID as receipt_id,
+        ERP_ORDER_NUM as erp_order_num,
+        SOURCE_NAME as source_name,
+        RECEIPT_TYPE as receipt_type,
+        CREATION_DATE_TIME_STAMP as creation_date,
+        TOTAL_LINES as total_lines,
+        STATUS as status,
+        EXECUTION_TIME as execution_time,
+        OVERDUE_IN as overdue_in
+    FROM dwh.receipt_list
+    ORDER BY creation_date DESC
+    """
+    
+    result = execute_query_cached(query)
+    
+    receipt_list = []
+    if result:
+        for row in result:
+            receipt_list.append({
+                'receipt_id': row[0] if row[0] else '',
+                'erp_order_num': row[1] if row[1] else '',
+                'source_name': row[2] if row[2] else '',
+                'receipt_type': row[3] if row[3] else '',
+                'creation_date': row[4] if row[4] else '',
+                'total_lines': row[5] if row[5] else 0,
+                'status': row[6] if row[6] else '',
+                'execution_time': row[7] if row[7] else '',
+                'overdue_in': row[8] if row[8] else ''
+            })
+    
+    return receipt_list
 
 # Получение средней производительности сотрудников
 def get_avg_productivity(start_date, end_date):
@@ -761,8 +807,9 @@ def get_employee_work_idle_detail(employee_name, start_date, end_date):
 # Получение данных для топ-5 проблемных часов
 def get_problematic_hours(start_date, end_date):
     """Получение данных для топ-5 проблемных часов из dm.v_hourly_delays"""
+    # View уже содержит агрегированные данные, фильтрация не нужна
     query = """
-    SELECT 
+    SELECT TOP 5
         hour,
         total_orders,
         delayed_orders,
@@ -770,9 +817,9 @@ def get_problematic_hours(start_date, end_date):
     FROM dm.v_hourly_delays
     ORDER BY pct_delayed DESC
     """
-    
+
     result = execute_query_cached(query)
-    
+
     problematic_hours = []
     if result:
         for row in result[:5]:  # Берем только топ-5
@@ -781,7 +828,7 @@ def get_problematic_hours(start_date, end_date):
                 total_orders = int(row[1]) if row[1] is not None else 0
                 delayed_orders = int(row[2]) if row[2] is not None else 0
                 delay_percentage = float(row[3]) if row[3] is not None else 0.0
-                
+
                 problematic_hours.append({
                     'hour': hour,
                     'total_orders': total_orders,
@@ -791,14 +838,15 @@ def get_problematic_hours(start_date, end_date):
             except Exception as e:
                 print(f"Error processing problematic hours row: {e}")
                 continue
-    
+
     return problematic_hours
 
 # Получение данных для топ-5 часов с наибольшим процентом ошибок
 def get_error_hours_top_data(start_date, end_date):
     """Получение данных для топ-5 часов с наибольшим процентом ошибок из dm.v_hourly_errors"""
+    # View уже содержит агрегированные данные, фильтрация не нужна
     query = """
-    SELECT 
+    SELECT TOP 5
         hour,
         total_orders,
         error_orders,
@@ -806,9 +854,9 @@ def get_error_hours_top_data(start_date, end_date):
     FROM dm.v_hourly_errors
     ORDER BY pct_errors DESC
     """
-    
+
     result = execute_query_cached(query)
-    
+
     error_hours = []
     if result:
         for row in result[:5]:  # Берем только топ-5
@@ -817,7 +865,7 @@ def get_error_hours_top_data(start_date, end_date):
                 total_orders_in_hour = int(row[1]) if row[1] is not None else 0
                 error_orders_count = int(row[2]) if row[2] is not None else 0
                 error_percentage = float(row[3]) if row[3] is not None else 0.0
-                
+
                 error_hours.append({
                     'hour': hour,
                     'total_orders_in_hour': total_orders_in_hour,
@@ -828,7 +876,7 @@ def get_error_hours_top_data(start_date, end_date):
             except Exception as e:
                 print(f"Error processing error hours row: {e}")
                 continue
-    
+
     return error_hours
 
 # Получение данных для сравнения смен
@@ -1279,9 +1327,11 @@ def get_brigades_list_new():
 
 # Получение всех данных по ячейкам хранения
 def get_all_storage_data():
-    """Получение данных по ячейкам хранения из v_storage_current_status"""
+    """Получение данных по ячейкам хранения из v_storage_current_status
+    БЕЗ КЭШИРОВАНИЯ - для реального времени
+    """
     query = """
-    SELECT 
+    SELECT
         location_type,
         allocation_zone,
         work_zone,
@@ -1290,12 +1340,13 @@ def get_all_storage_data():
         occupied_cells,
         free_cells,
         occupancy_pct
-    FROM dm.v_storage_current_status 
+    FROM dm.v_storage_current_status
     ORDER BY location_type, allocation_zone
     """
-    
-    result = execute_query_cached(query)
-    
+
+    # Используем прямой запрос без кэша
+    result = mssql_client.execute(query)
+
     storage_data = []
     if result:
         for row in result:
@@ -1308,7 +1359,7 @@ def get_all_storage_data():
                 occupied_cells = int(row[5]) if row[5] else 0
                 free_cells = int(row[6]) if row[6] else 0
                 occupancy_pct = float(row[7]) if row[7] else 0.0
-                
+
                 storage_data.append({
                     'location_type': location_type,
                     'allocation_zone': allocation_zone,
@@ -1322,7 +1373,7 @@ def get_all_storage_data():
             except Exception as e:
                 print(f"Error processing storage row: {e}")
                 continue
-    
+
     return storage_data
 
 # Функция для обновления данных (аналог refresh_data)

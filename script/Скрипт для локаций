@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""
+ОТДЕЛЬНЫЙ СКРИПТ: ПОЛНАЯ ПЕРЕЗАПИСЬ LOCATION_INVENTORY
+Запускается отдельно от основного еженедельного скрипта
+"""
+import pymssql
+from datetime import datetime
+
+# Параметры подключения
+SRC_SERVER = '10.7.0.248'
+SRC_PORT = 1433
+SRC_DATABASE = 'ils'
+SRC_USER = 'manhreader'
+SRC_PASSWORD = 'August2021'
+
+DST_SERVER = '10.7.0.27'
+DST_DATABASE = 'olap2_fixed'
+DST_USER = 'sa'
+DST_PASSWORD = 'Rdflhfn600'
+
+TABLE_NAME = 'LOCATION_INVENTORY'
+TARGET_TABLE = 'LOCATION_INVENTORY'  # в схеме raw_
+
+def reload_location_inventory_full():
+    """Полная перезапись таблицы LOCATION_INVENTORY (TRUNCATE + INSERT)"""
+    
+    print("=" * 80)
+    print("🔄 ПОЛНАЯ ПЕРЕЗАПИСЬ LOCATION_INVENTORY")
+    print("=" * 80)
+    
+    start_time = datetime.now()
+    
+    src = None
+    dst = None
+    
+    try:
+        # Подключение к источнику
+        print("1. Подключение к источнику (ils)...")
+        src = pymssql.connect(
+            server=SRC_SERVER, 
+            port=SRC_PORT, 
+            user=SRC_USER,
+            password=SRC_PASSWORD, 
+            database=SRC_DATABASE, 
+            tds_version='7.0'
+        )
+        print("   ✓ Подключение к источнику установлено")
+        
+        # Подключение к целевой БД
+        print("2. Подключение к целевой БД...")
+        dst = pymssql.connect(
+            server=DST_SERVER, 
+            user=DST_USER, 
+            password=DST_PASSWORD,
+            database=DST_DATABASE, 
+            charset='UTF-8'
+        )
+        print("   ✓ Подключение к целевой БД установлено")
+        
+        src_cursor = src.cursor()
+        dst_cursor = dst.cursor()
+        
+        # Получаем колонки из целевой таблицы
+        print("\n3. Получение структуры таблицы...")
+        dst_cursor.execute("""
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = 'raw_' AND TABLE_NAME = %s
+            AND COLUMN_NAME NOT IN ('ROW_ID', 'row_hash')
+            ORDER BY ORDINAL_POSITION
+        """, (TARGET_TABLE,))
+        
+        columns = [row[0] for row in dst_cursor.fetchall()]
+        if not columns:
+            print(f"   ❌ Таблица raw_.{TARGET_TABLE} не найдена или не содержит колонок")
+            return
+        
+        column_list = ", ".join(columns)
+        print(f"   ✓ Найдено колонок: {len(columns)}")
+        
+        # Читаем ВСЕ данные из источника
+        print("\n4. Чтение данных из источника...")
+        query = f"SELECT {column_list} FROM {TABLE_NAME}"
+        print(f"   Выполняется запрос: {query}")
+        
+        src_cursor.execute(query)
+        rows = src_cursor.fetchall()
+        row_count = len(rows)
+        print(f"   ✓ Прочитано строк: {row_count:,}")
+        
+        if row_count == 0:
+            print("   ⚠ В источнике нет данных!")
+            return
+        
+        # Очищаем целевую таблицу (TRUNCATE)
+        print("\n5. Очистка целевой таблицы...")
+        dst_cursor.execute(f"TRUNCATE TABLE raw_.{TARGET_TABLE}")
+        print(f"   ✓ Таблица raw_.{TARGET_TABLE} очищена")
+        
+        # Вставляем данные
+        print(f"\n6. Загрузка {row_count:,} строк...")
+        
+        placeholders = ",".join(["%s"] * len(columns))
+        insert_sql = f"INSERT INTO raw_.{TARGET_TABLE} ({column_list}) VALUES ({placeholders})"
+        
+        # Загружаем пакетами по 5000 строк (LOCATION_INVENTORY может быть большой)
+        batch_size = 5000
+        loaded_count = 0
+        total_batches = (row_count + batch_size - 1) // batch_size
+        
+        for i in range(0, row_count, batch_size):
+            batch = rows[i:i + batch_size]
+            batch_num = i // batch_size + 1
+            
+            try:
+                dst_cursor.executemany(insert_sql, batch)
+                dst.commit()
+                loaded_count += len(batch)
+                print(f"   Пакет {batch_num}/{total_batches}: {len(batch):,} строк")
+            except Exception as batch_error:
+                print(f"   ⚠ Ошибка в пакете {batch_num}: {batch_error}")
+                # Пробуем по одной строке
+                for single_row in batch:
+                    try:
+                        dst_cursor.execute(insert_sql, single_row)
+                        loaded_count += 1
+                    except Exception as row_error:
+                        print(f"      Ошибка строки: {row_error}")
+                dst.commit()
+                print(f"   Пакет {batch_num} загружен по одной строке")
+        
+        # Проверка результата
+        print("\n7. Проверка загрузки...")
+        dst_cursor.execute(f"SELECT COUNT(*) FROM raw_.{TARGET_TABLE}")
+        count_in_target = dst_cursor.fetchone()[0]
+        
+        print(f"   Загружено строк: {loaded_count:,}")
+        print(f"   Строк в target: {count_in_target:,}")
+        
+        if row_count == count_in_target:
+            print("   ✅ ПОЛНОЕ СООТВЕТСТВИЕ: все данные загружены")
+        else:
+            print(f"   ⚠ НЕСООТВЕТСТВИЕ: source={row_count}, target={count_in_target}")
+        
+        # Логирование
+        print("\n8. Логирование...")
+        try:
+            dst_cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
+                               WHERE TABLE_SCHEMA = 'raw_' AND TABLE_NAME = 'etl_log')
+                CREATE TABLE raw_.etl_log (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    table_name NVARCHAR(100),
+                    rows_loaded INT,
+                    status NVARCHAR(20),
+                    error_message NVARCHAR(MAX),
+                    created_date DATETIME DEFAULT GETDATE()
+                )
+            """)
+            
+            dst_cursor.execute("""
+                INSERT INTO raw_.etl_log (table_name, rows_loaded, status) 
+                VALUES (%s, %s, %s)
+            """, (TABLE_NAME, loaded_count, 'Success'))
+            
+            dst.commit()
+            print("   ✅ Лог записан")
+        except Exception as log_error:
+            print(f"   ⚠ Ошибка логирования: {log_error}")
+        
+        # Итоги
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        
+        print("\n" + "=" * 80)
+        print("✅ ПОЛНАЯ ПЕРЕЗАПИСЬ ЗАВЕРШЕНА")
+        print("=" * 80)
+        print(f"Таблица: {TABLE_NAME}")
+        print(f"Загружено записей: {loaded_count:,}")
+        print(f"Время выполнения: {duration:.2f} сек")
+        print(f"Скорость: {loaded_count/duration:.0f} записей/сек")
+        print(f"Дата загрузки: {start_time}")
+        print("=" * 80)
+        
+    except Exception as e:
+        print(f"\n❌ КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if src:
+            src.close()
+        if dst:
+            dst.close()
+
+def main():
+    print("\n" + "=" * 80)
+    print("🚀 ЗАПУСК ПОЛНОЙ ПЕРЕЗАПИСИ LOCATION_INVENTORY")
+    print("=" * 80)
+    print("ВНИМАНИЕ: Будет выполнена ПОЛНАЯ перезапись таблицы!")
+    print("Все существующие данные в raw_.LOCATION_INVENTORY будут удалены.")
+    print("-" * 80)
+    
+    confirm = input("Продолжить? (y/n): ").strip().lower()
+    if confirm == 'y':
+        reload_location_inventory_full()
+    else:
+        print("Операция отменена")
+    
+    print("\nГотово!")
+
+if __name__ == "__main__":
+    main()

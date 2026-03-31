@@ -19,17 +19,17 @@ def update_orders_table(date_range):
     """Обновление таблицы заказов"""
     if not date_range:
         return []
-    
+
     start_date = date_range['start_date']
     end_date = date_range['end_date']
-    
+
     orders = get_orders_table(start_date, end_date)
-    
+
     table_rows = []
     for idx, order in enumerate(orders):
         row_class = ''
         status_color = '#9E9E9E'
-        
+
         if order['status'] == 'В процессе':
             row_class = 'orders-table-row-in-process'
             status_color = '#2196F3'
@@ -42,7 +42,7 @@ def update_orders_table(date_range):
         elif order['status'] == 'Без статуса':
             row_class = 'orders-table-row-no-status'
             status_color = '#9E9E9E'
-        
+
         table_rows.append(
             html.Tr([
                 html.Td(
@@ -68,22 +68,105 @@ def update_orders_table(date_range):
                     style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px'}
                 ),
                 html.Td(
-                    order['create_date'],
+                    order['date'],
                     style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px'}
                 ),
                 html.Td(
-                    "",
-                    style={
-                        'padding': '12px', 
-                        'borderBottom': '1px solid #eee', 
-                        'fontSize': '14px',
-                        'color': '#F44336'
-                    }
+                    order['overdue_in'],
+                    style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'textAlign': 'center'}
                 )
             ], className=row_class)
         )
-    
+
     return table_rows
+
+# Callback для обновления списка приходов
+@callback(
+    Output('receipt-list-table-body', 'children'),
+    [Input('global-date-range', 'data')]
+)
+def update_receipt_list_table(date_range):
+    """Обновление таблицы списка приходов"""
+    from data.queries_mssql import get_receipt_list_data
+    
+    receipt_list = get_receipt_list_data()
+
+    table_rows = []
+    for item in receipt_list:
+        # Определяем цвет статуса
+        status_color = '#9E9E9E'
+        if item['status'] == 'Ожидает приема':
+            status_color = '#FF9800'  # Оранжевый
+        elif item['status'] == 'Размещается':
+            status_color = '#2196F3'  # Синий
+        elif item['status'] == 'Принимается':
+            status_color = '#4CAF50'  # Зеленый
+        elif item['status'] == 'Просрочено':
+            status_color = '#F44336'  # Красный
+
+        # Форматируем дату
+        creation_date = item['creation_date']
+        if creation_date:
+            if hasattr(creation_date, 'strftime'):
+                creation_date = creation_date.strftime('%d.%m.%Y %H:%M')
+            else:
+                creation_date = str(creation_date)[:16]
+
+        table_rows.append(
+            html.Tr([
+                html.Td(
+                    item['receipt_id'],
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'fontWeight': 'bold'}
+                ),
+                html.Td(
+                    item['erp_order_num'],
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}
+                ),
+                html.Td(
+                    item['source_name'],
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}
+                ),
+                html.Td(
+                    item['receipt_type'],
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}
+                ),
+                html.Td(
+                    creation_date,
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}
+                ),
+                html.Td(
+                    str(item['total_lines']),
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'center'}
+                ),
+                html.Td(
+                    item['execution_time'],
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'center'}
+                ),
+                html.Td(
+                    item['overdue_in'],
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'center', 'color': '#F44336' if item['overdue_in'] == 'Просрочено' else '#666'}
+                ),
+                html.Td(
+                    html.Span(
+                        item['status'],
+                        style={
+                            'padding': '4px 8px',
+                            'borderRadius': '4px',
+                            'fontSize': '11px',
+                            'fontWeight': 'bold',
+                            'color': 'white',
+                            'backgroundColor': status_color,
+                            'display': 'inline-block',
+                            'minWidth': '100px',
+                            'textAlign': 'center'
+                        }
+                    ),
+                    style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}
+                )
+            ])
+        )
+
+    return table_rows if table_rows else [html.Tr([html.Td("Нет данных", colSpan=9, style={'textAlign': 'center', 'padding': '20px', 'color': '#666'})])]
 
 # Callback для обновления KPI своевременности
 @callback(
@@ -404,6 +487,7 @@ def update_fines_data(date_range):
 def update_fines_charts(fines_data):
     """Обновление диаграмм штрафов"""
     try:
+        # Отладка отключена
         # print(f"DEBUG: update_fines_charts called with data: {fines_data is not None}")
 
         if not fines_data or 'category_data' not in fines_data:
@@ -420,12 +504,12 @@ def update_fines_charts(fines_data):
 
         # print(f"DEBUG: Charts created successfully")
         return pie_chart, amount_chart
-        
+
     except Exception as e:
         print(f"ERROR in update_fines_charts: {e}")
         import traceback
         traceback.print_exc()
-        
+
         empty_pie = {"title": {"text": "Ошибка загрузки", "left": "center"}}
         empty_bar = {"title": {"text": "Ошибка загрузки", "left": "center"}}
         return empty_pie, empty_bar
@@ -549,6 +633,7 @@ def update_problematic_hours_chart(problematic_hours):
 )
 def update_error_hours_chart(error_hours):
     """Обновление диаграммы часов с ошибками"""
+    # Отладка отключена
     # print(f"DEBUG: Колбэк update_error_hours_chart вызван с данными: {error_hours}")
 
     if not error_hours:

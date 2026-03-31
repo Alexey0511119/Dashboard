@@ -1,30 +1,102 @@
 from dash import html, dcc
 import dash_echarts
 
+# Единый стиль для карточек - выравнивание как в общей сводке
+FINES_CARD_CONTAINER_STYLE = {
+    'display': 'flex',
+    'flexDirection': 'column',
+    'height': '180px',  # Фиксированная высота как в общей сводке
+    'padding': '20px',
+    'boxSizing': 'border-box'
+}
+
+FINES_TITLE_STYLE = {
+    'color': '#666',
+    'fontSize': '14px',
+    'fontWeight': 'normal',
+    'textAlign': 'center',
+    'height': '40px',
+    'display': 'flex',
+    'alignItems': 'center',
+    'justifyContent': 'center',
+    'marginBottom': '0'
+}
+
+FINES_VALUE_STYLE = {
+    'textAlign': 'center',
+    'height': '50px',
+    'display': 'flex',
+    'alignItems': 'center',
+    'justifyContent': 'center',
+    'marginBottom': '0'
+}
+
+FINES_DETAIL_STYLE = {
+    'color': '#666',
+    'fontSize': '12px',
+    'textAlign': 'center',
+    'lineHeight': '1.4',
+    'height': '35px',
+    'display': 'flex',
+    'flexDirection': 'column',
+    'justifyContent': 'center'
+}
+
+FINES_EMPTY_DETAIL_STYLE = {
+    'height': '35px'
+}
+
 def create_fines_tab():
     """Создание вкладки 'Штрафы'"""
     return html.Div([
         html.Div([
+            # Карточка 1: Сотрудник с наиб. кол-вом штрафов
             html.Div([
-                html.Div("Сотрудник с наиб. кол-вом штрафов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="max-fines-employee-kpi", style={'color': '#1976D2', 'fontSize': '20px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div(id="max-fines-count-kpi", style={'color': '#1976D2', 'fontSize': '16px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s'}),
+                # Ряд 1: Название
+                html.Div("Сотрудник с наиб. кол-вом штрафов", style=FINES_TITLE_STYLE),
+                # Ряд 2: Пусто (нет кнопки)
+                html.Div("", style={'height': '35px'}),
+                # Ряд 3: Основное значение
+                html.Div(id="max-fines-employee-kpi", style={**FINES_VALUE_STYLE, 'color': '#1976D2', 'fontSize': '20px', 'fontWeight': 'bold'}),
+                # Ряд 4: Детали
+                html.Div(id="max-fines-count-kpi", style={**FINES_DETAIL_STYLE, 'color': '#1976D2', 'fontSize': '16px'})
+            ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s', **FINES_CARD_CONTAINER_STYLE}),
+
+            # Карточка 2: Сотрудник с наиб. суммой штрафов
             html.Div([
-                html.Div("Сотрудник с наиб. суммой штрафов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="max-amount-employee-kpi", style={'color': '#1565C0', 'fontSize': '20px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div(id="max-amount-kpi", style={'color': '#1565C0', 'fontSize': '16px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.3s'}),
+                # Ряд 1: Название
+                html.Div("Сотрудник с наиб. суммой штрафов", style=FINES_TITLE_STYLE),
+                # Ряд 2: Пусто (нет кнопки)
+                html.Div("", style={'height': '35px'}),
+                # Ряд 3: Основное значение
+                html.Div(id="max-amount-employee-kpi", style={**FINES_VALUE_STYLE, 'color': '#1565C0', 'fontSize': '20px', 'fontWeight': 'bold'}),
+                # Ряд 4: Детали
+                html.Div(id="max-amount-kpi", style={**FINES_DETAIL_STYLE, 'color': '#1565C0', 'fontSize': '16px'})
+            ], className='kpi-card dashboard-element', style={'animationDelay': '0.3s', **FINES_CARD_CONTAINER_STYLE}),
+
+            # Карточка 3: Количество штрафов за период
             html.Div([
-                html.Div("Количество штрафов за период", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="total-fines-kpi", style={'color': '#0D47A1', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div("за выбранный период", style={'color': '#0D47A1', 'fontSize': '14px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
+                # Ряд 1: Название
+                html.Div("Количество штрафов за период", style=FINES_TITLE_STYLE),
+                # Ряд 2: Пусто (нет кнопки)
+                html.Div("", style={'height': '35px'}),
+                # Ряд 3: Основное значение
+                html.Div(id="total-fines-kpi", style={**FINES_VALUE_STYLE, 'color': '#0D47A1', 'fontSize': '36px', 'fontWeight': 'bold'}),
+                # Ряд 4: Детали
+                html.Div("за выбранный период", style={**FINES_DETAIL_STYLE, 'color': '#0D47A1', 'fontSize': '14px'})
+            ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s', **FINES_CARD_CONTAINER_STYLE}),
+
+            # Карточка 4: Средняя сумма штрафа
             html.Div([
-                html.Div("Средняя сумма штрафа", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="avg-fine-amount-kpi", style={'color': '#1E88E5', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '5px', 'textAlign': 'center'}),
-                html.Div("за выбранный период", style={'color': '#1E88E5', 'fontSize': '14px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s'})
+                # Ряд 1: Название
+                html.Div("Средняя сумма штрафа", style=FINES_TITLE_STYLE),
+                # Ряд 2: Пусто (нет кнопки)
+                html.Div("", style={'height': '35px'}),
+                # Ряд 3: Основное значение
+                html.Div(id="avg-fine-amount-kpi", style={**FINES_VALUE_STYLE, 'color': '#1E88E5', 'fontSize': '36px', 'fontWeight': 'bold'}),
+                # Ряд 4: Детали
+                html.Div("за выбранный период", style={**FINES_DETAIL_STYLE, 'color': '#1E88E5', 'fontSize': '14px'})
+            ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s', **FINES_CARD_CONTAINER_STYLE})
         ], className="kpi-row"),
         
         html.Div([
