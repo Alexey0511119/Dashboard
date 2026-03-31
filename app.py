@@ -225,6 +225,15 @@ app.index_string = f'''
                 transform: translateY(-5px) scale(1.02);
                 box-shadow: 0 12px 30px rgba(0,0,0,0.15);
             }}
+            .chart-card-no-padding {{
+                background: white;
+                padding: 0;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                flex-direction: column;
+            }}
             .analytics-kpi-row {{
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -578,10 +587,6 @@ app.index_string = f'''
 </html>
 '''
 
-if __name__ == "__main__":
-    default_start = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-    default_end = datetime.now().strftime('%Y-%m-%d')
-    
-    refresh_data(default_start, default_end)
-    
-    app.run_server(debug=True, host="0.0.0.0", port=8055)
+if __name__ == '__main__':
+    # Вариант 1: Простой запуск
+    app.run(debug=False, host='127.0.0.1', port=8050)
