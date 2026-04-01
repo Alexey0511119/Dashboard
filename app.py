@@ -570,6 +570,23 @@ app.index_string = f'''
                     text-align: center;
                 }}
             }}
+            /* Анимация для развернутой таблицы приходов (как в модальных окнах) */
+            #expanded-receipt-table-container {{
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) scale(0.95);
+                opacity: 0;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }}
+            #expanded-receipt-table-container.table-visible {{
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }}
+            #expanded-receipt-table-container.table-hiding {{
+                transform: translate(-50%, -50%) scale(0.95);
+                opacity: 0;
+            }}
             /* Цветовая индикация для таблиц */
             .good-performance {{
                 color: #4CAF50 !important;

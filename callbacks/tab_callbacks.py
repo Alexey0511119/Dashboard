@@ -1,5 +1,5 @@
 import dash
-from dash import Input, Output, callback, html
+from dash import Input, Output, callback, html, State
 from datetime import datetime, timedelta
 from data.queries_mssql import (
     get_orders_table, get_arrival_timeliness, get_order_timeliness, get_orders_timeliness_by_delivery,
@@ -167,6 +167,82 @@ def update_receipt_list_table(date_range):
         )
 
     return table_rows if table_rows else [html.Tr([html.Td("Нет данных", colSpan=9, style={'textAlign': 'center', 'padding': '20px', 'color': '#666'})])]
+
+# Callback для разворачивания/сворачивания таблицы приходов
+@callback(
+    [Output('expanded-receipt-table-container', 'style'),
+     Output('expanded-receipt-table-container', 'className'),
+     Output('receipt-list-table-body-expanded', 'children')],
+    [Input('expand-receipt-table-btn', 'n_clicks'),
+     Input('collapse-receipt-table-btn', 'n_clicks')],
+    [State('global-date-range', 'data')]
+)
+def toggle_expanded_receipt_table(expand_clicks, collapse_clicks, date_range):
+    """Развернуть/свернуть таблицу приходов с анимацией (как в модальных окнах)"""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return {'display': 'none'}, '', []
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    # Получаем данные таблицы
+    from data.queries_mssql import get_receipt_list_data
+    receipt_list = get_receipt_list_data()
+    
+    table_rows = []
+    for item in receipt_list:
+        status_color = '#9E9E9E'
+        if item['status'] == 'Ожидает приема':
+            status_color = '#FF9800'
+        elif item['status'] == 'Размещается':
+            status_color = '#2196F3'
+        elif item['status'] == 'Принимается':
+            status_color = '#4CAF50'
+        elif item['status'] == 'Просрочено':
+            status_color = '#F44336'
+        
+        creation_date = item['creation_date']
+        if creation_date:
+            if hasattr(creation_date, 'strftime'):
+                creation_date = creation_date.strftime('%d.%m.%Y %H:%M')
+            else:
+                creation_date = str(creation_date)[:16]
+        
+        table_rows.append(
+            html.Tr([
+                html.Td(item['receipt_id'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'fontWeight': 'bold'}),
+                html.Td(item['erp_order_num'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                html.Td(item['source_name'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                html.Td(item['receipt_type'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                html.Td(creation_date, style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                html.Td(str(item['total_lines']), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'center'}),
+                html.Td(item['execution_time'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'center'}),
+                html.Td(item['overdue_in'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'center', 'color': '#F44336' if item['overdue_in'] == 'Просрочено' else '#666'}),
+                html.Td(html.Span(item['status'], style={'padding': '4px 8px', 'borderRadius': '4px', 'fontSize': '11px', 'fontWeight': 'bold', 'color': 'white', 'backgroundColor': status_color, 'display': 'inline-block', 'minWidth': '100px', 'textAlign': 'center'}), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'})
+            ])
+        )
+    
+    if not table_rows:
+        table_rows = [html.Tr([html.Td("Нет данных", colSpan=9, style={'textAlign': 'center', 'padding': '20px', 'color': '#666'})])]
+    
+    if button_id == 'expand-receipt-table-btn':
+        # Показываем таблицу с анимацией (как модальное окно)
+        return {
+            'display': 'block',
+            'width': '95%',
+            'height': '90vh',
+            'backgroundColor': 'white',
+            'borderRadius': '12px',
+            'boxShadow': '0 10px 50px rgba(0,0,0,0.3)',
+            'zIndex': '9999'
+        }, 'table-visible', table_rows
+    elif button_id == 'collapse-receipt-table-btn':
+        # Скрываем таблицу с анимацией
+        return {
+            'display': 'block'
+        }, 'table-hiding', table_rows
+    
+    return {'display': 'none'}, '', []
 
 # Callback для обновления KPI своевременности
 @callback(

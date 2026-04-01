@@ -29,38 +29,138 @@ def create_timeliness_tab():
                 html.Div([
                     html.H3("Список прихода",
                            style={'color': '#333', 'margin': '0', 'fontSize': '20px', 'flex': '1', 'fontWeight': 'bold', 'padding': '20px'}),
+                    html.Button(
+                        "⛶ Развернуть",
+                        id="expand-receipt-table-btn",
+                        n_clicks=0,
+                        style={
+                            'padding': '8px 16px',
+                            'backgroundColor': '#f8f9fa',
+                            'border': '1px solid #ddd',
+                            'borderRadius': '6px',
+                            'cursor': 'pointer',
+                            'fontSize': '13px',
+                            'color': '#666',
+                            'transition': 'all 0.2s ease',
+                            'marginRight': '20px'
+                        }
+                    )
                 ], style={
                     'background': 'white',
                     'padding': '0',
                     'borderRadius': '12px 12px 0 0',
-                    'margin': '0'
+                    'margin': '0',
+                    'display': 'flex',
+                    'alignItems': 'center',
+                    'justifyContent': 'space-between'
                 }),
                 html.Div([
-                    html.Table([
-                        html.Thead(html.Tr([
-                            html.Th('Номер в WMS', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Номер Веста', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Поставщик', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Тип прихода', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Дата создания', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Строк', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Время выполнения', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Просрочится через', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                            html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'})
-                        ])),
-                        html.Tbody(id='receipt-list-table-body')
-                    ], style={'width': '100%', 'borderCollapse': 'collapse'})
+                    html.Div([
+                        html.Table([
+                            html.Thead(html.Tr([
+                                html.Th('Номер в WMS', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Номер Веста', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Поставщик', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Тип прихода', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Дата создания', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Строк', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Время выполнения', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Просрочится через', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'})
+                            ])),
+                            html.Tbody(id='receipt-list-table-body')
+                        ], style={'width': '100%', 'borderCollapse': 'collapse', 'minWidth': '1200px'})
+                    ], style={
+                        'overflowX': 'auto',  # Горизонтальный скроллинг
+                        'overflowY': 'auto',  # Вертикальный скроллинг
+                        'width': '100%',
+                        'height': '100%'
+                    })
                 ], className="table-container", style={
                     'height': '680px',
-                    'overflowY': 'auto',
                     'borderRadius': '0 0 12px 12px'
                 })
             ], className="left-panel dashboard-element", style={
-                'animationDelay': '0.6s', 
+                'animationDelay': '0.6s',
                 'width': '50%',
-                'height': '540px'  # Высота таблицы + заголовок
+                'height': '540px',  # Высота таблицы + заголовок
+                'position': 'relative',
+                'zIndex': '100'
             }),
             
+            # Развернутая таблица (скрыта по умолчанию)
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H3("Список прихода - развернутый вид",
+                               style={'color': '#333', 'margin': '0', 'fontSize': '20px', 'flex': '1', 'fontWeight': 'bold', 'padding': '20px'}),
+                        html.Button(
+                            "⛶ Свернуть",
+                            id="collapse-receipt-table-btn",
+                            n_clicks=0,
+                            style={
+                                'padding': '8px 16px',
+                                'backgroundColor': '#f8f9fa',
+                                'border': '1px solid #ddd',
+                                'borderRadius': '6px',
+                                'cursor': 'pointer',
+                                'fontSize': '13px',
+                                'color': '#666',
+                                'transition': 'all 0.2s ease',
+                                'marginRight': '20px'
+                            }
+                        )
+                    ], style={
+                        'background': 'white',
+                        'padding': '0',
+                        'borderRadius': '12px 12px 0 0',
+                        'margin': '0',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'space-between'
+                    }),
+                    html.Div([
+                        html.Div([
+                            html.Table([
+                                html.Thead(html.Tr([
+                                    html.Th('Номер в WMS', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Номер Веста', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Поставщик', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Тип прихода', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Дата создания', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Строк', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Время выполнения', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Просрочится через', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                    html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'})
+                                ])),
+                                html.Tbody(id='receipt-list-table-body-expanded')
+                            ], style={'width': '100%', 'borderCollapse': 'collapse', 'minWidth': '1200px'})
+                        ], style={
+                            'overflowX': 'auto',
+                            'overflowY': 'auto',
+                            'width': '100%',
+                            'height': '100%'
+                        })
+                    ], style={
+                        'height': 'calc(100vh - 200px)',
+                        'borderRadius': '0 0 12px 12px'
+                    })
+                ], style={
+                    'position': 'fixed',
+                    'top': '50%',
+                    'left': '50%',
+                    'transform': 'translate(-50%, -50%)',
+                    'width': '95%',
+                    'height': '90vh',
+                    'backgroundColor': 'white',
+                    'borderRadius': '12px',
+                    'boxShadow': '0 10px 50px rgba(0,0,0,0.3)',
+                    'zIndex': '9999'
+                })
+            ], id='expanded-receipt-table-container', style={
+                'display': 'none'
+            }),
+
             # Правая панель: два ряда диаграмм
             html.Div([
                 # Первый ряд: диаграммы своевременности (2 в ряд)

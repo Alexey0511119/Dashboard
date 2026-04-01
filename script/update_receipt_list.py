@@ -33,7 +33,8 @@ def get_ils_connection():
         user=ILS_USER,
         password=ILS_PASSWORD,
         database=ILS_DATABASE,
-        tds_version='7.0'
+        tds_version='7.0',
+        charset='cp1251'  # Явно указываем кодировку для кириллицы
     )
 
 
@@ -55,7 +56,26 @@ def fetch_receipt_list_from_ils(log):
     try:
         cursor = conn.cursor()
 
-        # Запрос с фильтрами по статусам (как в ТЗ)
+        # Отладка: посмотрим реальные значения RECEIPT_TYPE в hex
+        log("🔍 Отладка: проверяем значения RECEIPT_TYPE...")
+        debug_query = """
+        SELECT DISTINCT 
+            RECEIPT_TYPE,
+            CAST(RECEIPT_TYPE AS varbinary) as hex_value,
+            LEN(RECEIPT_TYPE) as type_length
+        FROM dbo.RECEIPT_HEADER WITH (NOLOCK)
+        WHERE RECEIPT_TYPE IS NOT NULL
+        ORDER BY RECEIPT_TYPE
+        """
+        cursor.execute(debug_query)
+        debug_rows = cursor.fetchall()
+        if debug_rows:
+            log("📋 Все уникальные типы приходов в таблице:")
+            for dr in debug_rows:
+                log(f"   '{dr[0]}' (длина: {dr[2]}, HEX: {dr[1]})")
+        
+        # Используем CAST для преобразования к правильной кодировке
+        # Или используем прямую проверку на конкретные значения
         query = """
         SELECT
             RECEIPT_ID,
@@ -68,33 +88,72 @@ def fetch_receipt_list_from_ils(log):
             LEADING_STS
         FROM dbo.RECEIPT_HEADER WITH (NOLOCK)
         WHERE 
-            -- Ожидает приема: TRAILING_STS = 100 AND LEADING_STS = 100
-            (TRAILING_STS = 100 AND LEADING_STS = 100)
-            -- Размещается: TRAILING_STS = 300
-            OR (TRAILING_STS = 300)
-            -- Принимается: TRAILING_STS IN (100, 200) AND LEADING_STS != 100
-            OR (TRAILING_STS IN (100, 200) AND LEADING_STS NOT IN (100))
+            CLOSE_DATE IS NULL
+            AND (
+                RECEIPT_TYPE IS NULL 
+                OR (
+                    RECEIPT_TYPE NOT LIKE N'%Возврат-Клиент%' 
+                    AND RECEIPT_TYPE NOT LIKE N'%возврат-клиент%'
+                    AND RECEIPT_TYPE != N'Возврат-Клиент'
+                    AND RECEIPT_TYPE != N'возврат-клиент'
+                )
+            )
+            AND (
+                (TRAILING_STS = 100 AND LEADING_STS = 100)
+                OR (TRAILING_STS = 300)
+                OR (TRAILING_STS IN (100, 200) AND LEADING_STS NOT IN (100))
+            )
         ORDER BY CREATION_DATE_TIME_STAMP DESC
         """
 
-        log(f"📤 Запрос к ILS.dbo.RECEIPT_HEADER...")
+        log(f"📤 Запрос к ILS.dbo.RECEIPT_HEADER (только незакрытые приходы, исключая возвраты)...")
         cursor.execute(query)
 
         rows = []
         for row in cursor.fetchall():
+            receipt_type = row[3] if row[3] else ''
             rows.append({
                 'RECEIPT_ID': row[0] if row[0] else '',
                 'ERP_ORDER_NUM': row[1] if row[1] else '',
                 'SOURCE_NAME': row[2] if row[2] else '',
-                'RECEIPT_TYPE': row[3] if row[3] else '',
+                'RECEIPT_TYPE': receipt_type,
                 'CREATION_DATE_TIME_STAMP': row[4] if row[4] else None,
                 'TOTAL_LINES': row[5] if row[5] else 0,
                 'TRAILING_STS': row[6] if row[6] else 0,
                 'LEADING_STS': row[7] if row[7] else 0
             })
 
-        log(f"✅ Найдено приходов: {len(rows)}")
-        return rows
+        # Фильтруем на Python стороне на всякий случай (двойная проверка)
+        filtered_rows = []
+        return_count = 0
+        for row in rows:
+            receipt_type = row['RECEIPT_TYPE']
+            # Исключаем все варианты возвратов
+            if ('Возврат' in receipt_type or 'возврат' in receipt_type) and ('Клиент' in receipt_type or 'клиент' in receipt_type):
+                return_count += 1
+                log(f"   🚫 Исключен приход {row['RECEIPT_ID']} с типом '{receipt_type}'")
+                continue
+            filtered_rows.append(row)
+
+        if return_count > 0:
+            log(f"🚫 Исключено возвратов на Python стороне: {return_count}")
+        
+        log(f"✅ Найдено активных приходов (незакрытых, без возвратов): {len(filtered_rows)}")
+        
+        # Выводим типы приходов в выборке для контроля
+        if filtered_rows:
+            receipt_types = set([row['RECEIPT_TYPE'] for row in filtered_rows])
+            log(f"📋 Типы приходов в итоговой выборке: {', '.join(receipt_types)}")
+        else:
+            log("ℹ️ Нет данных для загрузки")
+        
+        # Дополнительная проверка: выводим первые 5 записей для отладки
+        if filtered_rows:
+            log("🔍 Первые 5 записей для проверки:")
+            for i, row in enumerate(filtered_rows[:5]):
+                log(f"   {i+1}. RECEIPT_ID={row['RECEIPT_ID']}, TYPE='{row['RECEIPT_TYPE']}'")
+
+        return filtered_rows
 
     finally:
         conn.close()
@@ -251,6 +310,29 @@ def verify_data(log):
             for status_row in status_counts:
                 log(f"   {status_row[0]}: {status_row[1]}")
 
+        # Проверка по типам приходов
+        cursor.execute("""
+            SELECT RECEIPT_TYPE, COUNT(*) as cnt
+            FROM dwh.receipt_list
+            GROUP BY RECEIPT_TYPE
+            ORDER BY cnt DESC
+        """)
+        type_counts = cursor.fetchall()
+        if type_counts:
+            log("📊 Распределение по типам приходов:")
+            for type_row in type_counts:
+                log(f"   {type_row[0]}: {type_row[1]}")
+                
+            # Проверяем, нет ли возвратов
+            has_returns = False
+            for type_row in type_counts:
+                if type_row[0] and ('Возврат' in type_row[0] or 'возврат' in type_row[0]):
+                    has_returns = True
+                    log(f"❌ ОШИБКА: В таблицу попали записи с типом '{type_row[0]}'! Количество: {type_row[1]}")
+            
+            if not has_returns:
+                log("✅ Проверка пройдена: типы с 'Возврат' отсутствуют")
+
         return True
 
     except Exception as e:
@@ -275,7 +357,7 @@ def run_update():
     log("=" * 70)
 
     try:
-        # 1. Загрузить данные из ILS
+        # 1. Загрузить данные из ILS (только незакрытые, исключая возвраты)
         rows = fetch_receipt_list_from_ils(log)
 
         # 2. Обновить dwh.receipt_list
