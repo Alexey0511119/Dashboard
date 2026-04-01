@@ -1455,6 +1455,49 @@ def get_revision_stats():
             'in_process_revisions': 0
         }
 
+def get_revision_detail_data():
+    """Получение детальных данных по ревизиям по событию из dm.v_revision_detail"""
+    try:
+        query = """
+        SELECT 
+            internal_count_num,
+            condition,
+            status_rus,
+            item,
+            lot,
+            location,
+            quantity_counted,
+            system_quantity,
+            variance
+        FROM dm.v_revision_detail
+        ORDER BY 
+            CASE WHEN condition = 'Open' THEN 0 ELSE 1 END,
+            internal_count_num
+        """
+        
+        result = execute_query_cached(query)
+        
+        detail_data = []
+        if result:
+            for row in result:
+                detail_data.append({
+                    'internal_count_num': row[0] if row[0] else '',
+                    'condition': row[1] if row[1] else '',
+                    'status_rus': row[2] if row[2] else '',
+                    'item': row[3] if row[3] else '',
+                    'lot': row[4] if row[4] else '',
+                    'location': row[5] if row[5] else '',
+                    'quantity_counted': float(row[6]) if row[6] else 0,
+                    'system_quantity': float(row[7]) if row[7] else 0,
+                    'variance': float(row[8]) if row[8] else 0
+                })
+        
+        return detail_data
+        
+    except Exception as e:
+        print(f"ERROR: Ошибка в get_revision_detail_data: {e}")
+        return []
+
 def get_placement_errors(start_date=None, end_date=None):
     """Получение данных по ошибкам размещения из dm.v_placement_detail за выбранный период"""
     try:

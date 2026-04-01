@@ -471,36 +471,13 @@ app.index_string = f'''
                 z-index: 9999999 !important;
                 position: relative;
             }}
-            .DateRangePicker_picker {{
-                z-index: 99999999 !important;
-                position: absolute !important;  /* Позиционируем относительно родительского контейнера */
-                top: 50% !important;  /* Позиционируем по центру по высоте */
-                right: calc(100% + 300px) !important;  /* Располагаем слева от поля ввода с учетом ширины календаря */
-                transform: translate(0, -50%) translateZ(9999px) !important;  /* Сдвигаем вверх на половину высоты календаря для центровки */
-                -webkit-transform: translate(0, -50%) translateZ(9999px) !important;
-                -moz-transform: translate(0, -50%) translateZ(9999px) !important;
-                -ms-transform: translate(0, -50%) translateZ(9999px) !important;
-                -o-transform: translate(0, -50%) translateZ(9999px) !important;
-            }}
-            .CalendarMonth {{
-                background: white;
-                z-index: 99999999 !important;
-            }}
-            .DayPicker {{
-                background: white;
-                z-index: 99999999 !important;
-            }}
-            .CalendarDay {{
-                z-index: 99999999 !important;
-            }}
-            .DayPickerNavigation_button {{
-                z-index: 100000000 !important;
-            }}
-            .CalendarMonth_caption {{
-                z-index: 100000000 !important;
-            }}
-            .CalendarDay_selected {{
-                z-index: 100000001 !important;
+            /* ПОЛНОСТЬЮ СКРЫВАЕМ КАЛЕНДАРЬ - оставляем только поля ввода */
+            .DateRangePicker_picker, .DayPicker, .DayPicker-wrapper, 
+            .DayPicker-portal, .CalendarMonth, .CalendarDay,
+            .DayPickerNavigation, .CalendarMonth_caption {{
+                display: none !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
             }}
             /* Убедимся, что календарь всегда поверх всего */
             .DateRangePickerInput__withBorder {{
@@ -527,8 +504,8 @@ app.index_string = f'''
             .DateRangePickerInput_arrow {{
                 display: none !important;
             }}
-            /* СКРЫВАЕМ ТОЛЬКО КАЛЕНДАРЬ */
-            .DayPicker, .DayPicker-wrapper, .DayPicker-portal {{
+            /* Скрываем иконку календаря */
+            .DateInput_input::before {{
                 display: none !important;
             }}
             /* Для мобильных устройств */

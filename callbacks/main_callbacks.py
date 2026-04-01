@@ -178,6 +178,62 @@ def toggle_storage_modal(open_clicks, close_clicks, modal_class, content_class):
     
     return modal_class, content_class
 
+# Callback для открытия/закрытия модального окна ревизий по событию
+@callback(
+    [Output("revision-detail-modal", "className"),
+     Output("revision-detail-modal-content", "className"),
+     Output("revision-detail-table-body", "children")],
+    [Input("open-revision-info", "n_clicks"),
+     Input("close-revision-detail-modal", "n_clicks")],
+    [State("revision-detail-modal", "className"),
+     State("revision-detail-modal-content", "className")],
+    prevent_initial_call=True
+)
+def toggle_revision_detail_modal(open_clicks, close_clicks, modal_class, content_class):
+    """Открытие/закрытие модального окна ревизий по событию"""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return modal_class, content_class, []
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id == 'close-revision-detail-modal':
+        return 'modal-hidden', 'modal-content', []
+    
+    if button_id == 'open-revision-info' and open_clicks:
+        # Получаем данные
+        from data.queries_mssql import get_revision_detail_data
+        detail_data = get_revision_detail_data()
+        
+        # Создаем строки таблицы
+        table_rows = []
+        for item in detail_data:
+            # Цвет статуса
+            status_color = '#4CAF50' if item['status_rus'] == 'Открыто' else '#FF9800'
+            
+            # Цвет расхождения
+            variance_color = '#4CAF50' if item['variance'] == 0 else '#F44336'
+            
+            table_rows.append(
+                html.Tr([
+                    html.Td(str(item['internal_count_num']), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'fontWeight': 'bold'}),
+                    html.Td(html.Span(item['status_rus'], style={'padding': '4px 8px', 'borderRadius': '4px', 'fontSize': '11px', 'fontWeight': 'bold', 'color': 'white', 'backgroundColor': status_color}), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                    html.Td(item['item'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                    html.Td(item['lot'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                    html.Td(item['location'], style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px'}),
+                    html.Td(f"{item['quantity_counted']:,.2f}", style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'right'}),
+                    html.Td(f"{item['system_quantity']:,.2f}", style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'right'}),
+                    html.Td(html.Span(f"{item['variance']:+,.2f}", style={'color': variance_color, 'fontWeight': 'bold'}), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '12px', 'textAlign': 'right'})
+                ])
+            )
+        
+        if not table_rows:
+            table_rows = [html.Tr([html.Td("Нет данных", colSpan=8, style={'textAlign': 'center', 'padding': '20px', 'color': '#666'})])]
+        
+        return 'modal-visible', 'modal-content-visible', table_rows
+    
+    return modal_class, content_class, []
+
 # Callback для загрузки данных по ячейкам хранения
 @callback(
     Output("storage-all-data", "data"),

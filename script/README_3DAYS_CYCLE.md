@@ -212,8 +212,8 @@ sqlcmd -S 10.7.0.27 -U sa -P Rdflhfn600 -d olap2_fixed \
 | orders_timeliness | DELETE + INSERT | 3 дня |
 | order_accuracy_daily | DELETE + INSERT | 3 дня |
 | rejected_lines_detail | DELETE + INSERT | 3 дня |
-| fact_hourly_errors | DELETE + INSERT | 3 дня |
-| fact_hourly_delays | DELETE + INSERT | 3 дня |
+| fact_hourly_errors | DELETE + INSERT | **ВЕЛЬ период** | ⚠️ Изменено: пересчитывается за весь период |
+| fact_hourly_delays | DELETE + INSERT | **ВЕЛЬ период** | ⚠️ Изменено: пересчитывается за весь период |
 | placement_operations | DELETE + INSERT | 3 дня |
 
 ### dm.таблицы (справочники)

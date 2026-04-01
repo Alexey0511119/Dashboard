@@ -1271,13 +1271,9 @@ DROP TABLE IF EXISTS dwh.orders_timeliness_old;
 SELECT @cnt = COUNT(*) FROM dwh.orders_timeliness;
 PRINT '  ✅ orders_timeliness обновлена. Всего записей: ' + CAST(@cnt AS NVARCHAR);
 
--- fact_hourly_errors — полная перезапись за период
-PRINT 'Обновление dwh.fact_hourly_errors...';
-DELETE FROM dwh.fact_hourly_errors WHERE hour IN (
-    SELECT DISTINCT DATEPART(HOUR, START_DATE_TIME) 
-    FROM dwh.orders_timeliness 
-    WHERE date >= @cutoff_date
-);
+-- fact_hourly_errors — полная перезапись за ВЕСЬ период (не за 3 дня!)
+PRINT 'Обновление dwh.fact_hourly_errors (за ВЕСЬ период)...';
+DELETE FROM dwh.fact_hourly_errors;
 
 WITH error_orders AS (
     SELECT
@@ -1287,7 +1283,6 @@ WITH error_orders AS (
     JOIN raw_.Shtraf_Edit se
         ON o.SHIPMENT_ID = se.reference_id
         AND se.name IN ('Штраф по претензии', 'Недобор', 'Излишки', 'Недокомплект')
-    WHERE o.date >= @cutoff_date
     GROUP BY DATEPART(HOUR, o.START_DATE_TIME)
 ),
 all_orders_by_hour AS (
@@ -1295,7 +1290,6 @@ all_orders_by_hour AS (
         DATEPART(HOUR, START_DATE_TIME) AS hour,
         COUNT(DISTINCT SHIPMENT_ID) AS total_orders
     FROM dwh.orders_timeliness
-    WHERE date >= @cutoff_date
     GROUP BY DATEPART(HOUR, START_DATE_TIME)
 )
 INSERT INTO dwh.fact_hourly_errors
@@ -1309,15 +1303,11 @@ LEFT JOIN error_orders e ON t.hour = e.hour
 WHERE COALESCE(e.error_orders, 0) > 0;
 
 SELECT @cnt = COUNT(*) FROM dwh.fact_hourly_errors;
-PRINT '  ✅ fact_hourly_errors: ' + CAST(@cnt AS NVARCHAR) + ' строк';
+PRINT '  ✅ fact_hourly_errors: ' + CAST(@cnt AS NVARCHAR) + ' строк (за ВЕСЬ период)';
 
--- fact_hourly_delays — полная перезапись за период
-PRINT 'Обновление dwh.fact_hourly_delays...';
-DELETE FROM dwh.fact_hourly_delays WHERE hour IN (
-    SELECT DISTINCT DATEPART(HOUR, START_DATE_TIME) 
-    FROM dwh.orders_timeliness 
-    WHERE date >= @cutoff_date
-);
+-- fact_hourly_delays — полная перезапись за ВЕСЬ период (не за 3 дня!)
+PRINT 'Обновление dwh.fact_hourly_delays (за ВЕСЬ период)...';
+DELETE FROM dwh.fact_hourly_delays;
 
 WITH hourly_stats AS (
     SELECT
@@ -1326,7 +1316,6 @@ WITH hourly_stats AS (
         SUM(CASE WHEN timeliness_status = 'Просрочено' THEN 1 ELSE 0 END) AS delayed_orders
     FROM dwh.orders_timeliness
     WHERE ORDER_TYPE = 'Клиент'
-    AND date >= @cutoff_date
     GROUP BY DATEPART(HOUR, START_DATE_TIME)
 )
 INSERT INTO dwh.fact_hourly_delays
@@ -1338,7 +1327,7 @@ SELECT
 FROM hourly_stats;
 
 SELECT @cnt = COUNT(*) FROM dwh.fact_hourly_delays;
-PRINT '  ✅ fact_hourly_delays: ' + CAST(@cnt AS NVARCHAR) + ' строк';
+PRINT '  ✅ fact_hourly_delays: ' + CAST(@cnt AS NVARCHAR) + ' строк (за ВЕСЬ период)';
 
 -- ============================================================================
 -- ИТОГИ

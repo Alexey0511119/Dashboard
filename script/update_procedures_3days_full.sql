@@ -750,18 +750,18 @@ END;
 GO
 
 -- ============================================================================
--- ПРОЦЕДУРА 11: Обновление fact_hourly_errors (за 3 дня)
+-- ПРОЦЕДУРА 11: Обновление fact_hourly_errors (за ВЕСЬ период)
 -- ============================================================================
 IF OBJECT_ID('dwh.usp_update_fact_hourly_errors_3days', 'P') IS NOT NULL
     DROP PROCEDURE dwh.usp_update_fact_hourly_errors_3days;
 GO
 
 CREATE PROCEDURE dwh.usp_update_fact_hourly_errors_3days
-    @cutoff_date DATE
+    @cutoff_date DATE  -- Параметр сохраняется для совместимости, но не используется
 AS
 BEGIN
     SET NOCOUNT ON;
-    PRINT '  Обновление dwh.fact_hourly_errors...';
+    PRINT '  Обновление dwh.fact_hourly_errors (за ВЕСЬ период)...';
 
     DELETE FROM dwh.fact_hourly_errors;
 
@@ -773,7 +773,6 @@ BEGIN
         JOIN raw_.Shtraf_Edit se WITH (NOLOCK)
             ON o.SHIPMENT_ID = se.reference_id COLLATE DATABASE_DEFAULT
             AND se.name IN (N'Штраф по претензии', N'Недобор', N'Излишки', N'Недокомплект')
-        WHERE o.date >= @cutoff_date
         GROUP BY DATEPART(HOUR, o.START_DATE_TIME)
     ),
     all_orders_by_hour AS (
@@ -781,7 +780,6 @@ BEGIN
             DATEPART(HOUR, START_DATE_TIME) AS hour,
             COUNT(DISTINCT SHIPMENT_ID) AS total_orders
         FROM dwh.orders_timeliness WITH (NOLOCK)
-        WHERE date >= @cutoff_date
         GROUP BY DATEPART(HOUR, START_DATE_TIME)
     )
     INSERT INTO dwh.fact_hourly_errors WITH (TABLOCK)
@@ -793,23 +791,23 @@ BEGIN
     LEFT JOIN error_orders e ON t.hour = e.hour
     WHERE COALESCE(e.error_orders, 0) > 0;
 
-    PRINT '  ✅ fact_hourly_errors обновлена';
+    PRINT '  ✅ fact_hourly_errors обновлена (за ВЕСЬ период)';
 END;
 GO
 
 -- ============================================================================
--- ПРОЦЕДУРА 12: Обновление fact_hourly_delays (за 3 дня)
+-- ПРОЦЕДУРА 12: Обновление fact_hourly_delays (за ВЕСЬ период)
 -- ============================================================================
 IF OBJECT_ID('dwh.usp_update_fact_hourly_delays_3days', 'P') IS NOT NULL
     DROP PROCEDURE dwh.usp_update_fact_hourly_delays_3days;
 GO
 
 CREATE PROCEDURE dwh.usp_update_fact_hourly_delays_3days
-    @cutoff_date DATE
+    @cutoff_date DATE  -- Параметр сохраняется для совместимости, но не используется
 AS
 BEGIN
     SET NOCOUNT ON;
-    PRINT '  Обновление dwh.fact_hourly_delays...';
+    PRINT '  Обновление dwh.fact_hourly_delays (за ВЕСЬ период)...';
 
     DELETE FROM dwh.fact_hourly_delays;
 
@@ -819,7 +817,7 @@ BEGIN
             COUNT(*) AS total_orders,
             SUM(CASE WHEN timeliness_status = 'Просрочено' THEN 1 ELSE 0 END) AS delayed_orders
         FROM dwh.orders_timeliness WITH (NOLOCK)
-        WHERE ORDER_TYPE = 'Клиент' AND date >= @cutoff_date
+        WHERE ORDER_TYPE = 'Клиент'
         GROUP BY DATEPART(HOUR, START_DATE_TIME)
     )
     INSERT INTO dwh.fact_hourly_delays WITH (TABLOCK)
@@ -828,7 +826,7 @@ BEGIN
         CAST(delayed_orders * 100.0 / NULLIF(total_orders, 0) AS DECIMAL(5,2)) AS pct_delayed
     FROM hourly_stats;
 
-    PRINT '  ✅ fact_hourly_delays обновлена';
+    PRINT '  ✅ fact_hourly_delays обновлена (за ВЕСЬ период)';
 END;
 GO
 

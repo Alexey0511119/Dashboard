@@ -621,6 +621,65 @@ def create_storage_cells_modal():
         ], id="storage-modal-content", className="modal-content")
     ], id="storage-cells-modal", className="modal-hidden")
 
+def create_revision_detail_modal():
+    """Создание модального окна с детализацией ревизий по событию"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детализация ревизий по событию",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕",
+                    id="close-revision-detail-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # Таблица ревизий
+                html.Div([
+                    html.H4("Таблица ревизий",
+                           style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                    html.Div([
+                        html.Table([
+                            html.Thead(html.Tr([
+                                html.Th("Номер подсчета", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Статус", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Товар", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Партия", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Ячейка", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Подсчитано", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Системное", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Расхождение", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'})
+                            ])),
+                            html.Tbody(id="revision-detail-table-body")
+                        ], style={'width': '100%', 'borderCollapse': 'collapse'})
+                    ], style={'maxHeight': '600px', 'overflowY': 'auto', 'border': '1px solid #eee', 'borderRadius': '8px'})
+                ], style={'marginTop': '20px'})
+
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="revision-detail-modal-content", className="modal-content")
+    ], id="revision-detail-modal", className="modal-hidden")
+
 def create_rejected_lines_modal():
     """Создание модального окна с таблицей отклоненных строк"""
     return html.Div([
