@@ -471,13 +471,29 @@ app.index_string = f'''
                 z-index: 9999999 !important;
                 position: relative;
             }}
-            /* ПОЛНОСТЬЮ СКРЫВАЕМ КАЛЕНДАРЬ - оставляем только поля ввода */
-            .DateRangePicker_picker, .DayPicker, .DayPicker-wrapper, 
-            .DayPicker-portal, .CalendarMonth, .CalendarDay,
+            /* КАЛЕНДАРЬ ПОВЕРХ ВСЕХ ЭЛЕМЕНТОВ */
+            .DateRangePicker_picker {{
+                z-index: 999999999 !important;
+                position: absolute !important;
+                top: 100% !important;
+                left: 0 !important;
+                display: block !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+            }}
+            .DayPicker, .DayPicker-wrapper,
+            .CalendarMonth, .CalendarDay,
             .DayPickerNavigation, .CalendarMonth_caption {{
-                display: none !important;
-                visibility: hidden !important;
-                pointer-events: none !important;
+                display: block !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                z-index: 999999999 !important;
+            }}
+            .DayPicker-portal {{
+                display: block !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                z-index: 999999999 !important;
             }}
             /* Убедимся, что календарь всегда поверх всего */
             .DateRangePickerInput__withBorder {{
@@ -494,19 +510,19 @@ app.index_string = f'''
             .DateInput_input {{
                 font-size: 12px !important;
                 padding: 4px 6px !important;
-                width: 90px !important;
+                width: 100px !important;
                 height: 28px !important;
                 border: 1px solid #ddd !important;
                 border-radius: 3px !important;
                 text-align: center !important;
             }}
-            /* Скрываем разделитель между датами */
+            /* Стили для разделителя между датами */
             .DateRangePickerInput_arrow {{
-                display: none !important;
-            }}
-            /* Скрываем иконку календаря */
-            .DateInput_input::before {{
-                display: none !important;
+                display: flex !important;
+                align-items: center !important;
+                padding: 0 5px !important;
+                color: #666 !important;
+                font-size: 12px !important;
             }}
             /* Для мобильных устройств */
             @media (max-width: 768px) {{

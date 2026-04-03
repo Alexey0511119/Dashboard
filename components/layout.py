@@ -114,11 +114,11 @@ def create_layout():
                 
                 # ПРАВАЯ ЧАСТЬ: Дата и фильтр
                 html.Div([
-                    html.Div(id="last-update-time", 
+                    html.Div(id="last-update-time",
                             style={
-                                'color': '#333', 
-                                'fontSize': '12px', 
-                                'marginBottom': '2px',
+                                'color': '#333',
+                                'fontSize': '12px',
+                                'marginBottom': '5px',
                                 'textAlign': 'right'
                             }),
                     dcc.DatePickerRange(
@@ -134,7 +134,7 @@ def create_layout():
                     )
                 ], style={
                     'padding': '5px 10px',
-                    'backgroundColor': '#808080',  # Серый цвет как у панели
+                    'backgroundColor': '#808080',
                     'borderRadius': '6px',
                     'display': 'inline-block'
                 })

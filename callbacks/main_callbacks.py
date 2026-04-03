@@ -118,12 +118,12 @@ def update_main_kpi_cards(date_range):
 # Callback для обновления времени последнего обновления
 @callback(
     Output('last-update-time', 'children'),
-    [Input('global-date-range-picker', 'start_date')]
+    [Input('global-date-range', 'data')]
 )
-def update_last_update_time(start_date):
+def update_last_update_time(date_range):
     return f"Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
 
-# Callback для обновления данных при изменении фильтра дат
+# Callback для обновления данных при изменении дат в календаре
 @callback(
     [Output('global-date-range', 'data'),
      Output('performance-data-cache', 'data'),
@@ -131,28 +131,41 @@ def update_last_update_time(start_date):
      Output('problematic-hours-cache', 'data'),
      Output('error-hours-cache', 'data')],
     [Input('global-date-range-picker', 'start_date'),
-     Input('global-date-range-picker', 'end_date')]
+     Input('global-date-range-picker', 'end_date')],
+    prevent_initial_call=False
 )
 def update_global_date_range_and_data(start_date, end_date):
     """Обновление глобального фильтра дат и загрузка данных"""
-    if start_date and end_date:
-        start_str = start_date[:10] if isinstance(start_date, str) else start_date
-        end_str = end_date[:10] if isinstance(end_date, str) else end_date
-        
+    if not start_date or not end_date:
+        raise dash.exceptions.PreventUpdate
+
+    # Преобразуем даты в строки
+    if isinstance(start_date, str):
+        start_str = start_date[:10]
+    else:
+        start_str = start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else str(start_date)[:10]
+    
+    if isinstance(end_date, str):
+        end_str = end_date[:10]
+    else:
+        end_str = end_date.strftime('%Y-%m-%d') if hasattr(end_date, 'strftime') else str(end_date)[:10]
+
+    try:
         refresh_data(start_str, end_str)
-        
+
         # Получаем актуальные данные
         performance_data_cache = get_performance_data(start_str, end_str)
         shift_comparison_cache = get_shift_comparison(start_str, end_str)
         problematic_hours_cache = get_problematic_hours(start_str, end_str)
         error_hours_cache = get_error_hours_top_data(start_str, end_str)
-        
+
         return {
             'start_date': start_str,
             'end_date': end_str
         }, performance_data_cache, shift_comparison_cache, problematic_hours_cache, error_hours_cache
-    
-    return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    except Exception as e:
+        print(f"Error in update_global_date_range_and_data: {e}")
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 # Callback для открытия/закрытия модального окна ячеек хранения
 @callback(

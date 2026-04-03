@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr *)",
+      "Bash(git show *)",
+      "Bash(type *)",
+      "Bash(select-string *)",
+      "Bash(del *)",
+      "Bash(git add *)"
+    ]
+  },
+  "$version": 3
+}
