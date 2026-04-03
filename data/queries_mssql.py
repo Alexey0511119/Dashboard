@@ -1,6 +1,9 @@
 import json
+import logging
 from datetime import datetime, timedelta
 from data.mssql_client import execute_query_cached, mssql_client
+
+logger = logging.getLogger(__name__)
 
 # Глобальные переменные для кэширования данных
 PERFORMANCE_DATA_CACHE = []
@@ -105,7 +108,7 @@ def get_orders_timeliness_by_delivery(start_date, end_date):
                     'total_count': total_count
                 })
             except Exception as e:
-                print(f"Error processing order timeliness row: {e}")
+                logger.error("Error processing order timeliness row: %s", e)
                 continue
     
     return chart_data
@@ -223,7 +226,7 @@ def get_order_accuracy(start_date, end_date):
             return 100.0, 0, 0, 0
             
     except Exception as e:
-        print(f"ERROR: Ошибка в get_order_accuracy: {e}")
+        logger.error("Ошибка в get_order_accuracy: %s", e)
         
         # Возвращаем значения по умолчанию в случае ошибки
         return 100.0, 0, 0, 0
@@ -274,7 +277,7 @@ def get_rejected_lines_summary(start_date=None, end_date=None):
             }
 
     except Exception as e:
-        print(f"ERROR: Ошибка в get_rejected_lines_summary: {e}")
+        logger.error("Ошибка в get_rejected_lines_summary: %s", e)
 
         # Возвращаем значения по умолчанию в случае ошибки
         return {
@@ -347,7 +350,7 @@ def get_rejected_lines_detail(start_date=None, end_date=None, limit=100):
         return detail_data
 
     except Exception as e:
-        print(f"ERROR: Ошибка в get_rejected_lines_detail: {e}")
+        logger.error("Ошибка в get_rejected_lines_detail: %s", e)
         return []
 
 # Получение данных списка приходов
@@ -488,7 +491,7 @@ def get_performance_data(start_date, end_date):
                 employee_data[employee]['date_keys'].append(date_key)
 
             except Exception as e:
-                print(f"Error processing performance row: {e}")
+                logger.error("Error processing performance row: %s", e)
                 continue
 
     # Теперь формируем итоговые данные для каждого сотрудника
@@ -599,7 +602,7 @@ def get_employee_modal_detail(employee_name, start_date, end_date):
                     'reception_count': reception_count
                 })
             except Exception as e:
-                print(f"Error processing employee detail row: {e}")
+                logger.error("Error processing employee detail row: %s", e)
                 continue
     
     return detail_data
@@ -637,7 +640,7 @@ def get_employee_operations_by_type(employee_name, start_date, end_date):
                     'total_earnings': round(total_earnings, 2)
                 })
             except Exception as e:
-                print(f"Error processing operations by type row: {e}")
+                logger.error("Error processing operations by type row: %s", e)
                 continue
     
     return operations_data
@@ -695,7 +698,7 @@ def get_employee_idle_intervals(fio, start_date, end_date):
                 days_count += 1
 
             except Exception as e:
-                print(f"Error processing idle interval row: {e}")
+                logger.error("Error processing idle interval row: %s", e)
                 continue
 
     # Возвращаем данные с новыми категориями
@@ -812,7 +815,7 @@ def get_employee_work_idle_detail(employee_name, start_date, end_date):
                     'idle_60plus': idle_60plus
                 })
             except Exception as e:
-                print(f"Error processing employee work idle detail row: {e}")
+                logger.error("Error processing employee work idle detail row: %s", e)
                 continue
 
     return detail_data
@@ -849,7 +852,7 @@ def get_problematic_hours(start_date, end_date):
                     'delay_percentage': delay_percentage
                 })
             except Exception as e:
-                print(f"Error processing problematic hours row: {e}")
+                logger.error("Error processing problematic hours row: %s", e)
                 continue
 
     return problematic_hours
@@ -887,7 +890,7 @@ def get_error_hours_top_data(start_date, end_date):
                     'error_types': ''  # В этой таблице нет информации о типах ошибок
                 })
             except Exception as e:
-                print(f"Error processing error hours row: {e}")
+                logger.error("Error processing error hours row: %s", e)
                 continue
 
     return error_hours
@@ -935,7 +938,7 @@ def get_shift_comparison(start_date, end_date):
                     'Штрафы': fines_count
                 })
             except Exception as e:
-                print(f"Error processing comparison row: {e}")
+                logger.error("Error processing comparison row: %s", e)
                 continue
     
     return comparison_data
@@ -979,7 +982,7 @@ def get_fines_data(start_date, end_date):
                     'Средний_штраф': round(avg_amount, 2)
                 })
             except Exception as e:
-                print(f"Error processing fines row: {e}")
+                logger.error("Error processing fines row: %s", e)
                 continue
     
     # Получаем данные по категориям штрафов
@@ -1011,7 +1014,7 @@ def get_fines_data(start_date, end_date):
                     'total_amount': total_amount
                 }
             except Exception as e:
-                print(f"Error processing category row: {e}")
+                logger.error("Error processing category row: %s", e)
                 continue
 
     # Получаем KPI данные
@@ -1163,9 +1166,9 @@ def get_employees_on_shift():
                     'Время_первой_операции': formatted_time
                 })
             except Exception as e:
-                print(f"Error processing employee row: {e}")
+                logger.error("Error processing employee row: %s", e)
                 continue
-    
+
     # Возвращаем кортеж (employees_data, position_stats) для совместимости
     position_stats = {
         'Кладовщик': len(employees_data),
@@ -1216,11 +1219,9 @@ def get_todays_shift():
     
     if cycle_position == 0 or cycle_position == 1:
         today_shift = '1'
-        print(f"Сегодня {today}: работает ПЕРВАЯ смена (smena='1')")
     else:
         today_shift = '2'
-        print(f"Сегодня {today}: работает ВТОРАЯ смена (smena='2')")
-    
+
     return today_shift
 
 
@@ -1290,9 +1291,9 @@ def get_employees_on_shift_new():
                     'Время_первой_операции': formatted_time
                 })
             except Exception as e:
-                print(f"Error processing employee row: {e}")
+                logger.error("Error processing employee row: %s", e)
                 continue
-    
+
     # Статистика по должностям
     position_stats = {}
     for emp in employees_data:
@@ -1384,7 +1385,7 @@ def get_all_storage_data():
                     'occupancy_pct': round(occupancy_pct, 1)
                 })
             except Exception as e:
-                print(f"Error processing storage row: {e}")
+                logger.error("Error processing storage row: %s", e)
                 continue
 
     return storage_data
@@ -1395,30 +1396,30 @@ def refresh_data(start_date, end_date):
     global PERFORMANCE_DATA_CACHE, EMPLOYEE_ANALYTICS_CACHE, EMPLOYEE_OPERATIONS_DETAIL_CACHE
     global SHIFT_COMPARISON_CACHE, PROBLEMATIC_HOURS_CACHE, ERROR_HOURS_CACHE
 
-    print(f"Обновление данных за период: {start_date} - {end_date}")
+    logger.info("Обновление данных за период: %s - %s", start_date, end_date)
 
     try:
         # Обновляем кэши
         PERFORMANCE_DATA_CACHE = get_performance_data(start_date, end_date)
-        print(f"Данные производительности обновлены: {len(PERFORMANCE_DATA_CACHE)} сотрудников")
+        logger.info("Данные производительности обновлены: %d сотрудников", len(PERFORMANCE_DATA_CACHE))
 
         SHIFT_COMPARISON_CACHE = get_shift_comparison(start_date, end_date)
-        print(f"Данные сравнения смен обновлены")
+        logger.info("Данные сравнения смен обновлены")
 
         PROBLEMATIC_HOURS_CACHE = get_problematic_hours(start_date, end_date)
-        print(f"Данные проблемных часов обновлены: {len(PROBLEMATIC_HOURS_CACHE)} записей")
+        logger.info("Данные проблемных часов обновлены: %d записей", len(PROBLEMATIC_HOURS_CACHE))
 
         ERROR_HOURS_CACHE = get_error_hours_top_data(start_date, end_date)
-        print(f"Данные часов с ошибками обновлены: {len(ERROR_HOURS_CACHE)} записей")
+        logger.info("Данные часов с ошибками обновлены: %d записей", len(ERROR_HOURS_CACHE))
 
         # Инициализируем остальные кэши
         EMPLOYEE_ANALYTICS_CACHE = {}
         EMPLOYEE_OPERATIONS_DETAIL_CACHE = {}
 
-        print("SUCCESS: Данные успешно обновлены")
+        logger.info("Данные успешно обновлены")
 
     except Exception as e:
-        print(f"ERROR: Ошибка при обновлении данных: {e}")
+        logger.error("Ошибка при обновлении данных: %s", e)
         import traceback
         traceback.print_exc()
 
@@ -1459,7 +1460,7 @@ def get_revision_stats():
             }
 
     except Exception as e:
-        print(f"ERROR: Ошибка в get_revision_stats: {e}")
+        logger.error("Ошибка в get_revision_stats: %s", e)
 
         # Возвращаем значения по умолчанию в случае ошибки
         return {
@@ -1508,7 +1509,7 @@ def get_revision_detail_data():
         return detail_data
         
     except Exception as e:
-        print(f"ERROR: Ошибка в get_revision_detail_data: {e}")
+        logger.error("Ошибка в get_revision_detail_data: %s", e)
         return []
 
 def get_placement_errors(start_date=None, end_date=None):
@@ -1582,7 +1583,7 @@ def get_placement_errors(start_date=None, end_date=None):
             }
             
     except Exception as e:
-        print(f"ERROR: Ошибка в get_placement_errors: {e}")
+        logger.error("Ошибка в get_placement_errors: %s", e)
         
         # Возвращаем значения по умолчанию в случае ошибки
         return {
@@ -1629,7 +1630,7 @@ def get_timeliness_chart_data(start_date, end_date, chart_type):
                         'value': delayed_orders
                     })
             except Exception as e:
-                print(f"Error processing chart row: {e}")
+                logger.error("Error processing chart row: %s", e)
                 continue
     
     return chart_data
@@ -1678,7 +1679,7 @@ def get_orders_table(start_date, end_date):
                         'status_color': status_color
                     })
             except Exception as e:
-                print(f"Error processing order row: {e}")
+                logger.error("Error processing order row: %s", e)
                 continue
     
     return orders
@@ -1713,7 +1714,7 @@ def get_arrival_timeliness(start_date, end_date):
         return timely_count, delayed_count
         
     except Exception as e:
-        print(f"ERROR: Ошибка в get_arrival_timeliness: {e}")
+        logger.error("Ошибка в get_arrival_timeliness: %s", e)
         return 0, 0
 
 def get_order_timeliness(start_date, end_date):
@@ -1781,7 +1782,7 @@ def get_employee_fines_details(employee_name, start_date, end_date):
                     'description': f"Штраф за {category}, смена {shift}"
                 })
             except Exception as e:
-                print(f"Error processing fine detail row: {e}")
+                logger.error("Error processing fine detail row: %s", e)
                 continue
     
     return fines_details
@@ -1884,7 +1885,7 @@ def get_group_load_monitor():
                     'status_color': row[2] if row[2] else 'GRAY'
                 })
             except Exception as e:
-                print(f"Error processing group load row: {e}")
+                logger.error("Error processing group load row: %s", e)
                 continue
     
     return groups_data

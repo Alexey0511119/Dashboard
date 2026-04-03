@@ -1,18 +1,24 @@
+import logging
 import dash
 from dash import Input, Output, State, callback, ALL
 import json
-import re
 from data.queries_mssql import (
-    get_employee_analytics, get_employee_operations_detail,
-    get_employee_fines_details, get_employee_idle_data, get_all_storage_data, filter_storage_data,
-    get_employee_idle_intervals, get_employee_work_idle_detail
+    get_employee_fines_details,
+    get_employee_idle_intervals,
+    get_employee_operations_by_type,
+    get_employee_modal_detail,
+    get_rejected_lines_summary,
+    get_rejected_lines_detail,
 )
 from components.charts import (
-    create_operations_type_chart, create_time_distribution_pie_echarts,
-    create_idle_intervals_bar_echarts, create_employee_fines_chart,
-    create_timeline_chart
+    create_time_distribution_pie_echarts,
+    create_idle_intervals_bar_echarts,
+    create_employee_fines_chart,
+    create_timeline_chart,
 )
 from dash import html
+
+logger = logging.getLogger(__name__)
 
 # Callback для аналитического модального окна
 @callback(
@@ -78,7 +84,6 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
 
             # Получаем детальные данные для сотрудника
             if date_range:
-                from data.queries_mssql import get_employee_modal_detail
                 detail_data = get_employee_modal_detail(employee_name,
                                                        date_range['start_date'],
                                                        date_range['end_date'])
@@ -138,19 +143,10 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                 # РАСЧЕТ ЗАРАБОТКА В ЧАС
                 earnings_per_hour = total_earnings / work_hours if work_hours > 0 else 0.0
 
-                # ПОЛУЧАЕМ ДАННЫЕ О ВРЕМЕНИ РАБОТЫ И ПРОСТОЯ ИЗ НОВОЙ ТАБЛИЦЫ
-                # Отладка отключена
-                # print(f"\n{'='*60}")
-                # print(f"=== ОТЛАДКА: Получение данных о времени работы ===")
-                # print(f"Сотрудник (ФИО): {employee_name}")
-                # print(f"Период: {date_range['start_date']} - {date_range['end_date']}")
-
+                # Получаем данные о времени работы и простое из новой таблицы
                 idle_data = get_employee_idle_intervals(employee_name,
                                                         date_range['start_date'],
                                                         date_range['end_date'])
-
-                # print(f"Получены данные: {idle_data}")
-                # print(f"{'='*60}\n")
 
                 # Используем реальные данные из новой таблицы
                 total_work_minutes = idle_data.get('total_work_minutes', 0)
@@ -164,8 +160,6 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                 work_duration = f"{work_hours_val}ч {work_mins_val}м"
 
                 # Получаем данные для диаграмм
-                from data.queries_mssql import get_employee_operations_by_type
-
                 operations_by_type = get_employee_operations_by_type(employee_name,
                                                                     date_range['start_date'],
                                                                     date_range['end_date'])
@@ -244,9 +238,7 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
                 ]
 
         except Exception as e:
-            print(f"Error in handle_analytics_modal: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error in handle_analytics_modal: %s", e, exc_info=True)
             return ["modal-hidden", "modal-content", "", "", "", "", "", "", "", {}, {}, {}]
 
     raise dash.exceptions.PreventUpdate
@@ -269,68 +261,51 @@ def handle_idle_detail_modal(selected_data, close_clicks, employee_name):
         raise dash.exceptions.PreventUpdate
     
     button_id = ctx.triggered[0]['prop_id']
-    
-    print(f"\n{'='*60}")
-    print(f"=== ОБРАБОТКА ВЫБОРА НА ДИАГРАММЕ ===")
-    print(f"Сработало: {button_id}")
-    print(f"Выбранные данные: {selected_data}")
-    print(f"Имя сотрудника: {employee_name}")
-    print(f"{'='*60}\n")
-    
+
+    logger.info("Обработка выбора на диаграмме: %s, сотрудник: %s", button_id, employee_name)
+
     if 'close-idle-detail-modal' in button_id:
-        print(">>> Закрытие модального окна")
         return ["modal-hidden", "modal-content", "", "", ""]
-    
+
     if 'idle-intervals-chart.selectedData' in button_id and selected_data:
         try:
-            print(f">>> Данные выбора: {json.dumps(selected_data, indent=2, ensure_ascii=False)}")
-            
+            logger.debug("Данные выбора: %s", json.dumps(selected_data, indent=2, ensure_ascii=False))
+
             # Получаем имя интервала из данных выбора
             interval_name = "Неизвестный интервал"
-            
+
             # ECharts обычно возвращает данные в таком формате
             if isinstance(selected_data, list) and len(selected_data) > 0:
-                # Если это массив выбранных элементов
                 first_item = selected_data[0]
                 if 'name' in first_item:
                     interval_name = first_item['name']
-                    print(f">>> Найдено имя в selected_data[0]['name']: {interval_name}")
                 elif 'data' in first_item and 'name' in first_item['data']:
                     interval_name = first_item['data']['name']
-                    print(f">>> Найдено имя в selected_data[0]['data']['name']: {interval_name}")
             elif isinstance(selected_data, dict):
-                # Если это один объект
                 if 'name' in selected_data:
                     interval_name = selected_data['name']
-                    print(f">>> Найдено имя в selected_data['name']: {interval_name}")
                 elif 'data' in selected_data and 'name' in selected_data['data']:
                     interval_name = selected_data['data']['name']
-                    print(f">>> Найдено имя в selected_data['data']['name']: {interval_name}")
                 elif 'seriesName' in selected_data:
                     interval_name = selected_data['seriesName']
-                    print(f">>> Найдено имя в seriesName: {interval_name}")
                 elif 'value' in selected_data:
                     if isinstance(selected_data['value'], (list, tuple)) and len(selected_data['value']) > 0:
                         interval_name = str(selected_data['value'][0])
                     else:
                         interval_name = str(selected_data['value'])
-                    print(f">>> Найдено значение: {interval_name}")
-            
-            print(f">>> Определен интервал: {interval_name}")
-            
+
+            logger.info("Определен интервал: %s", interval_name)
+
             if employee_name:
-                print(f">>> Открытие модального окна для {employee_name}")
                 return [
                     "modal-visible", "modal-content-visible",
                     f"Сотрудник: {employee_name}",
                     f"Выбранный интервал: {interval_name}",
                     interval_name
                 ]
-                
+
         except Exception as e:
-            print(f">>> ОШИБКА при обработке выбора: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Ошибка при обработке выбора: %s", e, exc_info=True)
     
     return ["modal-hidden", "modal-content", "", "", ""]
 
@@ -461,7 +436,7 @@ def handle_fines_modal(close_clicks, fines_clicks, selected_fines_employee, fine
                     employee_name
                 )
         except Exception as e:
-            print(f"Error in handle_fines_modal: {e}")
+            logger.error("Error in handle_fines_modal: %s", e, exc_info=True)
             raise dash.exceptions.PreventUpdate
     
     raise dash.exceptions.PreventUpdate
@@ -493,9 +468,6 @@ def handle_rejected_lines_modal(open_clicks, close_clicks):
     if 'open-rejected-lines-modal' in button_id and open_clicks:
         try:
             # Получаем данные из VIEW (без фильтра по датам - VIEW содержит все данные)
-            from data.queries_mssql import get_rejected_lines_summary, get_rejected_lines_detail
-
-            # Получаем сводную статистику (без параметров дат)
             summary_stats = get_rejected_lines_summary()
 
             # Получаем детальные данные (без параметров дат, лимит 1000)
@@ -574,7 +546,7 @@ def handle_rejected_lines_modal(open_clicks, close_clicks):
             ]
 
         except Exception as e:
-            print(f"Error in handle_rejected_lines_modal: {e}")
+            logger.error("Error in handle_rejected_lines_modal: %s", e, exc_info=True)
             return ["modal-hidden", "modal-content", "Ошибка", "0", "0", "Ошибка", []]
 
     raise dash.exceptions.PreventUpdate

@@ -2,6 +2,11 @@ import dash
 from dash import Dash, html, dcc
 from datetime import datetime, timedelta
 import base64
+import logging
+
+# Настраиваем логирование перед инициализацией приложения
+from config.logging_config import *
+
 from components.layout import create_layout
 from callbacks.main_callbacks import *
 from callbacks.tab_callbacks import *
@@ -9,6 +14,8 @@ from callbacks.modal_callbacks import *
 from data.queries_mssql import refresh_data
 # Добавим импорт для нового модального окна
 from components.modals import create_rejected_lines_modal
+
+logger = logging.getLogger(__name__)
 
 # Инициализация приложения Dash
 app = dash.Dash(__name__, suppress_callback_exceptions=True)

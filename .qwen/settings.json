@@ -7,7 +7,9 @@
       "Bash(select-string *)",
       "Bash(del *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(python *)",
+      "Bash(cmd *)"
     ]
   },
   "$version": 3

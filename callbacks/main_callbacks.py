@@ -1,9 +1,14 @@
+import logging
+from functools import lru_cache
+
 import dash
 from dash import Input, Output, State, callback, html
 import pandas as pd
 from datetime import datetime, timedelta
 import json
 import random
+
+logger = logging.getLogger(__name__)
 
 from data.queries_mssql import (
     get_orders_timely, get_avg_operation_time, get_total_earnings, get_order_accuracy,
@@ -58,7 +63,7 @@ def update_main_kpi_cards(date_range):
         free_pct = storage_stats.get('free_percent') or 0
         storage_detail = f"{occ_pct}% занято | {free_pct}% своб."
     except Exception as e:
-        print(f"Error getting revision/storage stats: {e}")
+        logger.error(f"Error getting revision/storage stats: {e}")
         total_revisions = "0"
         open_revisions = "0"
         in_process_revisions = "0"
@@ -111,7 +116,7 @@ def update_main_kpi_cards(date_range):
             accuracy_str
         )
     except Exception as e:
-        print(f"Error in update_main_kpi_cards: {e}")
+        logger.error(f"Error in update_main_kpi_cards: {e}")
         return ("0", "0", "0", "0%", "0", "0", "0/0",
                 "0% занято | 0% своб.", "100%")
 
@@ -122,6 +127,17 @@ def update_main_kpi_cards(date_range):
 )
 def update_last_update_time(date_range):
     return f"Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+
+# Кэшируемая функция для получения данных при заданных датах
+@lru_cache(maxsize=32)
+def _get_cached_data_for_dates(start_str, end_str):
+    """Кэширует все данные для заданной пары дат, чтобы избежать повторных запросов к БД."""
+    performance_data_cache = get_performance_data(start_str, end_str)
+    shift_comparison_cache = get_shift_comparison(start_str, end_str)
+    problematic_hours_cache = get_problematic_hours(start_str, end_str)
+    error_hours_cache = get_error_hours_top_data(start_str, end_str)
+    return performance_data_cache, shift_comparison_cache, problematic_hours_cache, error_hours_cache
+
 
 # Callback для автоматического обновления данных при изменении дат
 @callback(
@@ -144,7 +160,7 @@ def update_global_date_range_and_data(start_date, end_date):
         start_str = start_date[:10]
     else:
         start_str = start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else str(start_date)[:10]
-    
+
     if isinstance(end_date, str):
         end_str = end_date[:10]
     else:
@@ -153,18 +169,16 @@ def update_global_date_range_and_data(start_date, end_date):
     try:
         refresh_data(start_str, end_str)
 
-        # Получаем актуальные данные
-        performance_data_cache = get_performance_data(start_str, end_str)
-        shift_comparison_cache = get_shift_comparison(start_str, end_str)
-        problematic_hours_cache = get_problematic_hours(start_str, end_str)
-        error_hours_cache = get_error_hours_top_data(start_str, end_str)
+        # Получаем актуальные данные из кэша
+        performance_data_cache, shift_comparison_cache, problematic_hours_cache, error_hours_cache = \
+            _get_cached_data_for_dates(start_str, end_str)
 
         return {
             'start_date': start_str,
             'end_date': end_str
         }, performance_data_cache, shift_comparison_cache, problematic_hours_cache, error_hours_cache
     except Exception as e:
-        print(f"Error in update_global_date_range_and_data: {e}")
+        logger.error(f"Error in update_global_date_range_and_data: {e}")
         return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 # Callback для открытия/закрытия модального окна ячеек хранения
@@ -381,8 +395,8 @@ def update_storage_filters_and_charts(storage_type_val, locating_zone_val, alloc
         )
         
     except Exception as e:
-        print(f"ERROR in callback: {e}")
-        
+        logger.error(f"ERROR in callback: {e}")
+
         empty_options = [{'label': 'Все', 'value': 'Все'}]
         empty_chart = {"title": {"text": "Ошибка", "left": "center"}}
         return (
@@ -495,7 +509,7 @@ def update_shift_employees_table(position_filter, brigade_filter):
         return rows
 
     except Exception as e:
-        print(f"Error in update_shift_employees_table: {e}")
+        logger.error(f"Error in update_shift_employees_table: {e}")
         return [
             html.Tr([
                 html.Td(f"Ошибка загрузки данных: {str(e)}", colSpan=5,
@@ -668,6 +682,6 @@ def update_shift_stats_info(date_range):
         ], style={'height': '100%', 'overflow': 'hidden'})
         
     except Exception as e:
-        print(f"Error in update_shift_stats_info: {e}")
+        logger.error(f"Error in update_shift_stats_info: {e}")
         return html.Div(f"Ошибка загрузки данных: {str(e)}",
                        style={'color': '#F44336', 'padding': '15px', 'textAlign': 'center', 'fontSize': '14px'})
