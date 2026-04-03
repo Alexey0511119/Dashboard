@@ -462,77 +462,8 @@ app.index_string = f'''
                 background-color: rgba(25, 118, 210, 0.1);
                 box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
             }}
-            /* ИСПРАВЛЕННЫЕ стили для отображения календаря поверх элементов */
-            .DateRangePicker {{
-                position: relative;
-                z-index: 9999999 !important;
-            }}
-            .DateRangePickerInput, .DateInput {{
-                z-index: 9999999 !important;
-                position: relative;
-            }}
-            /* КАЛЕНДАРЬ ПОВЕРХ ВСЕХ ЭЛЕМЕНТОВ */
-            .DateRangePicker_picker {{
-                z-index: 999999999 !important;
-                position: absolute !important;
-                top: 100% !important;
-                left: 0 !important;
-                display: block !important;
-                visibility: visible !important;
-                pointer-events: auto !important;
-            }}
-            .DayPicker, .DayPicker-wrapper,
-            .CalendarMonth, .CalendarDay,
-            .DayPickerNavigation, .CalendarMonth_caption {{
-                display: block !important;
-                visibility: visible !important;
-                pointer-events: auto !important;
-                z-index: 999999999 !important;
-            }}
-            .DayPicker-portal {{
-                display: block !important;
-                visibility: visible !important;
-                pointer-events: auto !important;
-                z-index: 999999999 !important;
-            }}
-            /* Убедимся, что календарь всегда поверх всего */
-            .DateRangePickerInput__withBorder {{
-                border-radius: 4px;
-                border: 1px solid #ddd;
-                background: white;
-                padding: 4px 8px;
-            }}
-            /* Делаем поле ввода компактным */
-            .DateRangePickerInput, .DateInput {{
-                display: inline-block !important;
-                width: auto !important;
-            }}
-            .DateInput_input {{
-                font-size: 12px !important;
-                padding: 4px 6px !important;
-                width: 100px !important;
-                height: 28px !important;
-                border: 1px solid #ddd !important;
-                border-radius: 3px !important;
-                text-align: center !important;
-            }}
-            /* Стили для разделителя между датами */
-            .DateRangePickerInput_arrow {{
-                display: flex !important;
-                align-items: center !important;
-                padding: 0 5px !important;
-                color: #666 !important;
-                font-size: 12px !important;
-            }}
             /* Для мобильных устройств */
             @media (max-width: 768px) {{
-                .DateRangePicker_picker {{
-                    position: fixed !important;
-                    top: 50% !important;
-                    left: 50% !important;
-                    transform: translate(-50%, -50%) !important;
-                    right: auto !important;
-                }}
                 .kpi-row {{
                     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 }}

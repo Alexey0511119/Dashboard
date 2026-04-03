@@ -121,17 +121,34 @@ def create_layout():
                                 'marginBottom': '5px',
                                 'textAlign': 'right'
                             }),
-                    dcc.DatePickerRange(
-                        id='global-date-range-picker',
-                        start_date=datetime.now() - timedelta(days=7),
-                        end_date=datetime.now(),
-                        display_format='DD.MM.YYYY',
-                        style={
-                            'fontSize': '12px',
-                            'position': 'relative',
-                            'zIndex': '9999'
-                        }
-                    )
+                    html.Div([
+                        html.Label("С:", style={'color': '#333', 'fontSize': '11px', 'marginRight': '5px', 'alignSelf': 'center'}),
+                        dcc.Input(
+                            id='global-date-start',
+                            type='date',
+                            value=(datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+                            style={
+                                'padding': '4px 8px',
+                                'border': '1px solid #ddd',
+                                'borderRadius': '4px',
+                                'fontSize': '12px',
+                                'width': '130px'
+                            }
+                        ),
+                        html.Label("По:", style={'color': '#333', 'fontSize': '11px', 'margin': '0 5px 0 10px', 'alignSelf': 'center'}),
+                        dcc.Input(
+                            id='global-date-end',
+                            type='date',
+                            value=datetime.now().strftime('%Y-%m-%d'),
+                            style={
+                                'padding': '4px 8px',
+                                'border': '1px solid #ddd',
+                                'borderRadius': '4px',
+                                'fontSize': '12px',
+                                'width': '130px'
+                            }
+                        )
+                    ], style={'display': 'flex', 'alignItems': 'center'})
                 ], style={
                     'padding': '5px 10px',
                     'backgroundColor': '#808080',

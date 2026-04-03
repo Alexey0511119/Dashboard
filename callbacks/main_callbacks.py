@@ -123,19 +123,19 @@ def update_main_kpi_cards(date_range):
 def update_last_update_time(date_range):
     return f"Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
 
-# Callback для обновления данных при изменении дат в календаре
+# Callback для автоматического обновления данных при изменении дат
 @callback(
     [Output('global-date-range', 'data'),
      Output('performance-data-cache', 'data'),
      Output('shift-comparison-cache', 'data'),
      Output('problematic-hours-cache', 'data'),
      Output('error-hours-cache', 'data')],
-    [Input('global-date-range-picker', 'start_date'),
-     Input('global-date-range-picker', 'end_date')],
+    [Input('global-date-start', 'value'),
+     Input('global-date-end', 'value')],
     prevent_initial_call=False
 )
 def update_global_date_range_and_data(start_date, end_date):
-    """Обновление глобального фильтра дат и загрузка данных"""
+    """Автоматическое обновление данных при изменении дат в полях ввода"""
     if not start_date or not end_date:
         raise dash.exceptions.PreventUpdate
 

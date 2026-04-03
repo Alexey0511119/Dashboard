@@ -6,7 +6,8 @@
       "Bash(type *)",
       "Bash(select-string *)",
       "Bash(del *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "$version": 3
