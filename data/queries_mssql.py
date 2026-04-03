@@ -229,12 +229,14 @@ def get_order_accuracy(start_date, end_date):
         return 100.0, 0, 0, 0
 
 # Получение данных по отклоненным строкам для карточки
-def get_rejected_lines_summary(start_date, end_date):
+def get_rejected_lines_summary(start_date=None, end_date=None):
     """Получение данных по отклоненным строкам для карточки из dm.v_rejected_lines_summary
     БЕЗ КЭШИРОВАНИЯ - для реального времени
+    start_date и end_date не используются (VIEW содержит все данные)
     """
     try:
         # Основной запрос для получения статистики по отклоненным строкам
+        # VIEW содержит все данные - фильтра по датам нет
         query = """
         SELECT
             total_rejected_lines,
@@ -283,53 +285,63 @@ def get_rejected_lines_summary(start_date, end_date):
         }
 
 # Получение детальных данных по отклоненным строкам для модального окна
-def get_rejected_lines_detail(start_date, end_date, limit=100):
+def get_rejected_lines_detail(start_date=None, end_date=None, limit=100):
     """Получение детальных данных по отклоненным строкам для модального окна из dm.v_rejected_lines_detail
     БЕЗ КЭШИРОВАНИЯ - для реального времени
+    start_date и end_date не используются (VIEW содержит все данные)
     """
     try:
         # Основной запрос для получения детальных данных
-        # Используем CONVERT для корректной работы с датами
+        # VIEW содержит все данные - фильтра по датам нет, только LIMIT
+        # ДОБАВЛЕНА СОРТИРОВКА: 1. Клиент, 2. SHIPMENT_ID, 3. ITEM_DESC
         query = """
         SELECT TOP {limit}
             SHIPMENT_ID,
+            ORDER_TYPE,  -- <-- НОВОЕ ПОЛЕ
             ITEM,
             ITEM_DESC,
             REQUESTED_QTY,
             QUANTITY_UM,
             PICK_LOC,
             PICK_ZONE,
-            DATE_TIME_STAMP
+            DATE_TIME_STAMP,
+            REJECTION_NOTE  -- <-- НОВОЕ ПОЛЕ
         FROM dm.v_rejected_lines_detail
-        WHERE CAST(DATE_TIME_STAMP AS DATE) BETWEEN ? AND ?
-        ORDER BY DATE_TIME_STAMP DESC
+        ORDER BY 
+            CASE WHEN ORDER_TYPE = N'Клиент' THEN 0 ELSE 1 END,  -- Сначала Клиент
+            SHIPMENT_ID,                                         -- Затем по ID заказа
+            ITEM_DESC                                            -- Затем по описанию товара
         """.format(limit=limit)
 
         # Используем прямой запрос без кэша
-        result = mssql_client.execute(query, (start_date, end_date))
+        result = mssql_client.execute(query)
 
         detail_data = []
         if result:
             for row in result:
                 # Обрабатываем данные с проверкой на None
                 shipment_id = row[0] if row[0] is not None else ''
-                item = row[1] if row[1] is not None else ''
-                item_desc = row[2] if row[2] is not None else ''
-                requested_qty = row[3] if row[3] is not None else 0
-                quantity_um = row[4] if row[4] is not None else ''
-                pick_loc = row[5] if row[5] is not None else ''
-                pick_zone = row[6] if row[6] is not None else ''
-                date_time_stamp = row[7] if row[7] is not None else None
+                order_type = row[1] if row[1] is not None else ''  # <-- НОВОЕ ПОЛЕ
+                item = row[2] if row[2] is not None else ''
+                item_desc = row[3] if row[3] is not None else ''
+                requested_qty = row[4] if row[4] is not None else 0
+                quantity_um = row[5] if row[5] is not None else ''
+                pick_loc = row[6] if row[6] is not None else ''
+                pick_zone = row[7] if row[7] is not None else ''
+                date_time_stamp = row[8] if row[8] is not None else None
+                rejection_note = row[9] if row[9] is not None else ''  # <-- НОВОЕ ПОЛЕ
 
                 detail_data.append({
                     'shipment_id': shipment_id,
+                    'order_type': order_type,  # <-- ДОБАВЛЕНО
                     'item': item,
                     'item_desc': item_desc,
                     'requested_qty': requested_qty,
                     'quantity_um': quantity_um,
                     'pick_loc': pick_loc,
                     'pick_zone': pick_zone,
-                    'date_time_stamp': date_time_stamp
+                    'date_time_stamp': date_time_stamp,
+                    'rejection_note': rejection_note  # <-- ДОБАВЛЕНО
                 })
 
         return detail_data
@@ -340,9 +352,9 @@ def get_rejected_lines_detail(start_date, end_date, limit=100):
 
 # Получение данных списка приходов
 def get_receipt_list_data():
-    """Получение данных списка приходов из dwh.receipt_list"""
+    """Получение данных списка приходов из dwh.receipt_list (БЕЗ КЭШИРОВАНИЯ)"""
     query = """
-    SELECT 
+    SELECT
         RECEIPT_ID as receipt_id,
         ERP_ORDER_NUM as erp_order_num,
         SOURCE_NAME as source_name,
@@ -355,9 +367,10 @@ def get_receipt_list_data():
     FROM dwh.receipt_list
     ORDER BY creation_date DESC
     """
-    
-    result = execute_query_cached(query)
-    
+
+    # ПРЯМОЙ ЗАПРОС БЕЗ КЭША - всегда актуальные данные
+    result = mssql_client.execute(query)
+
     receipt_list = []
     if result:
         for row in result:
@@ -372,7 +385,7 @@ def get_receipt_list_data():
                 'execution_time': row[7] if row[7] else '',
                 'overdue_in': row[8] if row[8] else ''
             })
-    
+
     return receipt_list
 
 # Получение средней производительности сотрудников

@@ -57,40 +57,47 @@ def fetch_rejected_lines_from_ils(log):
 
         # Запрос с фильтрами (как в ТЗ)
         # STATUS1 = '100' — отклонённые строки
-        # Исключаем только явный "ОТКАЗ", всё остальное включаем (включая NULL)
+        # ДОБАВЛЕНО: Проверка REJECTION_NOTE IS NOT NULL для точного определения отклонений
+        # ДОБАВЛЕНО: Выбор полей REJECTION_NOTE и ORDER_TYPE из SHIPMENT_HEADER
         query = """
         SELECT
             sd.SHIPMENT_ID,
+            sh.ORDER_TYPE,  -- <-- НОВОЕ ПОЛЕ
             sd.ITEM,
             i.DESCRIPTION AS ITEM_DESC,
             sd.REQUESTED_QTY,
             sd.QUANTITY_UM,
             sd.PICK_LOC,
             sd.PICK_ZONE,
-            sd.DATE_TIME_STAMP
+            sd.DATE_TIME_STAMP,
+            sh.REJECTION_NOTE  -- <-- НОВОЕ ПОЛЕ
         FROM dbo.SHIPMENT_DETAIL sd WITH (NOLOCK)
+        INNER JOIN dbo.SHIPMENT_HEADER sh WITH (NOLOCK)
+            ON sd.SHIPMENT_ID = sh.SHIPMENT_ID  -- Соединение по SHIPMENT_ID
         LEFT JOIN dbo.ITEM i WITH (NOLOCK)
             ON sd.ITEM COLLATE DATABASE_DEFAULT = i.ITEM COLLATE DATABASE_DEFAULT
         WHERE
             sd.STATUS1 = '100'
-            AND (sd.PICK_LOC <> N'ОТКАЗ' OR sd.PICK_LOC IS NULL)
+            AND sh.REJECTION_NOTE IS NOT NULL  -- <-- Только строки с записью об отклонении
         ORDER BY sd.DATE_TIME_STAMP DESC
         """
 
-        log(f"📤 Запрос к ILS.dbo.SHIPMENT_DETAIL...")
+        log(f"📤 Запрос к ILS.dbo.SHIPMENT_DETAIL + SHIPMENT_HEADER...")
         cursor.execute(query)
 
         rows = []
         for row in cursor.fetchall():
             rows.append({
                 'SHIPMENT_ID': row[0],
-                'ITEM': row[1],
-                'ITEM_DESC': row[2],
-                'REQUESTED_QTY': row[3],
-                'QUANTITY_UM': row[4],
-                'PICK_LOC': row[5],
-                'PICK_ZONE': row[6],
-                'DATE_TIME_STAMP': row[7]
+                'ORDER_TYPE': row[1] if row[1] else '',  # <-- СОХРАНЯЕМ ORDER_TYPE
+                'ITEM': row[2],
+                'ITEM_DESC': row[3],
+                'REQUESTED_QTY': row[4],
+                'QUANTITY_UM': row[5],
+                'PICK_LOC': row[6],
+                'PICK_ZONE': row[7],
+                'DATE_TIME_STAMP': row[8],
+                'REJECTION_NOTE': row[9] if row[9] else ''  # <-- СОХРАНЯЕМ REJECTION_NOTE
             })
 
         log(f"✅ Найдено отклонённых строк: {len(rows)}")
@@ -115,40 +122,42 @@ def update_dwh_rejected_lines(rows, log):
         # 2. Вставка данных
         if rows:
             log(f"➕ Вставка {len(rows)} записей...")
-            
+
             insert_query = """
-                INSERT INTO dwh.rejected_lines_detail 
-                (SHIPMENT_ID, ITEM, ITEM_DESC, REQUESTED_QTY, QUANTITY_UM, PICK_LOC, PICK_ZONE, DATE_TIME_STAMP)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO dwh.rejected_lines_detail
+                (SHIPMENT_ID, ORDER_TYPE, ITEM, ITEM_DESC, REQUESTED_QTY, QUANTITY_UM, PICK_LOC, PICK_ZONE, DATE_TIME_STAMP, REJECTION_NOTE)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            
+
             # Вставляем пакетами по 100 строк
             batch_size = 100
             inserted_count = 0
-            
+
             for i in range(0, len(rows), batch_size):
                 batch = rows[i:i + batch_size]
                 batch_num = i // batch_size + 1
                 total_batches = (len(rows) + batch_size - 1) // batch_size
-                
+
                 cursor.executemany(insert_query, [
                     (
                         row['SHIPMENT_ID'],
+                        row['ORDER_TYPE'],
                         row['ITEM'],
                         row['ITEM_DESC'],
                         row['REQUESTED_QTY'],
                         row['QUANTITY_UM'],
                         row['PICK_LOC'],
                         row['PICK_ZONE'],
-                        row['DATE_TIME_STAMP']
+                        row['DATE_TIME_STAMP'],
+                        row['REJECTION_NOTE']
                     )
                     for row in batch
                 ])
                 conn.commit()
-                
+
                 inserted_count += len(batch)
                 log(f"   Пакет {batch_num}/{total_batches}: {len(batch)} записей")
-            
+
             log(f"✅ Вставлено записей: {inserted_count}")
         else:
             log("ℹ️ Нет данных для вставки")

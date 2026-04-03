@@ -1201,12 +1201,10 @@ PRINT '  ✅ order_accuracy_daily за период: ' + CAST(@cnt AS NVARCHAR) 
 -- rejected_lines_detail (ПРОПУЩЕНО - обновляется отдельно)
 PRINT 'Пропущено: dwh.rejected_lines_detail обновляется через update_rejected_lines.py (каждые 5 минут)';
 
--- orders_timeliness — SWAP за период
-PRINT 'Обновление dwh.orders_timeliness...';
+-- orders_timeliness — ПОЛНАЯ ПЕРЕСОЗДАНИЕ (как в Full.sql)
+PRINT 'Обновление dwh.orders_timeliness (ПОЛНАЯ ПЕРЕСОЗДАНИЕ)...';
 
-SELECT * INTO dwh.orders_timeliness_tmp
-FROM dwh.orders_timeliness
-WHERE date < @cutoff_date;
+DROP TABLE IF EXISTS dwh.orders_timeliness;
 
 WITH filtered_ops AS (
     SELECT
@@ -1228,14 +1226,12 @@ WITH filtered_ops AS (
         AND START_DATE_TIME IS NOT NULL
         AND END_DATE_TIME IS NOT NULL
         AND INTERNAL_NUM IS NOT NULL
-        AND CAST(START_DATE_TIME AS DATE) >= @cutoff_date
 ),
 latest_ops AS (
     SELECT *
     FROM filtered_ops
     WHERE rn = 1
 )
-INSERT INTO dwh.orders_timeliness_tmp
 SELECT
     s.SHIPMENT_ID,
     s.ORDER_TYPE,
@@ -1255,6 +1251,7 @@ SELECT
     END AS timeliness_status,
     CAST(o.START_DATE_TIME AS DATE) AS date,
     s.INTERNAL_SHIPMENT_NUM
+INTO dwh.orders_timeliness
 FROM raw_.SHIPMENT_HEADER s
 JOIN latest_ops o
   ON s.INTERNAL_SHIPMENT_NUM = o.INTERNAL_NUM
@@ -1264,12 +1261,8 @@ LEFT JOIN raw_.USER_CADR_EDIT u
 WHERE
     s.STOP IS NOT NULL;
 
-EXEC sp_rename 'dwh.orders_timeliness', 'orders_timeliness_old';
-EXEC sp_rename 'dwh.orders_timeliness_tmp', 'orders_timeliness';
-DROP TABLE IF EXISTS dwh.orders_timeliness_old;
-
 SELECT @cnt = COUNT(*) FROM dwh.orders_timeliness;
-PRINT '  ✅ orders_timeliness обновлена. Всего записей: ' + CAST(@cnt AS NVARCHAR);
+PRINT '  ✅ orders_timeliness пересоздана. Всего записей: ' + CAST(@cnt AS NVARCHAR);
 
 -- fact_hourly_errors — полная перезапись за ВЕСЬ период (не за 3 дня!)
 PRINT 'Обновление dwh.fact_hourly_errors (за ВЕСЬ период)...';

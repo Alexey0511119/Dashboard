@@ -477,42 +477,36 @@ def handle_fines_modal(close_clicks, fines_clicks, selected_fines_employee, fine
      Output("rejected-lines-table-body", "children")],
     [Input("open-rejected-lines-modal", "n_clicks"),
      Input("close-rejected-lines-modal", "n_clicks")],
-    [State("global-date-range", "data")],
     prevent_initial_call=True
 )
-def handle_rejected_lines_modal(open_clicks, close_clicks, date_range):
+def handle_rejected_lines_modal(open_clicks, close_clicks):
+    """Открытие модального окна отклоненных строк (данные из VIEW без фильтра по датам)"""
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
-    
+
     button_id = ctx.triggered[0]['prop_id']
-    
+
     if 'close-rejected-lines-modal' in button_id:
         return ["modal-hidden", "modal-content", "", "", "", "", []]
-    
+
     if 'open-rejected-lines-modal' in button_id and open_clicks:
-        if not date_range:
-            return ["modal-hidden", "modal-content", "0", "0", "0", "Нет данных", []]
-        
-        start_date = date_range['start_date']
-        end_date = date_range['end_date']
-        
         try:
-            # Используем новую функцию get_rejected_lines_summary и get_rejected_lines_detail
+            # Получаем данные из VIEW (без фильтра по датам - VIEW содержит все данные)
             from data.queries_mssql import get_rejected_lines_summary, get_rejected_lines_detail
-            
-            # Получаем сводную статистику
-            summary_stats = get_rejected_lines_summary(start_date, end_date)
-            
-            # Получаем детальные данные (убираем лимит, чтобы показать все записи)
-            rejected_lines = get_rejected_lines_detail(start_date, end_date, limit=1000)
-            
+
+            # Получаем сводную статистику (без параметров дат)
+            summary_stats = get_rejected_lines_summary()
+
+            # Получаем детальные данные (без параметров дат, лимит 1000)
+            rejected_lines = get_rejected_lines_detail(limit=1000)
+
             # Используем данные из summary_stats
             total_lines = summary_stats['total_rejected_lines']
             unique_orders_count = summary_stats['unique_orders']
             unique_items_count = summary_stats['unique_items']
             last_date = summary_stats['last_rejection_date']
-            
+
             # Форматируем последнюю дату
             if last_date:
                 if hasattr(last_date, 'strftime'):
@@ -521,7 +515,7 @@ def handle_rejected_lines_modal(open_clicks, close_clicks, date_range):
                     last_date = str(last_date).split(' ')[0]
                 elif 'T' in str(last_date):
                     last_date = str(last_date).split('T')[0]
-            
+
             # Создаем строки таблицы
             table_rows = []
             for line in rejected_lines:  # Показываем все записи без ограничений
@@ -541,39 +535,46 @@ def handle_rejected_lines_modal(open_clicks, close_clicks, date_range):
                             display_date = f"{date_part} {time_part}"
                         else:
                             display_date = str(line['date_time_stamp'])[:19]
-                
+
                 table_rows.append(
                     html.Tr([
-                        html.Td(line['shipment_id'] or '', 
+                        html.Td(line['shipment_id'] or '',
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['item'] or '', 
+                        html.Td(line['order_type'] or '',
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['item_desc'] or '', 
+                        html.Td(line['item'] or '',
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
+                        html.Td(line['item_desc'] or '',
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'maxWidth': '200px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'}),
-                        html.Td(str(line['requested_qty']) if line['requested_qty'] else '', 
+                        html.Td(str(line['requested_qty']) if line['requested_qty'] else '',
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'textAlign': 'right'}),
-                        html.Td(line['quantity_um'] or '', 
+                        html.Td(line['quantity_um'] or '',
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['pick_loc'] or '', 
+                        html.Td(line['pick_loc'] or '',
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(line['pick_zone'] or '', 
+                        html.Td(line['pick_zone'] or '',
                                style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px'}),
-                        html.Td(display_date, 
-                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'color': '#673AB7'})
+                        html.Td(display_date,
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'color': '#673AB7'}),
+                        html.Td(line['rejection_note'] or '',
+                               style={'padding': '8px', 'borderBottom': '1px solid #eee', 'fontSize': '11px', 'maxWidth': '250px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'})
                     ])
                 )
-            
+
+            if not table_rows:
+                table_rows = [html.Tr([html.Td("Нет данных", colSpan=9, style={'textAlign': 'center', 'padding': '20px', 'color': '#666'})])]
+
             return [
                 "modal-visible", "modal-content-visible",
                 str(total_lines),
                 str(unique_orders_count),
                 str(unique_items_count),
-                last_date[:10] if last_date else "Нет данных",
+                last_date or "Нет данных",
                 table_rows
             ]
-            
+
         except Exception as e:
             print(f"Error in handle_rejected_lines_modal: {e}")
-            return ["modal-hidden", "modal-content", "0", "0", "0", "Ошибка", []]
-    
+            return ["modal-hidden", "modal-content", "Ошибка", "0", "0", "Ошибка", []]
+
     raise dash.exceptions.PreventUpdate

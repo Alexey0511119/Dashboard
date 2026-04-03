@@ -742,13 +742,15 @@ def create_rejected_lines_modal():
                         html.Table([
                             html.Thead(html.Tr([
                                 html.Th("SHIPMENT_ID", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ORDER_TYPE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
                                 html.Th("ITEM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
                                 html.Th("ITEM_DESC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
-                                html.Th("REQUESTED_QTY", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("REQUESTED_QTY", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
                                 html.Th("QUANTITY_UM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
                                 html.Th("PICK_LOC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
                                 html.Th("PICK_ZONE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
-                                html.Th("DATE_TIME_STAMP", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'})
+                                html.Th("DATE_TIME_STAMP", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("REJECTION_NOTE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap', 'minWidth': '200px'})
                             ])),
                             html.Tbody(id="rejected-lines-table-body")
                         ], style={'width': '100%', 'borderCollapse': 'collapse'})
