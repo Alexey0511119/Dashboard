@@ -358,6 +358,13 @@ app.index_string = f'''
                 box-shadow: 0 8px 25px rgba(0,0,0,0.1);
                 border: 1px solid rgba(25, 118, 210, 0.2);
             }}
+
+            /* Стили для сортируемых заголовков таблицы */
+            th[style*="cursor: pointer"]:hover {{
+                background-color: #e3f2fd !important;
+                color: #1976d2 !important;
+                transition: all 0.2s ease;
+            }}
             
             .analytics-chart-card {{
                 border: 2px solid transparent;

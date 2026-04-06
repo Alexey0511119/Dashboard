@@ -85,13 +85,14 @@ def create_performance_table(df, title="", is_best=False, is_worst=False):
 def create_shift_employees_table():
     """Создание таблицы 'Сотрудники на смене' - ТОЛЬКО СЕГОДНЯШНЯЯ СМЕНА
     Использует новое view dm.v_employees_shift_daily
+    Сортировка по клику на заголовки: Статус, Время первой операции
     """
 
     # Получаем данные из нового view
     employees, position_stats = get_employees_on_shift_new()
     positions = get_positions_list_new()
     brigades = get_brigades_list_new()
-    
+
     # Создаем фильтры
     position_filter = dcc.Dropdown(
         id='position-filter',
@@ -100,7 +101,7 @@ def create_shift_employees_table():
         clearable=False,
         style={'width': '100%', 'marginBottom': '10px'}
     )
-    
+
     # Фильтр по участку (переименовано с бригады)
     brigade_filter = dcc.Dropdown(
         id='brigade-filter',
@@ -109,7 +110,27 @@ def create_shift_employees_table():
         clearable=False,
         style={'width': '100%', 'marginBottom': '10px'}
     )
-    
+
+    # Стили для кликабельных заголовков
+    sortable_header_style = {
+        'color': '#666',
+        'padding': '12px',
+        'textAlign': 'left',
+        'fontSize': '14px',
+        'borderBottom': '2px solid #eee',
+        'background': '#f8f9fa',
+        'cursor': 'pointer',
+        'userSelect': 'none',
+        'transition': 'all 0.2s ease'
+    }
+
+    # Стили для иконки сортировки
+    sort_icon_style = {
+        'marginLeft': '5px',
+        'fontSize': '12px',
+        'opacity': '0.5'
+    }
+
     return html.Div([
         html.Div([
             html.Div([
@@ -121,16 +142,32 @@ def create_shift_employees_table():
                 brigade_filter
             ], style={'flex': '1'})
         ], style={'display': 'flex', 'padding': '15px', 'background': '#f8f9fa', 'borderRadius': '8px', 'marginBottom': '15px'}),
-        
+
         # УДАЛЕН блок info_panel с статистикой (перемещен в правую панель)
-        
+
         html.Table([
             html.Thead(html.Tr([
                 html.Th('ФИО сотрудника', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
                 html.Th('Должность', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
                 html.Th('Участок', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                html.Th('Статус', style={'color': '#666', 'padding': '12px', 'textAlign': 'left', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
-                html.Th('Время первой операции', style={'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa'}),
+                html.Th(
+                    html.Div([
+                        html.Span('Статус', style={'marginRight': '5px'}),
+                        html.Span('⇅', id='sort-status-icon', style=sort_icon_style)
+                    ], style={'display': 'flex', 'alignItems': 'center'}),
+                    id='sort-status-header',
+                    style=sortable_header_style,
+                    n_clicks=0
+                ),
+                html.Th(
+                    html.Div([
+                        html.Span('Время первой операции', style={'marginRight': '5px'}),
+                        html.Span('⇅', id='sort-time-icon', style=sort_icon_style)
+                    ], style={'display': 'flex', 'alignItems': 'center'}),
+                    id='sort-time-header',
+                    style={**sortable_header_style, 'textAlign': 'center'},
+                    n_clicks=0
+                ),
             ])),
             html.Tbody(id='shift-employees-table-body')
         ], style={'width': '100%', 'borderCollapse': 'collapse'})

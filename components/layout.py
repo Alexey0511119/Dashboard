@@ -73,7 +73,10 @@ def create_layout():
         dcc.Store(id='problematic-hours-cache', data=[]),
         dcc.Store(id='error-hours-cache', data=[]),
         dcc.Store(id='shift-employees-cache', data=[]),
-        
+
+        # Store для сортировки таблицы сотрудников
+        dcc.Store(id='shift-table-sort-state', data={'column': None, 'direction': 'asc'}),
+
         # НОВЫЕ Store компоненты
         dcc.Store(id='selected-idle-interval', data=''),  # Для хранения выбранного интервала простоя
         dcc.Store(id='idle-detail-day', data=''),  # Для хранения выбранного дня
