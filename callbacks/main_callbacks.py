@@ -463,10 +463,10 @@ def reset_filters(all_clicks, storage_clicks, locating_clicks, allocation_clicks
 
 # Callback для обновления таблицы сотрудников на смене
 @callback(
-    [Output('shift-employees-table-body', 'children'),
-     Output('shift-table-sort-state', 'data'),
-     Output('sort-status-icon', 'style'),
-     Output('sort-time-icon', 'style')],
+    [Output('shift-employees-table-body', 'children', allow_duplicate=True),
+     Output('shift-table-sort-state', 'data', allow_duplicate=True),
+     Output('sort-status-icon', 'style', allow_duplicate=True),
+     Output('sort-time-icon', 'style', allow_duplicate=True)],
     [Input('position-filter', 'value'),
      Input('brigade-filter', 'value')]
 )
