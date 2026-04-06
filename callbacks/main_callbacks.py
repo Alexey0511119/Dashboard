@@ -463,12 +463,15 @@ def reset_filters(all_clicks, storage_clicks, locating_clicks, allocation_clicks
 
 # Callback для обновления таблицы сотрудников на смене
 @callback(
-    Output('shift-employees-table-body', 'children'),
+    [Output('shift-employees-table-body', 'children'),
+     Output('shift-table-sort-state', 'data'),
+     Output('sort-status-icon', 'style'),
+     Output('sort-time-icon', 'style')],
     [Input('position-filter', 'value'),
      Input('brigade-filter', 'value')]
 )
 def update_shift_employees_table(position_filter, brigade_filter):
-    """Обновление таблицы сотрудников на смене (использует dm.v_employees_shift_daily)"""
+    """Обновление таблицы сотрудников на смене (сбрасывает сортировку при изменении фильтров)"""
 
     try:
         employees, position_stats = get_employees_on_shift_new()
@@ -505,17 +508,22 @@ def update_shift_employees_table(position_filter, brigade_filter):
                 ])
             )
 
-        return rows
+        # Сбрасываем состояние сортировки при изменении фильтров
+        default_sort_state = {'column': None, 'direction': None}
+        default_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+
+        return rows, default_sort_state, default_icon_style, default_icon_style
 
     except Exception as e:
         logger.error("Error in update_shift_employees_table: %s", e)
+        default_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
         return [
             html.Tr([
                 html.Td(f"Ошибка загрузки данных: {str(e)}", colSpan=5,
                        style={'padding': '20px', 'textAlign': 'center',
                              'color': '#F44336', 'fontSize': '14px'})
             ])
-        ]
+        ], {'column': None, 'direction': None}, default_icon_style, default_icon_style
 
 # Callback для сортировки таблицы сотрудников по статусу
 @callback(
@@ -530,13 +538,21 @@ def update_shift_employees_table(position_filter, brigade_filter):
     prevent_initial_call=True
 )
 def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
-    """Сортировка таблицы сотрудников по статусу"""
+    """Сортировка таблицы сотрудников по статусу: asc → desc → сброс"""
     if not n_clicks:
         raise dash.exceptions.PreventUpdate
 
-    # Определяем направление сортировки
-    if sort_state and sort_state.get('column') == 'status':
-        direction = 'desc' if sort_state.get('direction') == 'asc' else 'asc'
+    # Трехпозиционный цикл: None → asc → desc → None
+    current_column = sort_state.get('column') if sort_state else None
+    current_direction = sort_state.get('direction') if sort_state else None
+    
+    if current_column == 'status':
+        if current_direction == 'asc':
+            direction = 'desc'
+        elif current_direction == 'desc':
+            direction = None  # Сброс
+        else:
+            direction = 'asc'
     else:
         direction = 'asc'
 
@@ -551,15 +567,21 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
         if brigade_filter and brigade_filter != 'all':
             filtered_employees = [e for e in filtered_employees if e.get('Бригада') == brigade_filter]
 
-        # Сортируем по статусу: "Вышел" сначала, потом "Не вышел"
-        def status_sort_key(emp):
-            status = emp.get('Статус', '')
-            if status == 'Вышел':
-                return 0 if direction == 'asc' else 1
-            else:
-                return 1 if direction == 'asc' else 0
+        # Сортируем или сбрасываем
+        if direction is None:
+            # Сброс сортировки - исходный порядок
+            new_sort_state = {'column': None, 'direction': None}
+        else:
+            # Сортировка по статусу: "Вышел" сначала, потом "Не вышел"
+            def status_sort_key(emp):
+                status = emp.get('Статус', '')
+                if status == 'Вышел':
+                    return 0 if direction == 'asc' else 1
+                else:
+                    return 1 if direction == 'asc' else 0
 
-        filtered_employees.sort(key=status_sort_key, reverse=(direction == 'desc'))
+            filtered_employees.sort(key=status_sort_key)
+            new_sort_state = {'column': 'status', 'direction': direction}
 
         # Создаем строки таблицы
         rows = []
@@ -578,10 +600,14 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
             )
 
         # Обновляем стили иконок
-        status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
-        time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+        if new_sort_state.get('column') == 'status' and new_sort_state.get('direction'):
+            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
+            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+        else:
+            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
 
-        return rows, {'column': 'status', 'direction': direction}, status_icon_style, time_icon_style
+        return rows, new_sort_state, status_icon_style, time_icon_style
 
     except Exception as e:
         logger.error("Error in sort_by_status: %s", e)
@@ -601,13 +627,21 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
     prevent_initial_call=True
 )
 def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
-    """Сортировка таблицы сотрудников по времени первой операции"""
+    """Сортировка таблицы сотрудников по времени: asc → desc → сброс"""
     if not n_clicks:
         raise dash.exceptions.PreventUpdate
 
-    # Определяем направление сортировки
-    if sort_state and sort_state.get('column') == 'time':
-        direction = 'desc' if sort_state.get('direction') == 'asc' else 'asc'
+    # Трехпозиционный цикл: None → asc → desc → None
+    current_column = sort_state.get('column') if sort_state else None
+    current_direction = sort_state.get('direction') if sort_state else None
+    
+    if current_column == 'time':
+        if current_direction == 'asc':
+            direction = 'desc'
+        elif current_direction == 'desc':
+            direction = None  # Сброс
+        else:
+            direction = 'asc'
     else:
         direction = 'asc'
 
@@ -622,15 +656,21 @@ def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
         if brigade_filter and brigade_filter != 'all':
             filtered_employees = [e for e in filtered_employees if e.get('Бригада') == brigade_filter]
 
-        # Сортируем по времени первой операции
-        def time_sort_key(emp):
-            time_str = emp.get('Время_первой_операции', '--:--')
-            if time_str == '--:--':
-                # Сотрудники без времени всегда в конце
-                return '99:99' if direction == 'asc' else '00:00'
-            return time_str
+        # Сортируем или сбрасываем
+        if direction is None:
+            # Сброс сортировки - исходный порядок
+            new_sort_state = {'column': None, 'direction': None}
+        else:
+            # Сортировка по времени первой операции
+            def time_sort_key(emp):
+                time_str = emp.get('Время_первой_операции', '--:--')
+                if time_str == '--:--':
+                    # Сотрудники без времени всегда в конце
+                    return '99:99' if direction == 'asc' else '00:00'
+                return time_str
 
-        filtered_employees.sort(key=time_sort_key, reverse=(direction == 'desc'))
+            filtered_employees.sort(key=time_sort_key)
+            new_sort_state = {'column': 'time', 'direction': direction}
 
         # Создаем строки таблицы
         rows = []
@@ -649,10 +689,14 @@ def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
             )
 
         # Обновляем стили иконок
-        status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
-        time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
+        if new_sort_state.get('column') == 'time' and new_sort_state.get('direction'):
+            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
+        else:
+            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
 
-        return rows, {'column': 'time', 'direction': direction}, status_icon_style, time_icon_style
+        return rows, new_sort_state, status_icon_style, time_icon_style
 
     except Exception as e:
         logger.error("Error in sort_by_time: %s", e)
