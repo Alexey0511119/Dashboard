@@ -250,7 +250,7 @@ def handle_analytics_modal(close_clicks, employee_clicks, selected_analytics_emp
      Output("idle-detail-employee-name", "children"),
      Output("idle-detail-interval", "children"),
      Output("selected-idle-interval", "data")],
-    [Input("idle-intervals-chart", "selectedData"),
+    [Input("idle-intervals-chart", "clickData"),
      Input("close-idle-detail-modal", "n_clicks")],
     [State("selected-analytics-employee", "data")],
     prevent_initial_call=True
@@ -259,7 +259,7 @@ def handle_idle_detail_modal(selected_data, close_clicks, employee_name):
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
-    
+
     button_id = ctx.triggered[0]['prop_id']
 
     logger.info("Обработка выбора на диаграмме: %s, сотрудник: %s", button_id, employee_name)
@@ -267,7 +267,7 @@ def handle_idle_detail_modal(selected_data, close_clicks, employee_name):
     if 'close-idle-detail-modal' in button_id:
         return ["modal-hidden", "modal-content", "", "", ""]
 
-    if 'idle-intervals-chart.selectedData' in button_id and selected_data:
+    if 'idle-intervals-chart.clickData' in button_id and selected_data:
         try:
             logger.debug("Данные выбора: %s", json.dumps(selected_data, indent=2, ensure_ascii=False))
 
