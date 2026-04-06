@@ -533,8 +533,8 @@ def update_shift_employees_table(position_filter, brigade_filter):
 @callback(
     [Output('shift-employees-table-body', 'children', allow_duplicate=True),
      Output('shift-table-sort-state', 'data'),
-     Output('sort-status-icon', 'style'),
-     Output('sort-time-icon', 'style')],
+     Output('sort-status-icon', 'style', allow_duplicate=True),
+     Output('sort-time-icon', 'style', allow_duplicate=True)],
     [Input('sort-status-header', 'n_clicks')],
     [State('shift-table-sort-state', 'data'),
      State('position-filter', 'value'),
@@ -629,8 +629,8 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
 @callback(
     [Output('shift-employees-table-body', 'children', allow_duplicate=True),
      Output('shift-table-sort-state', 'data'),
-     Output('sort-status-icon', 'style'),
-     Output('sort-time-icon', 'style')],
+     Output('sort-status-icon', 'style', allow_duplicate=True),
+     Output('sort-time-icon', 'style', allow_duplicate=True)],
     [Input('sort-time-header', 'n_clicks')],
     [State('shift-table-sort-state', 'data'),
      State('position-filter', 'value'),

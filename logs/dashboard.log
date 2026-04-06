@@ -6,3 +6,24 @@
 2026-04-06 13:22:22 - data.mssql_client - ERROR - No available connection
 2026-04-06 13:22:22 - data.mssql_client - ERROR - Failed to create connection: ('42000', '[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]Cannot open database "olap2_fixed" requested by the login. The login failed. (4060) (SQLDriverConnect); [42000] [Microsoft][ODBC SQL Server Driver]Недопустимый атрибут строки соединения (0); [42000] [Microsoft][ODBC SQL Server Driver][SQL Server]Cannot open database "olap2_fixed" requested by the login. The login failed. (4060); [42000] [Microsoft][ODBC SQL Server Driver]Недопустимый атрибут строки соединения (0)')
 2026-04-06 13:22:22 - data.mssql_client - ERROR - No available connection
+2026-04-06 14:54:39 - app - ERROR - Exception on /_dash-component-suites/dash/dcc/async-dropdown.js [GET]
+Traceback (most recent call last):
+  File "C:\Users\A.Gorbatenko\Documents\Dashboard\.venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\A.Gorbatenko\Documents\Dashboard\.venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\A.Gorbatenko\Documents\Dashboard\.venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\A.Gorbatenko\Documents\Dashboard\.venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\A.Gorbatenko\Documents\Dashboard\.venv\Lib\site-packages\dash\dash.py", line 1213, in serve_component_suites
+    _validate.validate_js_path(self.registered_paths, package_name, path_in_pkg)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\A.Gorbatenko\Documents\Dashboard\.venv\Lib\site-packages\dash\_validate.py", line 378, in validate_js_path
+    raise exceptions.DependencyException(
+    ...<5 lines>...
+    )
+dash.exceptions.DependencyException: Error loading dependency. "dash" is not a registered library.
+Registered libraries are:
+[]
