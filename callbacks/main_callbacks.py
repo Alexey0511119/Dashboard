@@ -608,11 +608,13 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
                 ])
             )
 
-        # Обновляем стили иконок
+        # Обновляем стили иконок - только одна активна, другая сбрасывается
         if new_sort_state.get('column') == 'status' and new_sort_state.get('direction'):
+            # Статус активен - время сброшено
             status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
-            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
         else:
+            # Статус не активен - сбрасываем обе иконки
             status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
             time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
 
@@ -701,11 +703,13 @@ def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
                 ])
             )
 
-        # Обновляем стили иконок
+        # Обновляем стили иконок - только одна активна, другая сбрасывается
         if new_sort_state.get('column') == 'time' and new_sort_state.get('direction'):
-            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            # Время активно - статус сброшен
+            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
             time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
         else:
+            # Время не активно - сбрасываем обе иконки
             status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
             time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
 
