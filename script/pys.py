@@ -113,6 +113,11 @@ def load_csv_to_sql(file_path, client):
                     row_str[col] = str(val)[:80]
             logging.info(f"  Строка {i+1}: {row_str}")
         
+        # ========== ИСПРАВЛЕНИЕ: Удаляем ТОЛЬКО за текущую дату ==========
+        delete_query = f"DELETE FROM monitoring.Fact_DefectInventory WHERE ReportDate = '{report_date_str}'"
+        client.execute(delete_query)
+        logging.info(f"Удалены старые данные за {report_date_str}")
+        
         rows_inserted = 0
         
         for idx, row in df.iterrows():
@@ -147,48 +152,20 @@ def load_csv_to_sql(file_path, client):
                 warehouse_name_escaped = warehouse_name.replace("'", "''")
                 warehouse_type_escaped = warehouse_type.replace("'", "''")
                 
-                # Проверяем существование записи
-                check_query = f"""
-                    SELECT ID FROM monitoring.Fact_DefectInventory 
-                    WHERE ReportDate = '{report_date_str}' 
-                      AND Division = N'{division_escaped}'
-                      AND WarehouseName = N'{warehouse_name_escaped}'
+                # Вставка (обновление не нужно, так как мы удалили старые данные за эту дату)
+                insert_query = f"""
+                    INSERT INTO monitoring.Fact_DefectInventory 
+                    (ReportDate, Division, WarehouseName, WarehouseType,
+                     AgingDays30, AgingDays60, AgingDays90, AgingDays135, AgingDays180, AgingDaysOver180, TotalAmount)
+                    VALUES (
+                        '{report_date_str}',
+                        N'{division_escaped}',
+                        N'{warehouse_name_escaped}',
+                        N'{warehouse_type_escaped}',
+                        {aging30}, {aging60}, {aging90}, {aging135}, {aging180}, {aging_over180}, {total_amount}
+                    )
                 """
-                existing = client.execute(check_query)
-                
-                if existing:
-                    # Обновление
-                    update_query = f"""
-                        UPDATE monitoring.Fact_DefectInventory 
-                        SET WarehouseType = N'{warehouse_type_escaped}',
-                            AgingDays30 = {aging30},
-                            AgingDays60 = {aging60},
-                            AgingDays90 = {aging90},
-                            AgingDays135 = {aging135},
-                            AgingDays180 = {aging180},
-                            AgingDaysOver180 = {aging_over180},
-                            TotalAmount = {total_amount},
-                            UpdatedAt = GETDATE()
-                        WHERE ReportDate = '{report_date_str}' 
-                          AND Division = N'{division_escaped}'
-                          AND WarehouseName = N'{warehouse_name_escaped}'
-                    """
-                    client.execute(update_query)
-                else:
-                    # Вставка
-                    insert_query = f"""
-                        INSERT INTO monitoring.Fact_DefectInventory 
-                        (ReportDate, Division, WarehouseName, WarehouseType,
-                         AgingDays30, AgingDays60, AgingDays90, AgingDays135, AgingDays180, AgingDaysOver180, TotalAmount)
-                        VALUES (
-                            '{report_date_str}',
-                            N'{division_escaped}',
-                            N'{warehouse_name_escaped}',
-                            N'{warehouse_type_escaped}',
-                            {aging30}, {aging60}, {aging90}, {aging135}, {aging180}, {aging_over180}, {total_amount}
-                        )
-                    """
-                    client.execute(insert_query)
+                client.execute(insert_query)
                 
                 rows_inserted += 1
                 
@@ -261,9 +238,9 @@ def main():
             logging.error("Не удалось подключиться")
             return
         
-        # Очищаем таблицу перед загрузкой (для теста)
-        logging.info("Очищаем таблицу перед загрузкой...")
-        client.execute("DELETE FROM monitoring.Fact_DefectInventory")
+        # ========== ИСПРАВЛЕНИЕ: Убрали полную очистку таблицы ==========
+        # Больше не удаляем все данные!
+        logging.info("Загрузка данных (без удаления исторических данных)")
         
         csv_files = glob.glob(os.path.join(CSV_FOLDER, '*.csv'))
         

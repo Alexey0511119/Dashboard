@@ -471,7 +471,6 @@ def update_shift_employees_table(position_filter, brigade_filter):
     """Обновление таблицы сотрудников на смене (использует dm.v_employees_shift_daily)"""
 
     try:
-        from data.queries_mssql import get_employees_on_shift_new
         employees, position_stats = get_employees_on_shift_new()
 
         # Применяем фильтры
@@ -509,7 +508,7 @@ def update_shift_employees_table(position_filter, brigade_filter):
         return rows
 
     except Exception as e:
-        logger.error(f"Error in update_shift_employees_table: {e}")
+        logger.error("Error in update_shift_employees_table: %s", e)
         return [
             html.Tr([
                 html.Td(f"Ошибка загрузки данных: {str(e)}", colSpan=5,

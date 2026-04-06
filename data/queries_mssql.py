@@ -1306,36 +1306,42 @@ def get_employees_on_shift_new():
 
 
 def get_positions_list_new():
-    """Получение списка уникальных должностей из dm.v_employees_shift_daily"""
+    """Получение списка уникальных должностей из dm.v_employees_shift_daily
+    БЕЗ КЭША - всегда актуальные данные
+    """
     today_shift = get_todays_shift()
-    
+
     query = """
     SELECT DISTINCT position
     FROM dm.v_employees_shift_daily
     WHERE smena = ?
-        AND position IS NOT NULL 
+        AND position IS NOT NULL
         AND position != ''
     ORDER BY position
     """
-    
-    result = execute_query_cached(query, (today_shift,))
+
+    # Прямой запрос без кэша
+    result = mssql_client.execute(query, (today_shift,))
     return [row[0] for row in result] if result else []
 
 
 def get_brigades_list_new():
-    """Получение списка уникальных бригад из dm.v_employees_shift_daily"""
+    """Получение списка уникальных бригад (участков) из dm.v_employees_shift_daily
+    БЕЗ КЭША - всегда актуальные данные
+    """
     today_shift = get_todays_shift()
-    
+
     query = """
     SELECT DISTINCT brigada
     FROM dm.v_employees_shift_daily
     WHERE smena = ?
-        AND brigada IS NOT NULL 
+        AND brigada IS NOT NULL
         AND brigada != ''
     ORDER BY brigada
     """
-    
-    result = execute_query_cached(query, (today_shift,))
+
+    # Прямой запрос без кэша
+    result = mssql_client.execute(query, (today_shift,))
     return [row[0] for row in result] if result else []
 
 
