@@ -468,7 +468,8 @@ def reset_filters(all_clicks, storage_clicks, locating_clicks, allocation_clicks
      Output('sort-status-icon', 'style', allow_duplicate=True),
      Output('sort-time-icon', 'style', allow_duplicate=True)],
     [Input('position-filter', 'value'),
-     Input('brigade-filter', 'value')]
+     Input('brigade-filter', 'value')],
+    prevent_initial_call=True
 )
 def update_shift_employees_table(position_filter, brigade_filter):
     """Обновление таблицы сотрудников на смене (сбрасывает сортировку при изменении фильтров)"""
