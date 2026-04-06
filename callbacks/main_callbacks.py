@@ -489,7 +489,11 @@ def update_shift_employees_table(position_filter, brigade_filter):
         rows = []
         for employee in filtered_employees:
             status = employee.get('Статус', 'Не вышел')
-            status_color = '#F44336' if status == 'Не вышел' else '#4CAF50'
+            # Определяем цвет статуса
+            if status in ['На смене', 'Вышел', 'Работает']:
+                status_color = '#4CAF50'  # Зеленый
+            else:
+                status_color = '#F44336'  # Красный
 
             rows.append(
                 html.Tr([
@@ -572,10 +576,11 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
             # Сброс сортировки - исходный порядок
             new_sort_state = {'column': None, 'direction': None}
         else:
-            # Сортировка по статусу: "Вышел" сначала, потом "Не вышел"
+            # Сортировка по статусу: "На смене" сначала, потом "Не вышел"
             def status_sort_key(emp):
                 status = emp.get('Статус', '')
-                if status == 'Вышел':
+                # Проверяем разные варианты написания статуса
+                if status in ['На смене', 'Вышел', 'Работает']:
                     return 0 if direction == 'asc' else 1
                 else:
                     return 1 if direction == 'asc' else 0
@@ -587,7 +592,11 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
         rows = []
         for employee in filtered_employees:
             status = employee.get('Статус', 'Не вышел')
-            status_color = '#F44336' if status == 'Не вышел' else '#4CAF50'
+            # Определяем цвет статуса
+            if status in ['На смене', 'Вышел', 'Работает']:
+                status_color = '#4CAF50'  # Зеленый
+            else:
+                status_color = '#F44336'  # Красный
 
             rows.append(
                 html.Tr([
@@ -676,7 +685,11 @@ def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
         rows = []
         for employee in filtered_employees:
             status = employee.get('Статус', 'Не вышел')
-            status_color = '#F44336' if status == 'Не вышел' else '#4CAF50'
+            # Определяем цвет статуса
+            if status in ['На смене', 'Вышел', 'Работает']:
+                status_color = '#4CAF50'  # Зеленый
+            else:
+                status_color = '#F44336'  # Красный
 
             rows.append(
                 html.Tr([
