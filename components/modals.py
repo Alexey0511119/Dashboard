@@ -760,3 +760,127 @@ def create_rejected_lines_modal():
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
         ], id="rejected-lines-modal-content", className="modal-content")
     ], id="rejected-lines-modal", className="modal-hidden")
+
+
+# ============================================================================
+# Модальное окно: Точность заказов (Топ-5 часов с ошибками + Топ-5 проблемных часов)
+# ============================================================================
+def create_order_accuracy_modal():
+    """Модальное окно с диаграммами часов с ошибками и проблемных часов"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Точность заказов — анализ по часам",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '24px'}),
+                html.Button(
+                    "✕",
+                    id="close-order-accuracy-modal",
+                    style={
+                        'background': '#f0f0f0', 'border': 'none', 'fontSize': '28px',
+                        'cursor': 'pointer', 'color': '#666', 'width': '45px', 'height': '45px',
+                        'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center',
+                        'justifyContent': 'center', 'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
+                'padding': '25px', 'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # Ряд 1: Топ-5 часов с ошибками
+                html.Div([
+                    html.H4("Топ-5 часов с ошибками",
+                           style={'color': '#333', 'marginBottom': '10px', 'fontSize': '18px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                    dash_echarts.DashECharts(
+                        id='error-hours-chart-modal',
+                        option={},
+                        style={'height': '350px', 'width': '100%'}
+                    )
+                ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginRight': '4%'}),
+
+                # Ряд 2: Топ-5 проблемных часов
+                html.Div([
+                    html.H4("Топ-5 проблемных часов",
+                           style={'color': '#333', 'marginBottom': '10px', 'fontSize': '18px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                    dash_echarts.DashECharts(
+                        id='problematic-hours-chart-modal',
+                        option={},
+                        style={'height': '350px', 'width': '100%'}
+                    )
+                ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'})
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="order-accuracy-modal-content", className="modal-content")
+    ], id="order-accuracy-modal", className="modal-hidden")
+
+
+# ============================================================================
+# Модальное окно: Своевременность заказов Клиент
+# ============================================================================
+def create_timely_orders_modal():
+    """Модальное окно с диаграммой своевременности заказов Клиент"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Своевременность заказов Клиент",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '24px'}),
+                html.Button(
+                    "✕",
+                    id="close-timely-orders-modal",
+                    style={
+                        'background': '#f0f0f0', 'border': 'none', 'fontSize': '28px',
+                        'cursor': 'pointer', 'color': '#666', 'width': '45px', 'height': '45px',
+                        'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center',
+                        'justifyContent': 'center', 'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
+                'padding': '25px', 'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                dash_echarts.DashECharts(
+                    id='timely-client-chart-modal',
+                    option={},
+                    style={'height': '500px', 'width': '100%'}
+                )
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="timely-orders-modal-content", className="modal-content")
+    ], id="timely-orders-modal", className="modal-hidden")
+
+
+# ============================================================================
+# Модальное окно: Просроченные заказы Клиент
+# ============================================================================
+def create_delayed_orders_modal():
+    """Модальное окно с диаграммой просроченных заказов Клиент"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Просроченные заказы Клиент",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '24px'}),
+                html.Button(
+                    "✕",
+                    id="close-delayed-orders-modal",
+                    style={
+                        'background': '#f0f0f0', 'border': 'none', 'fontSize': '28px',
+                        'cursor': 'pointer', 'color': '#666', 'width': '45px', 'height': '45px',
+                        'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center',
+                        'justifyContent': 'center', 'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
+                'padding': '25px', 'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                dash_echarts.DashECharts(
+                    id='delayed-client-chart-modal',
+                    option={},
+                    style={'height': '500px', 'width': '100%'}
+                )
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="delayed-orders-modal-content", className="modal-content")
+    ], id="delayed-orders-modal", className="modal-hidden")

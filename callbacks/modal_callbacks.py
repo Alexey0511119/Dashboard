@@ -15,6 +15,13 @@ from components.charts import (
     create_idle_intervals_bar_echarts,
     create_employee_fines_chart,
     create_timeline_chart,
+    create_problematic_hours_chart,
+    create_error_hours_chart,
+)
+from data.queries_mssql import (
+    get_problematic_hours,
+    get_error_hours_top_data,
+    get_orders_timeliness_by_delivery,
 )
 from dash import html
 
@@ -550,3 +557,329 @@ def handle_rejected_lines_modal(open_clicks, close_clicks):
             return ["modal-hidden", "modal-content", "Ошибка", "0", "0", "Ошибка", []]
 
     raise dash.exceptions.PreventUpdate
+
+
+# ============================================================================
+# Callback: Модальное окно «Точность заказов» (часы с ошибками + проблемные часы)
+# ============================================================================
+@callback(
+    [Output("order-accuracy-modal", "className"),
+     Output("order-accuracy-modal-content", "className"),
+     Output("error-hours-chart-modal", "option"),
+     Output("problematic-hours-chart-modal", "option")],
+    [Input("open-order-accuracy-modal", "n_clicks"),
+     Input("close-order-accuracy-modal", "n_clicks")],
+    prevent_initial_call=True
+)
+def handle_order_accuracy_modal(open_clicks, close_clicks):
+    """Открытие модального окна с анализом точности заказов по часам"""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    button_id = ctx.triggered[0]['prop_id']
+
+    if 'close-order-accuracy-modal' in button_id:
+        return ["modal-hidden", "modal-content", {}, {}]
+
+    if 'open-order-accuracy-modal' in button_id and open_clicks:
+        try:
+            # Данные часов с ошибками
+            error_hours = get_error_hours_top_data(None, None)
+            error_chart = create_error_hours_chart(error_hours)
+
+            # Данные проблемных часов
+            problematic_hours = get_problematic_hours(None, None)
+            problem_chart = create_problematic_hours_chart(problematic_hours)
+
+            return [
+                "modal-visible", "modal-content-visible",
+                error_chart, problem_chart
+            ]
+
+        except Exception as e:
+            logger.error("Error in handle_order_accuracy_modal: %s", e, exc_info=True)
+            return ["modal-hidden", "modal-content", {}, {}]
+
+    raise dash.exceptions.PreventUpdate
+
+
+# ============================================================================
+# Callback: Модальное окно «Своевременность заказов Клиент»
+# ============================================================================
+@callback(
+    [Output("timely-orders-modal", "className"),
+     Output("timely-orders-modal-content", "className"),
+     Output("timely-client-chart-modal", "option")],
+    [Input("open-timely-orders-modal", "n_clicks"),
+     Input("close-timely-orders-modal", "n_clicks")],
+    [State("global-date-range", "data")],
+    prevent_initial_call=True
+)
+def handle_timely_orders_modal(open_clicks, close_clicks, date_range):
+    """Открытие модального окна с диаграммой своевременности заказов Клиент"""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    button_id = ctx.triggered[0]['prop_id']
+
+    if 'close-timely-orders-modal' in button_id:
+        return ["modal-hidden", "modal-content", {}]
+
+    if 'open-timely-orders-modal' in button_id and open_clicks:
+        try:
+            if not date_range:
+                from datetime import datetime, timedelta
+                start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+                end_date = datetime.now().strftime('%Y-%m-%d')
+            else:
+                start_date = date_range['start_date']
+                end_date = date_range['end_date']
+
+            chart_data = get_orders_timeliness_by_delivery(start_date, end_date)
+            timely_chart = _build_timely_client_figure(chart_data, start_date, end_date)
+
+            return [
+                "modal-visible", "modal-content-visible",
+                timely_chart
+            ]
+
+        except Exception as e:
+            logger.error("Error in handle_timely_orders_modal: %s", e, exc_info=True)
+            return ["modal-hidden", "modal-content", {}]
+
+    raise dash.exceptions.PreventUpdate
+
+
+# ============================================================================
+# Callback: Модальное окно «Просроченные заказы Клиент»
+# ============================================================================
+@callback(
+    [Output("delayed-orders-modal", "className"),
+     Output("delayed-orders-modal-content", "className"),
+     Output("delayed-client-chart-modal", "option")],
+    [Input("open-delayed-orders-modal", "n_clicks"),
+     Input("close-delayed-orders-modal", "n_clicks")],
+    [State("global-date-range", "data")],
+    prevent_initial_call=True
+)
+def handle_delayed_orders_modal(open_clicks, close_clicks, date_range):
+    """Открытие модального окна с диаграммой просроченных заказов Клиент"""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    button_id = ctx.triggered[0]['prop_id']
+
+    if 'close-delayed-orders-modal' in button_id:
+        return ["modal-hidden", "modal-content", {}]
+
+    if 'open-delayed-orders-modal' in button_id and open_clicks:
+        try:
+            if not date_range:
+                from datetime import datetime, timedelta
+                start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+                end_date = datetime.now().strftime('%Y-%m-%d')
+            else:
+                start_date = date_range['start_date']
+                end_date = date_range['end_date']
+
+            chart_data = get_orders_timeliness_by_delivery(start_date, end_date)
+            delayed_chart = _build_delayed_client_figure(chart_data, start_date, end_date)
+
+            return [
+                "modal-visible", "modal-content-visible",
+                delayed_chart
+            ]
+
+        except Exception as e:
+            logger.error("Error in handle_delayed_orders_modal: %s", e, exc_info=True)
+            return ["modal-hidden", "modal-content", {}]
+
+    raise dash.exceptions.PreventUpdate
+
+
+# ============================================================================
+# Вспомогательные функции для построения диаграмм своевременности
+# ============================================================================
+def _build_timely_client_figure(chart_data, start_date, end_date):
+    """Построение figure для своевременности заказов Клиент (копия оригинальной логики)"""
+    if not chart_data:
+        return {"title": {"text": "Нет данных", "left": "center"}}
+
+    all_dates = sorted(set(item['date'] for item in chart_data))
+
+    rc_timely_data = []
+    client_timely_data = []
+
+    for date in all_dates:
+        rc_record = next((item for item in chart_data if item['date'] == date and item['delivery_type'] == 'РЦ'), None)
+        if rc_record:
+            rc_timely_data.append(rc_record['timely_count'])
+        else:
+            rc_timely_data.append(None)
+
+        client_record = next((item for item in chart_data if item['date'] == date and item['delivery_type'] == 'Доставка клиенту'), None)
+        if client_record:
+            client_timely_data.append(client_record['timely_count'])
+        else:
+            client_timely_data.append(None)
+
+    client_timely_count = sum(1 for x in client_timely_data if x is not None and x > 0)
+
+    if client_timely_count <= 2:
+        client_timely_config = {
+            "connectNulls": False,
+            "showSymbol": True,
+            "symbolSize": 8,
+            "lineStyle": {"width": 0}
+        }
+    else:
+        client_timely_config = {
+            "connectNulls": False,
+            "showSymbol": True,
+            "symbolSize": 6,
+            "lineStyle": {"width": 3}
+        }
+
+    return {
+        "title": {
+            "text": "Своевременность заказов клиент",
+            "left": "center",
+            "textStyle": {"fontSize": 14, "fontWeight": "bold", "color": "#333"}
+        },
+        "tooltip": {
+            "trigger": "axis",
+            "axisPointer": {"type": "cross"}
+        },
+        "legend": {
+            "data": ["РЦ", "Доставка клиенту"],
+            "top": "30px"
+        },
+        "xAxis": {
+            "type": "category",
+            "data": all_dates,
+            "axisLabel": {"rotate": 45, "fontSize": 10}
+        },
+        "yAxis": {
+            "type": "value",
+            "name": "Количество заказов"
+        },
+        "series": [
+            {
+                "name": "РЦ",
+                "type": "line",
+                "data": rc_timely_data,
+                "lineStyle": {"color": "#4CAF50", "width": 3},
+                "itemStyle": {"color": "#4CAF50"},
+                "smooth": True,
+                "symbol": "circle",
+                "symbolSize": 6,
+                "showSymbol": True
+            },
+            {
+                "name": "Доставка клиенту",
+                "type": "line",
+                "data": client_timely_data,
+                "lineStyle": {"color": "#2196F3", "width": 3},
+                "itemStyle": {"color": "#2196F3"},
+                "smooth": True,
+                "symbol": "circle",
+                "symbolSize": 6,
+                "showSymbol": True,
+                **client_timely_config
+            }
+        ]
+    }
+
+
+def _build_delayed_client_figure(chart_data, start_date, end_date):
+    """Построение figure для просроченных заказов Клиент (копия оригинальной логики)"""
+    if not chart_data:
+        return {"title": {"text": "Нет данных", "left": "center"}}
+
+    all_dates = sorted(set(item['date'] for item in chart_data))
+
+    rc_delayed_data = []
+    client_delayed_data = []
+
+    for date in all_dates:
+        rc_record = next((item for item in chart_data if item['date'] == date and item['delivery_type'] == 'РЦ'), None)
+        if rc_record:
+            rc_delayed_data.append(rc_record['delayed_count'])
+        else:
+            rc_delayed_data.append(None)
+
+        client_record = next((item for item in chart_data if item['date'] == date and item['delivery_type'] == 'Доставка клиенту'), None)
+        if client_record:
+            client_delayed_data.append(client_record['delayed_count'])
+        else:
+            client_delayed_data.append(None)
+
+    client_delayed_count = sum(1 for x in client_delayed_data if x is not None and x > 0)
+
+    if client_delayed_count <= 2:
+        client_delayed_config = {
+            "connectNulls": False,
+            "showSymbol": True,
+            "symbolSize": 8,
+            "lineStyle": {"width": 0}
+        }
+    else:
+        client_delayed_config = {
+            "connectNulls": False,
+            "showSymbol": True,
+            "symbolSize": 6,
+            "lineStyle": {"width": 3}
+        }
+
+    return {
+        "title": {
+            "text": "Просрочено клиент",
+            "left": "center",
+            "textStyle": {"fontSize": 14, "fontWeight": "bold", "color": "#333"}
+        },
+        "tooltip": {
+            "trigger": "axis",
+            "axisPointer": {"type": "cross"}
+        },
+        "legend": {
+            "data": ["РЦ", "Доставка клиенту"],
+            "top": "30px"
+        },
+        "xAxis": {
+            "type": "category",
+            "data": all_dates,
+            "axisLabel": {"rotate": 45, "fontSize": 10}
+        },
+        "yAxis": {
+            "type": "value",
+            "name": "Количество заказов"
+        },
+        "series": [
+            {
+                "name": "РЦ",
+                "type": "line",
+                "data": rc_delayed_data,
+                "lineStyle": {"color": "#F44336", "width": 3},
+                "itemStyle": {"color": "#F44336"},
+                "smooth": True,
+                "symbol": "circle",
+                "symbolSize": 6,
+                "showSymbol": True
+            },
+            {
+                "name": "Доставка клиенту",
+                "type": "line",
+                "data": client_delayed_data,
+                "lineStyle": {"color": "#FF9800", "width": 3},
+                "itemStyle": {"color": "#FF9800"},
+                "smooth": True,
+                "symbol": "circle",
+                "symbolSize": 6,
+                "showSymbol": True,
+                **client_delayed_config
+            }
+        ]
+    }

@@ -1,30 +1,128 @@
 from dash import html, dcc
-import dash_echarts
+
+# Стили для карточек
+CARD_CONTAINER_STYLE = {
+    'display': 'flex',
+    'flexDirection': 'column',
+    'height': '180px',
+    'padding': '20px',
+    'boxSizing': 'border-box'
+}
+
+CARD_TITLE_STYLE = {
+    'color': '#666666',
+    'fontSize': '14px',
+    'fontWeight': 'normal',
+    'textAlign': 'center',
+    'height': '40px',
+    'display': 'flex',
+    'alignItems': 'center',
+    'justifyContent': 'center',
+    'marginBottom': '0'
+}
+
+CARD_BUTTON_ROW_STYLE = {
+    'height': '35px',
+    'display': 'flex',
+    'alignItems': 'center',
+    'justifyContent': 'center',
+    'marginBottom': '0'
+}
+
+CARD_BUTTON_STYLE = {
+    'background': 'transparent',
+    'border': '1px solid #666666',
+    'fontSize': '13px',
+    'cursor': 'pointer',
+    'color': '#666666',
+    'padding': '6px 12px',
+    'borderRadius': '20px',
+    'transition': 'all 0.2s ease',
+    'fontWeight': 'normal',
+    'whiteSpace': 'nowrap'
+}
+
+CARD_VALUE_STYLE = {
+    'color': '#666666',
+    'fontSize': '36px',
+    'fontWeight': 'normal',
+    'textAlign': 'center',
+    'height': '50px',
+    'display': 'flex',
+    'alignItems': 'center',
+    'justifyContent': 'center',
+    'marginBottom': '0'
+}
+
+CARD_DETAIL_STYLE = {
+    'color': '#666666',
+    'fontSize': '12px',
+    'textAlign': 'center',
+    'lineHeight': '1.4',
+    'height': '35px',
+    'display': 'flex',
+    'flexDirection': 'column',
+    'justifyContent': 'center'
+}
+
+CARD_EMPTY_DETAIL_STYLE = {
+    'height': '35px'
+}
 
 def create_timeliness_tab():
-    """Создание вкладки 'Своевременность' с диаграммами проблемных часов"""
+    """Создание вкладки 'Своевременность' (диаграммы перенесены в модальные окна)"""
     return html.Div([
+        # KPI карточки
         html.Div([
+            # Карточка 1: Приходов принято в срок (без кнопки)
             html.Div([
-                html.Div("Приходов принято в срок", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="timely-arrivals-kpi", style={'color': '#4CAF50', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.2s'}),
+                html.Div("Приходов принято в срок", style=CARD_TITLE_STYLE),
+                html.Div("", style=CARD_BUTTON_ROW_STYLE),
+                html.Div(id="timely-arrivals-kpi", style={**CARD_VALUE_STYLE, 'color': '#4CAF50'}),
+                html.Div("", style=CARD_EMPTY_DETAIL_STYLE)
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.2s', **CARD_CONTAINER_STYLE}),
+
+            # Карточка 2: Собрано заказов в срок (с кнопкой)
             html.Div([
-                html.Div("Собрано заказов в срок", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="timely-orders-kpi", style={'color': '#2196F3', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.3s'}),
+                html.Div("Собрано заказов в срок", style=CARD_TITLE_STYLE),
+                html.Div([
+                    html.Button(
+                        "📋 Подробнее",
+                        id="open-timely-orders-modal",
+                        className="glow-on-hover",
+                        style=CARD_BUTTON_STYLE
+                    )
+                ], style=CARD_BUTTON_ROW_STYLE),
+                html.Div(id="timely-orders-kpi", style={**CARD_VALUE_STYLE, 'color': '#2196F3'}),
+                html.Div("", style=CARD_EMPTY_DETAIL_STYLE)
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.3s', **CARD_CONTAINER_STYLE}),
+
+            # Карточка 3: Просроченных приходов (без кнопки)
             html.Div([
-                html.Div("Просроченных приходов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="delayed-arrivals-kpi", style={'color': '#F44336', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.4s'}),
+                html.Div("Просроченных приходов", style=CARD_TITLE_STYLE),
+                html.Div("", style=CARD_BUTTON_ROW_STYLE),
+                html.Div(id="delayed-arrivals-kpi", style={**CARD_VALUE_STYLE, 'color': '#F44336'}),
+                html.Div("", style=CARD_EMPTY_DETAIL_STYLE)
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.4s', **CARD_CONTAINER_STYLE}),
+
+            # Карточка 4: Просроченных заказов (с кнопкой)
             html.Div([
-                html.Div("Просроченных заказов", style={'color': '#666', 'fontSize': '16px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                html.Div(id="delayed-orders-kpi", style={'color': '#FF9800', 'fontSize': '36px', 'fontWeight': 'bold', 'marginBottom': '8px', 'textAlign': 'center'})
-            ], className='kpi-card dashboard-element', style={'animationDelay': '0.5s'})
+                html.Div("Просроченных заказов", style=CARD_TITLE_STYLE),
+                html.Div([
+                    html.Button(
+                        "📋 Подробнее",
+                        id="open-delayed-orders-modal",
+                        className="glow-on-hover",
+                        style=CARD_BUTTON_STYLE
+                    )
+                ], style=CARD_BUTTON_ROW_STYLE),
+                html.Div(id="delayed-orders-kpi", style={**CARD_VALUE_STYLE, 'color': '#FF9800'}),
+                html.Div("", style=CARD_EMPTY_DETAIL_STYLE)
+            ], className='kpi-card dashboard-element docker-hover-effect', style={'animationDelay': '0.5s', **CARD_CONTAINER_STYLE})
         ], className="kpi-row"),
-        
+
+        # Основной контент: Таблица на всю ширину
         html.Div([
-            # Левая панель: таблица заказов (уменьшаем высоту)
             html.Div([
                 html.Div([
                     html.H3("Список прихода",
@@ -71,8 +169,8 @@ def create_timeliness_tab():
                             html.Tbody(id='receipt-list-table-body')
                         ], style={'width': '100%', 'borderCollapse': 'collapse', 'minWidth': '1200px'})
                     ], style={
-                        'overflowX': 'auto',  # Горизонтальный скроллинг
-                        'overflowY': 'auto',  # Вертикальный скроллинг
+                        'overflowX': 'auto',
+                        'overflowY': 'auto',
                         'width': '100%',
                         'height': '100%'
                     })
@@ -80,14 +178,14 @@ def create_timeliness_tab():
                     'height': '680px',
                     'borderRadius': '0 0 12px 12px'
                 })
-            ], className="left-panel dashboard-element", style={
+            ], className="dashboard-element", style={
                 'animationDelay': '0.6s',
-                'width': '50%',
-                'height': '540px',  # Высота таблицы + заголовок
+                'width': '100%',
+                'height': '740px',
                 'position': 'relative',
                 'zIndex': '100'
             }),
-            
+
             # Развернутая таблица (скрыта по умолчанию)
             html.Div([
                 html.Div([
@@ -159,90 +257,6 @@ def create_timeliness_tab():
                 })
             ], id='expanded-receipt-table-container', style={
                 'display': 'none'
-            }),
-
-            # Правая панель: два ряда диаграмм
-            html.Div([
-                # Первый ряд: диаграммы своевременности (2 в ряд)
-                html.Div([
-                    # Диаграмма 1: Своевременность заказов Клиент
-                    html.Div([
-                        html.H3("Своевременность заказов Клиент", 
-                               style={'color': '#333', 'marginBottom': '10px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
-                        dash_echarts.DashECharts(
-                            id='timely-client-chart',
-                            option={},
-                            style={'height': '220px', 'width': '100%'}
-                        )
-                    ], className='chart-card dashboard-element', style={
-                        'animationDelay': '0.7s', 
-                        'height': '260px',  # Уменьшаем высоту
-                        'width': '48%',
-                        'display': 'inline-block',
-                        'marginRight': '4%',
-                        'verticalAlign': 'top'
-                    }),
-                    
-                    # Диаграмма 2: Просроченные заказы Клиент
-                    html.Div([
-                        html.H3("Просроченные заказы Клиент", 
-                               style={'color': '#333', 'marginBottom': '10px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
-                        dash_echarts.DashECharts(
-                            id='delayed-client-chart',
-                            option={},
-                            style={'height': '220px', 'width': '100%'}
-                        )
-                    ], className='chart-card dashboard-element', style={
-                        'animationDelay': '0.8s', 
-                        'height': '260px',  # Уменьшаем высоту
-                        'width': '48%',
-                        'display': 'inline-block',
-                        'verticalAlign': 'top'
-                    })
-                ], style={'marginBottom': '20px', 'width': '100%'}),
-                
-                # Второй ряд: диаграммы проблемных часов (2 в ряд)
-                html.Div([
-                    # Диаграмма 3: Топ-5 проблемных часов
-                    html.Div([
-                        html.H3("Топ-5 проблемных часов", 
-                               style={'color': '#333', 'marginBottom': '10px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
-                        dash_echarts.DashECharts(
-                            id='problematic-hours-chart',
-                            option={},
-                            style={'height': '220px', 'width': '100%'}
-                        )
-                    ], className='chart-card dashboard-element', style={
-                        'animationDelay': '0.9s', 
-                        'height': '260px',  # Уменьшаем высоту
-                        'width': '48%',
-                        'display': 'inline-block',
-                        'marginRight': '4%',
-                        'verticalAlign': 'top'
-                    }),
-                    
-                    # Диаграмма 4: Топ-5 часов с ошибками
-                    html.Div([
-                        html.H3("Топ-5 часов с ошибками", 
-                               style={'color': '#333', 'marginBottom': '10px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
-                        dash_echarts.DashECharts(
-                            id='error-hours-chart',
-                            option={},
-                            style={'height': '220px', 'width': '100%'}
-                        )
-                    ], className='chart-card dashboard-element', style={
-                        'animationDelay': '1.0s', 
-                        'height': '260px',  # Уменьшаем высоту
-                        'width': '48%',
-                        'display': 'inline-block',
-                        'verticalAlign': 'top'
-                    })
-                ], style={'width': '100%'})
-            ], className="right-panel dashboard-element", style={
-                'animationDelay': '0.7s', 
-                'width': '50%', 
-                'height': '740px',  # Выравниваем с таблицей
-                'padding': '10px'
             })
         ], className="main-content", style={'display': 'flex', 'gap': '20px', 'minHeight': '800px'})
     ], style={'padding': '10px'})

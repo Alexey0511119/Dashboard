@@ -136,8 +136,15 @@ def create_general_tab():
             html.Div([
                 # Ряд 1: Название
                 html.Div("Точность заказов", style=CARD_TITLE_STYLE),
-                # Ряд 2: Пусто (нет кнопки)
-                html.Div("", style=CARD_BUTTON_ROW_STYLE),
+                # Ряд 2: Кнопка
+                html.Div([
+                    html.Button(
+                        "📋 Подробнее",
+                        id="open-order-accuracy-modal",
+                        className="glow-on-hover",
+                        style=CARD_BUTTON_STYLE
+                    )
+                ], style=CARD_BUTTON_ROW_STYLE),
                 # Ряд 3: Основное значение
                 html.Div(id="order-accuracy-kpi", style=CARD_VALUE_STYLE),
                 # Ряд 4: Пусто (нет деталей)
