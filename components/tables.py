@@ -168,6 +168,15 @@ def create_shift_employees_table():
                     style={**sortable_header_style, 'textAlign': 'center'},
                     n_clicks=0
                 ),
+                html.Th(
+                    html.Div([
+                        html.Span('Время посл. операции', style={'marginRight': '5px'}),
+                        html.Span('⇅', id='sort-last-time-icon', style=sort_icon_style)
+                    ], style={'display': 'flex', 'alignItems': 'center'}),
+                    id='sort-last-time-header',
+                    style={**sortable_header_style, 'textAlign': 'center'},
+                    n_clicks=0
+                ),
             ])),
             html.Tbody(id='shift-employees-table-body')
         ], style={'width': '100%', 'borderCollapse': 'collapse'})

@@ -1229,29 +1229,34 @@ def get_employees_on_shift_new():
     """
     Получение данных о сотрудниках на текущей смене из dm.v_employees_shift_daily
     + добавляет статус на основе времени первой операции
-    
+
     Возвращает кортеж (employees_data, position_stats)
     """
     today_shift = get_todays_shift()
-    
+    today_date = datetime.now().strftime('%Y-%m-%d')
+
     # Получаем данные из нового view (оно уже фильтрует по текущему дню)
     # Теперь view возвращает всех сотрудников смены, включая тех, кто не работал
-    query = """
+    # today_date встроен в текст запроса для уникального кэш-ключа на каждый день
+    query = f"""
     SELECT
         fio,
         position,
         brigada,
         smena,
         first_operation_time,
+        last_operation_time,
         total_operations,
         status_on_shift
     FROM dm.v_employees_shift_daily
     WHERE smena = ?
+      AND date_key = '{today_date}'
     ORDER BY fio
     """
-    
-    result = execute_query_cached(query, (today_shift,))
-    
+
+    # Прямой запрос без кэша — всегда актуальные данные
+    result = mssql_client.execute(query, (today_shift,))
+
     employees_data = []
     if result:
         for row in result:
@@ -1261,34 +1266,54 @@ def get_employees_on_shift_new():
                 brigada = row[2] if row[2] else ''
                 smena = row[3] if row[3] else ''
                 first_operation_time = row[4] if row[4] else None
-                total_operations = row[5] if row[5] else 0
-                status_on_shift = row[6] if row[6] else 'Не вышел'
-                
+                last_operation_time = row[5] if row[5] else None
+                total_operations = row[6] if row[6] else 0
+                status_on_shift = row[7] if row[7] else 'Не вышел'
+
                 # Форматируем время первой операции
                 if first_operation_time:
                     if hasattr(first_operation_time, 'strftime'):
-                        formatted_time = first_operation_time.strftime('%H:%M')
+                        formatted_first_time = first_operation_time.strftime('%H:%M')
                     else:
                         time_str = str(first_operation_time)
                         if ' ' in time_str and ':' in time_str:
                             time_part = time_str.split(' ')[1]
                             time_parts = time_part.split(':')
-                            formatted_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_part[:5]
+                            formatted_first_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_part[:5]
                         elif ':' in time_str:
                             time_parts = time_str.split(':')
-                            formatted_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_str[:5]
+                            formatted_first_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_str[:5]
                         else:
-                            formatted_time = time_str
+                            formatted_first_time = time_str
                 else:
-                    formatted_time = '--:--'
-                
+                    formatted_first_time = '--:--'
+
+                # Форматируем время последней операции
+                if last_operation_time:
+                    if hasattr(last_operation_time, 'strftime'):
+                        formatted_last_time = last_operation_time.strftime('%H:%M')
+                    else:
+                        time_str = str(last_operation_time)
+                        if ' ' in time_str and ':' in time_str:
+                            time_part = time_str.split(' ')[1]
+                            time_parts = time_part.split(':')
+                            formatted_last_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_part[:5]
+                        elif ':' in time_str:
+                            time_parts = time_str.split(':')
+                            formatted_last_time = f"{time_parts[0]}:{time_parts[1]}" if len(time_parts) >= 2 else time_str[:5]
+                        else:
+                            formatted_last_time = time_str
+                else:
+                    formatted_last_time = '--:--'
+
                 employees_data.append({
                     'ФИО': fio,
                     'Должность': position,
                     'Бригада': brigada,
                     'Смена': smena,
                     'Статус': status_on_shift,
-                    'Время_первой_операции': formatted_time
+                    'Время_первой_операции': formatted_first_time,
+                    'Время_последней_операции': formatted_last_time
                 })
             except Exception as e:
                 logger.error("Error processing employee row: %s", e)
@@ -1301,7 +1326,7 @@ def get_employees_on_shift_new():
         if pos not in position_stats:
             position_stats[pos] = 0
         position_stats[pos] += 1
-    
+
     return employees_data, position_stats
 
 

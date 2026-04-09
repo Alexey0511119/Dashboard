@@ -28,6 +28,19 @@ from components.charts import (
 )
 from components.tables import create_performance_table
 
+# Callback для обновления global-date-range при смене даты
+@callback(
+    Output('global-date-range', 'data'),
+    [Input('date-check-interval', 'n_intervals')],
+    prevent_initial_call=False
+)
+def update_global_date_range(n_intervals):
+    """Обновляет диапазон дат при каждой проверке (каждые 5 минут)"""
+    return {
+        'start_date': (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+        'end_date': datetime.now().strftime('%Y-%m-%d')
+    }
+
 # Callback для обновления KPI карточек на главной вкладке
 @callback(
     [Output('total-revisions-kpi', 'children'),
@@ -466,13 +479,15 @@ def reset_filters(all_clicks, storage_clicks, locating_clicks, allocation_clicks
     [Output('shift-employees-table-body', 'children', allow_duplicate=True),
      Output('shift-table-sort-state', 'data', allow_duplicate=True),
      Output('sort-status-icon', 'style', allow_duplicate=True),
-     Output('sort-time-icon', 'style', allow_duplicate=True)],
-    [Input('position-filter', 'value'),
+     Output('sort-time-icon', 'style', allow_duplicate=True),
+     Output('sort-last-time-icon', 'style', allow_duplicate=True)],
+    [Input('shift-table-interval', 'n_intervals'),
+     Input('position-filter', 'value'),
      Input('brigade-filter', 'value')],
-    prevent_initial_call=True
+    prevent_initial_call='initial_duplicate'
 )
-def update_shift_employees_table(position_filter, brigade_filter):
-    """Обновление таблицы сотрудников на смене (сбрасывает сортировку при изменении фильтров)"""
+def update_shift_employees_table(n_intervals, position_filter, brigade_filter):
+    """Обновление таблицы сотрудников на смене (с сортировкой по времени первой операции по умолчанию)"""
 
     try:
         employees, position_stats = get_employees_on_shift_new()
@@ -485,6 +500,17 @@ def update_shift_employees_table(position_filter, brigade_filter):
 
         if brigade_filter and brigade_filter != 'all':
             filtered_employees = [e for e in filtered_employees if e.get('Бригада') == brigade_filter]
+
+        # Сортировка по умолчанию: время первой операции (asc), "Не вышел" в конце
+        def default_sort_key(emp):
+            time_str = emp.get('Время_первой_операции', '--:--')
+            status = emp.get('Статус', '')
+            if status in ['Не вышел']:
+                return '99:99'  # В конец
+            return time_str
+
+        filtered_employees.sort(key=default_sort_key)
+        new_sort_state = {'column': 'time', 'direction': 'asc'}
 
         # Создаем строки таблицы
         rows = []
@@ -509,33 +535,38 @@ def update_shift_employees_table(position_filter, brigade_filter):
                                  'color': status_color, 'fontWeight': 'bold'}),
                     html.Td(employee.get('Время_первой_операции', '--:--'),
                            style={'padding': '8px', 'borderBottom': '1px solid #eee',
+                                 'color': '#666', 'textAlign': 'center'}),
+                    html.Td(employee.get('Время_последней_операции', '--:--'),
+                           style={'padding': '8px', 'borderBottom': '1px solid #eee',
                                  'color': '#666', 'textAlign': 'center'})
                 ])
             )
 
-        # Сбрасываем состояние сортировки при изменении фильтров
-        default_sort_state = {'column': None, 'direction': None}
-        default_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+        # Иконка времени активна (по умолчанию), остальные сброшены
+        status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
+        time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
+        last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
 
-        return rows, default_sort_state, default_icon_style, default_icon_style
+        return rows, new_sort_state, status_icon_style, time_icon_style, last_time_icon_style
 
     except Exception as e:
         logger.error("Error in update_shift_employees_table: %s", e)
         default_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
         return [
             html.Tr([
-                html.Td(f"Ошибка загрузки данных: {str(e)}", colSpan=5,
+                html.Td(f"Ошибка загрузки данных: {str(e)}", colSpan=6,
                        style={'padding': '20px', 'textAlign': 'center',
                              'color': '#F44336', 'fontSize': '14px'})
             ])
-        ], {'column': None, 'direction': None}, default_icon_style, default_icon_style
+        ], {'column': None, 'direction': None}, default_icon_style, default_icon_style, default_icon_style
 
 # Callback для сортировки таблицы сотрудников по статусу
 @callback(
     [Output('shift-employees-table-body', 'children', allow_duplicate=True),
      Output('shift-table-sort-state', 'data'),
      Output('sort-status-icon', 'style', allow_duplicate=True),
-     Output('sort-time-icon', 'style', allow_duplicate=True)],
+     Output('sort-time-icon', 'style', allow_duplicate=True),
+     Output('sort-last-time-icon', 'style', allow_duplicate=True)],
     [Input('sort-status-header', 'n_clicks')],
     [State('shift-table-sort-state', 'data'),
      State('position-filter', 'value'),
@@ -550,7 +581,7 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
     # Трехпозиционный цикл: None → asc → desc → None
     current_column = sort_state.get('column') if sort_state else None
     current_direction = sort_state.get('direction') if sort_state else None
-    
+
     if current_column == 'status':
         if current_direction == 'asc':
             direction = 'desc'
@@ -574,13 +605,19 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
 
         # Сортируем или сбрасываем
         if direction is None:
-            # Сброс сортировки - исходный порядок
-            new_sort_state = {'column': None, 'direction': None}
+            # Сброс сортировки - сортировка по умолчанию (время первой опер., "Не вышел" в конце)
+            def default_sort_key(emp):
+                time_str = emp.get('Время_первой_операции', '--:--')
+                status = emp.get('Статус', '')
+                if status in ['Не вышел']:
+                    return '99:99'
+                return time_str
+            filtered_employees.sort(key=default_sort_key)
+            new_sort_state = {'column': 'time', 'direction': 'asc'}
         else:
             # Сортировка по статусу: "На смене" сначала, потом "Не вышел"
             def status_sort_key(emp):
                 status = emp.get('Статус', '')
-                # Проверяем разные варианты написания статуса
                 if status in ['На смене', 'Вышел', 'Работает']:
                     return 0 if direction == 'asc' else 1
                 else:
@@ -605,21 +642,28 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
                     html.Td(employee.get('Должность', ''), style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
                     html.Td(employee.get('Бригада', ''), style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
                     html.Td(status, style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': status_color, 'fontWeight': 'bold'}),
-                    html.Td(employee.get('Время_первой_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'})
+                    html.Td(employee.get('Время_первой_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'}),
+                    html.Td(employee.get('Время_последней_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'})
                 ])
             )
 
-        # Обновляем стили иконок - только одна активна, другая сбрасывается
+        # Обновляем стили иконок
         if new_sort_state.get('column') == 'status' and new_sort_state.get('direction'):
-            # Статус активен - время сброшено
             status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
             time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
+            last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
         else:
-            # Статус не активен - сбрасываем обе иконки
-            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
-            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            # Время активно (по умолчанию) или сброшено
+            if new_sort_state.get('column') == 'time' and new_sort_state.get('direction'):
+                status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
+                time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
+                last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
+            else:
+                status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+                time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+                last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
 
-        return rows, new_sort_state, status_icon_style, time_icon_style
+        return rows, new_sort_state, status_icon_style, time_icon_style, last_time_icon_style
 
     except Exception as e:
         logger.error("Error in sort_by_status: %s", e)
@@ -631,7 +675,8 @@ def sort_by_status(n_clicks, sort_state, position_filter, brigade_filter):
     [Output('shift-employees-table-body', 'children', allow_duplicate=True),
      Output('shift-table-sort-state', 'data'),
      Output('sort-status-icon', 'style', allow_duplicate=True),
-     Output('sort-time-icon', 'style', allow_duplicate=True)],
+     Output('sort-time-icon', 'style', allow_duplicate=True),
+     Output('sort-last-time-icon', 'style', allow_duplicate=True)],
     [Input('sort-time-header', 'n_clicks')],
     [State('shift-table-sort-state', 'data'),
      State('position-filter', 'value'),
@@ -646,7 +691,7 @@ def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
     # Трехпозиционный цикл: None → asc → desc → None
     current_column = sort_state.get('column') if sort_state else None
     current_direction = sort_state.get('direction') if sort_state else None
-    
+
     if current_column == 'time':
         if current_direction == 'asc':
             direction = 'desc'
@@ -670,8 +715,15 @@ def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
 
         # Сортируем или сбрасываем
         if direction is None:
-            # Сброс сортировки - исходный порядок
-            new_sort_state = {'column': None, 'direction': None}
+            # Сброс сортировки - сортировка по умолчанию (время первой опер., "Не вышел" в конце)
+            def default_sort_key(emp):
+                time_str = emp.get('Время_первой_операции', '--:--')
+                status = emp.get('Статус', '')
+                if status in ['Не вышел']:
+                    return '99:99'
+                return time_str
+            filtered_employees.sort(key=default_sort_key)
+            new_sort_state = {'column': 'time', 'direction': 'asc'}
         else:
             # Сортировка по времени первой операции
             def time_sort_key(emp):
@@ -700,24 +752,127 @@ def sort_by_time(n_clicks, sort_state, position_filter, brigade_filter):
                     html.Td(employee.get('Должность', ''), style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
                     html.Td(employee.get('Бригада', ''), style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
                     html.Td(status, style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': status_color, 'fontWeight': 'bold'}),
-                    html.Td(employee.get('Время_первой_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'})
+                    html.Td(employee.get('Время_первой_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'}),
+                    html.Td(employee.get('Время_последней_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'})
                 ])
             )
 
-        # Обновляем стили иконок - только одна активна, другая сбрасывается
+        # Обновляем стили иконок
         if new_sort_state.get('column') == 'time' and new_sort_state.get('direction'):
-            # Время активно - статус сброшен
             status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
             time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
+            last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
         else:
-            # Время не активно - сбрасываем обе иконки
             status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
             time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
 
-        return rows, new_sort_state, status_icon_style, time_icon_style
+        return rows, new_sort_state, status_icon_style, time_icon_style, last_time_icon_style
 
     except Exception as e:
         logger.error("Error in sort_by_time: %s", e)
+        raise dash.exceptions.PreventUpdate
+
+# Callback для сортировки таблицы сотрудников по времени последней операции
+@callback(
+    [Output('shift-employees-table-body', 'children', allow_duplicate=True),
+     Output('shift-table-sort-state', 'data'),
+     Output('sort-status-icon', 'style', allow_duplicate=True),
+     Output('sort-time-icon', 'style', allow_duplicate=True),
+     Output('sort-last-time-icon', 'style', allow_duplicate=True)],
+    [Input('sort-last-time-header', 'n_clicks')],
+    [State('shift-table-sort-state', 'data'),
+     State('position-filter', 'value'),
+     State('brigade-filter', 'value')],
+    prevent_initial_call=True
+)
+def sort_by_last_time(n_clicks, sort_state, position_filter, brigade_filter):
+    """Сортировка таблицы сотрудников по времени последней операции: asc → desc → сброс"""
+    if not n_clicks:
+        raise dash.exceptions.PreventUpdate
+
+    # Трехпозиционный цикл: None → asc → desc → None
+    current_column = sort_state.get('column') if sort_state else None
+    current_direction = sort_state.get('direction') if sort_state else None
+
+    if current_column == 'last_time':
+        if current_direction == 'asc':
+            direction = 'desc'
+        elif current_direction == 'desc':
+            direction = None  # Сброс
+        else:
+            direction = 'asc'
+    else:
+        direction = 'asc'
+
+    # Получаем данные
+    try:
+        employees, position_stats = get_employees_on_shift_new()
+
+        # Применяем фильтры
+        filtered_employees = employees
+        if position_filter and position_filter != 'all':
+            filtered_employees = [e for e in filtered_employees if e.get('Должность') == position_filter]
+        if brigade_filter and brigade_filter != 'all':
+            filtered_employees = [e for e in filtered_employees if e.get('Бригада') == brigade_filter]
+
+        # Сортируем или сбрасываем
+        if direction is None:
+            # Сброс сортировки - сортировка по умолчанию (время первой опер., "Не вышел" в конце)
+            def default_sort_key(emp):
+                time_str = emp.get('Время_первой_операции', '--:--')
+                status = emp.get('Статус', '')
+                if status in ['Не вышел']:
+                    return '99:99'
+                return time_str
+            filtered_employees.sort(key=default_sort_key)
+            new_sort_state = {'column': 'time', 'direction': 'asc'}
+        else:
+            # Сортировка по времени последней операции
+            def last_time_sort_key(emp):
+                time_str = emp.get('Время_последней_операции', '--:--')
+                if time_str == '--:--':
+                    return '99:99' if direction == 'asc' else '00:00'
+                return time_str
+
+            filtered_employees.sort(key=last_time_sort_key)
+            new_sort_state = {'column': 'last_time', 'direction': direction}
+
+        # Создаем строки таблицы
+        rows = []
+        for employee in filtered_employees:
+            status = employee.get('Статус', 'Не вышел')
+            # Определяем цвет статуса
+            if status in ['На смене', 'Вышел', 'Работает']:
+                status_color = '#4CAF50'  # Зеленый
+            else:
+                status_color = '#F44336'  # Красный
+
+            rows.append(
+                html.Tr([
+                    html.Td(employee.get('ФИО', ''), style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
+                    html.Td(employee.get('Должность', ''), style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
+                    html.Td(employee.get('Бригада', ''), style={'padding': '8px', 'borderBottom': '1px solid #eee'}),
+                    html.Td(status, style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': status_color, 'fontWeight': 'bold'}),
+                    html.Td(employee.get('Время_первой_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'}),
+                    html.Td(employee.get('Время_последней_операции', '--:--'), style={'padding': '8px', 'borderBottom': '1px solid #eee', 'color': '#666', 'textAlign': 'center'})
+                ])
+            )
+
+        # Обновляем стили иконок
+        if new_sort_state.get('column') == 'last_time' and new_sort_state.get('direction'):
+            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
+            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.3'}
+            last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '1', 'fontWeight': 'bold'}
+        else:
+            status_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+            last_time_icon_style = {'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'}
+
+        return rows, new_sort_state, status_icon_style, time_icon_style, last_time_icon_style
+
+    except Exception as e:
+        logger.error("Error in sort_by_last_time: %s", e)
         raise dash.exceptions.PreventUpdate
 
 # Callback для обновления таблиц производительности

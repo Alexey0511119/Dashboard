@@ -74,8 +74,14 @@ def create_layout():
         dcc.Store(id='error-hours-cache', data=[]),
         dcc.Store(id='shift-employees-cache', data=[]),
 
-        # Store для сортировки таблицы сотрудников
-        dcc.Store(id='shift-table-sort-state', data={'column': None, 'direction': 'asc'}),
+        # Store для сортировки таблицы сотрудников (по умолчанию: время первой опер. asc)
+        dcc.Store(id='shift-table-sort-state', data={'column': 'time', 'direction': 'asc'}),
+
+        # Интервал для обновления таблицы сотрудников на смене (каждые 60 сек)
+        dcc.Interval(id='shift-table-interval', interval=60000, n_intervals=0),
+
+        # Интервал для проверки смены даты (каждые 5 минут)
+        dcc.Interval(id='date-check-interval', interval=300000, n_intervals=0),
 
         # НОВЫЕ Store компоненты
         dcc.Store(id='selected-idle-interval', data=''),  # Для хранения выбранного интервала простоя

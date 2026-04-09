@@ -1172,28 +1172,31 @@ PRINT '  ✅ placement_operations за период: ' + CAST(@cnt AS NVARCHAR) 
 PRINT 'Обновление dwh.order_accuracy_daily...';
 DELETE FROM dwh.order_accuracy_daily WHERE date >= @cutoff_date;
 
+WITH deduped AS (
+    SELECT
+        REFERENCE_ID,
+        ITEM,
+        MAX(DATE_TIME_STAMP) AS DATE_TIME_STAMP,
+        MAX(CASE WHEN TRANSACTION_TYPE = 240 THEN 1 ELSE 0 END) AS has_error
+    FROM raw_.TRANSACTION_HISTORY WITH (NOLOCK)
+    WHERE REFERENCE_ID IS NOT NULL
+      AND ITEM IS NOT NULL
+      AND CAST(DATE_TIME_STAMP AS DATE) >= @cutoff_date
+    GROUP BY REFERENCE_ID, ITEM
+)
 INSERT INTO dwh.order_accuracy_daily
 SELECT
-    CAST(w.DATE_TIME_STAMP AS DATE) AS date,
+    CAST(DATE_TIME_STAMP AS DATE) AS date,
     COUNT(*) AS total_assembled,
-    SUM(CASE WHEN s.reference_id IS NOT NULL THEN 1 ELSE 0 END) AS error_count,
-    COUNT(*) - SUM(CASE WHEN s.reference_id IS NOT NULL THEN 1 ELSE 0 END) AS correct_count,
+    SUM(has_error) AS error_count,
+    COUNT(*) - SUM(has_error) AS correct_count,
     CAST(
-        (COUNT(*) - SUM(CASE WHEN s.reference_id IS NOT NULL THEN 1 ELSE 0 END)) * 100.0 / COUNT(*)
+        (COUNT(*) - SUM(has_error)) * 100.0 / COUNT(*)
         AS DECIMAL(5,2)
     ) AS accuracy_pct
-FROM raw_.WORK_INSTRUCTION_VIEW2 w
-LEFT JOIN raw_.Shtraf_Edit s
-    ON w.REFERENCE_ID = s.reference_id COLLATE Cyrillic_General_100_CI_AS
-   AND s.name IN (
-        N'Штраф по претензии',
-        N'Недобор',
-        N'Излишки',
-        N'Некомплект'
-   )
-WHERE w.INSTRUCTION_TYPE = 'Detail'
-AND CAST(w.DATE_TIME_STAMP AS DATE) >= @cutoff_date
-GROUP BY CAST(w.DATE_TIME_STAMP AS DATE);
+FROM deduped
+WHERE CAST(DATE_TIME_STAMP AS DATE) >= @cutoff_date
+GROUP BY CAST(DATE_TIME_STAMP AS DATE);
 
 SELECT @cnt = COUNT(*) FROM dwh.order_accuracy_daily WHERE date >= @cutoff_date;
 PRINT '  ✅ order_accuracy_daily за период: ' + CAST(@cnt AS NVARCHAR) + ' строк';
@@ -1268,22 +1271,30 @@ PRINT '  ✅ orders_timeliness пересоздана. Всего записей
 PRINT 'Обновление dwh.fact_hourly_errors (за ВЕСЬ период)...';
 DELETE FROM dwh.fact_hourly_errors;
 
-WITH error_orders AS (
+WITH deduped AS (
     SELECT
-        DATEPART(HOUR, o.START_DATE_TIME) AS hour,
-        COUNT(DISTINCT se.reference_id) AS error_orders
-    FROM dwh.orders_timeliness o
-    JOIN raw_.Shtraf_Edit se
-        ON o.SHIPMENT_ID = se.reference_id
-        AND se.name IN ('Штраф по претензии', 'Недобор', 'Излишки', 'Недокомплект')
-    GROUP BY DATEPART(HOUR, o.START_DATE_TIME)
+        REFERENCE_ID,
+        ITEM,
+        MAX(DATE_TIME_STAMP) AS DATE_TIME_STAMP,
+        MAX(CASE WHEN TRANSACTION_TYPE = 240 THEN 1 ELSE 0 END) AS has_error
+    FROM raw_.TRANSACTION_HISTORY WITH (NOLOCK)
+    WHERE REFERENCE_ID IS NOT NULL AND ITEM IS NOT NULL
+    GROUP BY REFERENCE_ID, ITEM
+),
+error_orders AS (
+    SELECT
+        DATEPART(HOUR, DATE_TIME_STAMP) AS hour,
+        COUNT(DISTINCT REFERENCE_ID) AS error_orders
+    FROM deduped
+    WHERE has_error = 1
+    GROUP BY DATEPART(HOUR, DATE_TIME_STAMP)
 ),
 all_orders_by_hour AS (
     SELECT
-        DATEPART(HOUR, START_DATE_TIME) AS hour,
-        COUNT(DISTINCT SHIPMENT_ID) AS total_orders
-    FROM dwh.orders_timeliness
-    GROUP BY DATEPART(HOUR, START_DATE_TIME)
+        DATEPART(HOUR, DATE_TIME_STAMP) AS hour,
+        COUNT(*) AS total_orders
+    FROM deduped
+    GROUP BY DATEPART(HOUR, DATE_TIME_STAMP)
 )
 INSERT INTO dwh.fact_hourly_errors
 SELECT

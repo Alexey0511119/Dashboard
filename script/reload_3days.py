@@ -65,14 +65,13 @@ def escape_column_name(column_name):
 
 # === СПИСОК ТАБЛИЦ ===
 FACTS = [
-    # Существующие таблицы из ils (16 шт)
+    # Существующие таблицы из ils (15 шт — TRANSACTION_HISTORY обновляется отдельно)
     'ORDER_DETAIL',
     'ORDER_HEADER',
     'RECEIPT_DETAIL',
     'RECEIPT_HEADER',
     'SHIPMENT_DETAIL',
     'SHIPMENT_HEADER',
-    'TRANSACTION_HISTORY',
     'WORK_INSTRUCTION_VIEW2',
     'DOWNLOAD_ORDER_DETAIL',
     'DOWNLOAD_ORDER_HEADER',

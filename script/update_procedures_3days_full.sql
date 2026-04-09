@@ -661,24 +661,30 @@ BEGIN
 
     DELETE FROM dwh.order_accuracy_daily WHERE date >= @cutoff_date;
 
+    WITH deduped AS (
+        SELECT
+            REFERENCE_ID,
+            ITEM,
+            MAX(DATE_TIME_STAMP) AS DATE_TIME_STAMP,
+            MAX(CASE WHEN TRANSACTION_TYPE = 240 THEN 1 ELSE 0 END) AS has_error
+        FROM raw_.TRANSACTION_HISTORY WITH (NOLOCK)
+        WHERE REFERENCE_ID IS NOT NULL
+          AND ITEM IS NOT NULL
+          AND CAST(DATE_TIME_STAMP AS DATE) >= @cutoff_date
+        GROUP BY REFERENCE_ID, ITEM
+    )
     INSERT INTO dwh.order_accuracy_daily WITH (TABLOCK)
     SELECT
-        CAST(w.DATE_TIME_STAMP AS DATE) AS date,
+        CAST(DATE_TIME_STAMP AS DATE) AS date,
         COUNT(*) AS total_assembled,
-        SUM(CASE WHEN s.reference_id IS NOT NULL THEN 1 ELSE 0 END) AS error_count,
-        COUNT(*) - SUM(CASE WHEN s.reference_id IS NOT NULL THEN 1 ELSE 0 END) AS correct_count,
+        SUM(has_error) AS error_count,
+        COUNT(*) - SUM(has_error) AS correct_count,
         CAST(
-            (COUNT(*) - SUM(CASE WHEN s.reference_id IS NOT NULL THEN 1 ELSE 0 END)) * 100.0 / COUNT(*)
+            (COUNT(*) - SUM(has_error)) * 100.0 / COUNT(*)
             AS DECIMAL(5,2)
         ) AS accuracy_pct
-    FROM raw_.WORK_INSTRUCTION_VIEW2 w WITH (NOLOCK)
-    LEFT JOIN raw_.Shtraf_Edit s WITH (NOLOCK)
-        ON w.REFERENCE_ID = s.reference_id COLLATE DATABASE_DEFAULT
-        AND s.name IN (N'Штраф по претензии', N'Недобор', N'Излишки', N'Некомплект')
-    WHERE 
-        w.INSTRUCTION_TYPE = 'Detail'
-        AND CAST(w.DATE_TIME_STAMP AS DATE) >= @cutoff_date
-    GROUP BY CAST(w.DATE_TIME_STAMP AS DATE);
+    FROM deduped
+    GROUP BY CAST(DATE_TIME_STAMP AS DATE);
 
     PRINT '  ✅ order_accuracy_daily обновлена';
 END;
@@ -791,24 +797,32 @@ BEGIN
 
     DELETE FROM dwh.fact_hourly_errors;
 
-    WITH error_orders AS (
+    WITH deduped AS (
         SELECT
-            DATEPART(HOUR, o.START_DATE_TIME) AS hour,
-            COUNT(DISTINCT se.reference_id) AS error_orders
-        FROM dwh.orders_timeliness o WITH (NOLOCK)
-        JOIN raw_.Shtraf_Edit se WITH (NOLOCK)
-            ON o.SHIPMENT_ID = se.reference_id COLLATE DATABASE_DEFAULT
-            AND se.name IN (N'Штраф по претензии', N'Недобор', N'Излишки', N'Недокомплект')
-        WHERE o.date >= @cutoff_date
-        GROUP BY DATEPART(HOUR, o.START_DATE_TIME)
+            REFERENCE_ID,
+            ITEM,
+            MAX(DATE_TIME_STAMP) AS DATE_TIME_STAMP,
+            MAX(CASE WHEN TRANSACTION_TYPE = 240 THEN 1 ELSE 0 END) AS has_error
+        FROM raw_.TRANSACTION_HISTORY WITH (NOLOCK)
+        WHERE REFERENCE_ID IS NOT NULL
+          AND ITEM IS NOT NULL
+          AND CAST(DATE_TIME_STAMP AS DATE) >= @cutoff_date
+        GROUP BY REFERENCE_ID, ITEM
+    ),
+    error_orders AS (
+        SELECT
+            DATEPART(HOUR, DATE_TIME_STAMP) AS hour,
+            COUNT(DISTINCT REFERENCE_ID) AS error_orders
+        FROM deduped
+        WHERE has_error = 1
+        GROUP BY DATEPART(HOUR, DATE_TIME_STAMP)
     ),
     all_orders_by_hour AS (
         SELECT
-            DATEPART(HOUR, START_DATE_TIME) AS hour,
-            COUNT(DISTINCT SHIPMENT_ID) AS total_orders
-        FROM dwh.orders_timeliness WITH (NOLOCK)
-        WHERE date >= @cutoff_date
-        GROUP BY DATEPART(HOUR, START_DATE_TIME)
+            DATEPART(HOUR, DATE_TIME_STAMP) AS hour,
+            COUNT(*) AS total_orders
+        FROM deduped
+        GROUP BY DATEPART(HOUR, DATE_TIME_STAMP)
     )
     INSERT INTO dwh.fact_hourly_errors WITH (TABLOCK)
     SELECT
