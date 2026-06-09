@@ -6,100 +6,44 @@ def create_analytics_modal():
     return html.Div([
         html.Div([
             html.Div([
-                html.H3("Аналитика производительности", 
-                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
-                html.Button(
-                    "✕", 
-                    id="close-analytics-modal",
-                    style={
-                        'background': '#f0f0f0',
-                        'border': 'none',
-                        'fontSize': '32px',
-                        'cursor': 'pointer',
-                        'color': '#666',
-                        'width': '50px',
-                        'height': '50px',
-                        'borderRadius': '50%',
-                        'display': 'flex',
-                        'alignItems': 'center',
-                        'justifyContent': 'center',
-                        'transition': 'all 0.2s ease'
-                    }
-                )
-            ], style={
-                'display': 'flex',
-                'justifyContent': 'space-between',
-                'alignItems': 'center',
-                'padding': '30px',
-                'borderBottom': '2px solid #eee',
-                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
-            }),
+                html.H3("Аналитика производительности", style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button("✕", id="close-analytics-modal", style={'background': '#f0f0f0', 'border': 'none', 'fontSize': '32px', 'cursor': 'pointer', 'color': '#666', 'width': '50px', 'height': '50px', 'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'transition': 'all 0.2s ease'})
+            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'padding': '30px', 'borderBottom': '2px solid #eee', 'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'}),
             html.Div([
-                html.Div(id="analytics-employee-name", 
-                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#1976d2', 'textAlign': 'center'}),
+                html.Div(id="analytics-employee-name", style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#1976d2', 'textAlign': 'center'}),
+                html.Div([
+                    html.Div([html.Div("Всего операций", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="total-operations-kpi", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card'),
+                    html.Div([html.Div("Заработок в час", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="earnings-per-hour-kpi", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card'),
+                    html.Div([html.Div("Операций в час", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="ops-per-hour-kpi", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card'),
+                    html.Div([html.Div("Объем (м³)", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="total-volume-kpi", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card'),
+                    html.Div([html.Div("Кол-во контейнеров", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="total-containers-kpi", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card'),
+                    html.Div([html.Div("Средний объем", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="avg-volume-kpi", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card'),
+                    html.Div([html.Div("Время работы", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="work-time-kpi", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card'),
+                    html.Div([html.Div("Общий заработок", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}), html.Div(id="total-earnings-kpi-modal", style={'color': '#495057', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})], className='analytics-kpi-card')
+                ], className="analytics-kpi-row", style={'gridTemplateColumns': '1fr 1fr 1fr 1fr', 'marginBottom': '30px'}),
+                
+                # ✅ ДИАГРАММЫ (Высота увеличена для корректного отображения подписей)
                 html.Div([
                     html.Div([
-                        html.Div("Всего операций", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="total-operations-kpi", style={'color': '#1976d2', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
-                    ], className='analytics-kpi-card'),
+                        html.H4("Штучные операции", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                        dash_echarts.DashECharts(id="operations-type-chart", option={}, style={'height': '400px', 'width': '100%'}, click_data=None)
+                    ], className='analytics-chart-card', style={'height': '500px', 'width': '48%'}),
                     html.Div([
-                        html.Div("Заработок в час", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="earnings-per-hour-kpi", style={'color': '#2e7d32', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
-                    ], className='analytics-kpi-card'),
-                    html.Div([
-                        html.Div("Операций в час", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="ops-per-hour-kpi", style={'color': '#ed6c02', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
-                    ], className='analytics-kpi-card'),
-                    html.Div([
-                        html.Div("Время работы", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="work-time-kpi", style={'color': '#9c27b0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
-                    ], className='analytics-kpi-card'),
-                    html.Div([
-                        html.Div("Общий заработок", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="total-earnings-kpi-modal", style={'color': '#9c27b0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
-                    ], className='analytics-kpi-card')
-                ], className="analytics-kpi-row", style={'gridTemplateColumns': '1fr 1fr 1fr 1fr 1fr'}),
+                        html.H4("Объемные операции (м³)", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                        dash_echarts.DashECharts(id="volume-type-chart", option={}, style={'height': '400px', 'width': '100%'})
+                    ], className='analytics-chart-card', style={'height': '500px', 'width': '48%'})
+                ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginBottom': '30px'}),
                 
-                # ПЕРВЫЙ РЯД: Распределение операций по типам (на всю ширину)
                 html.Div([
                     html.Div([
-                        html.H4("Распределение операций по типам", 
-                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
-                        dash_echarts.DashECharts(
-                            id="operations-type-chart",
-                            option={},
-                            style={'height': '350px', 'width': '100%'},
-                            click_data=None
-                        )
-                    ], className='analytics-chart-card', style={'height': '400px', 'width': '100%'})
-                ], style={'marginBottom': '20px'}),
-                
-                # ВТОРОЙ РЯД: Периоды простоя (слева) + Распределение времени работы (справа)
-                html.Div([
-                    # ЛЕВАЯ ЧАСТЬ: Периоды простоя (кликабельная)
+                        html.H4("Периоды простоя", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                        dash_echarts.DashECharts(id="idle-intervals-chart", option={}, style={'height': '400px', 'width': '100%'})
+                    ], className='analytics-chart-card', style={'height': '500px', 'width': '48%', 'cursor': 'pointer'}),
                     html.Div([
-                        html.H4("Периоды простоя", 
-                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
-                        dash_echarts.DashECharts(
-                            id="idle-intervals-chart",
-                            option={},
-                            style={'height': '350px', 'width': '100%'}
-                        )
-                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%', 'cursor': 'pointer'}),
-                    
-                    # ПРАВАЯ ЧАСТЬ: Распределение времени работы
-                    html.Div([
-                        html.H4("Распределение времени работы", 
-                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
-                        dash_echarts.DashECharts(
-                            id="time-distribution-chart",
-                            option={},
-                            style={'height': '350px', 'width': '100%'}
-                        )
-                    ], className='analytics-chart-card', style={'height': '400px', 'width': '48%'})
-                ], style={'display': 'flex', 'justifyContent': 'space-between'})
-                
-                # БЛОК "Ключевые метрики качества" УДАЛЕН
+                        html.H4("Распределение времени работы", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                        dash_echarts.DashECharts(id="time-distribution-chart", option={}, style={'height': '400px', 'width': '100%'})
+                    ], className='analytics-chart-card', style={'height': '500px', 'width': '48%'})
+                ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '20px'})
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
         ], id="analytics-modal-content", className="modal-content")
     ], id="analytics-modal", className="modal-hidden")
@@ -138,20 +82,20 @@ def create_fines_modal():
                 'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
             }),
             html.Div([
-                html.Div(id="fines-employee-name", 
-                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#B71C1C', 'textAlign': 'center'}),
+                html.Div(id="fines-employee-name",
+                        style={'fontSize': '24px', 'fontWeight': 'bold', 'marginBottom': '20px', 'color': '#1976D2', 'textAlign': 'center'}),
                 html.Div([
                     html.Div([
                         html.Div("Количество штрафов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-count-kpi-modal", style={'color': '#B71C1C', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-count-kpi-modal", style={'color': '#1976D2', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Общая сумма", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-total-kpi", style={'color': '#D32F2F', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-total-kpi", style={'color': '#1565C0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Средний штраф", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
-                        html.Div(id="fines-avg-kpi", style={'color': '#F44336', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                        html.Div(id="fines-avg-kpi", style={'color': '#1E88E5', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
                     ], className='analytics-kpi-card'),
                     html.Div([
                         html.Div("Дата последнего", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
@@ -225,7 +169,7 @@ def create_idle_detail_modal():
                     dash_echarts.DashECharts(
                         id="idle-timeline-chart",
                         option={},
-                        style={'height': '500px', 'width': '100%'}
+                        style={'height': 'px700', 'width': '100%'}
                     )
                 ], className='analytics-chart-card', style={'height': '550px'}),
                 
@@ -297,68 +241,279 @@ def create_storage_cells_modal():
                 # Секция с фильтрами
                 html.Div([
                     html.H4("Фильтры", style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                    
+                    # Верхняя строка: галочка "Только пустые" + кнопка "Сбросить все"
                     html.Div([
-                        # Тип хранения
-                        html.Div([
-                            html.Label("Тип хранения:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-storage-type',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        # Кнопка "Сбросить все фильтры" (слева)
+                        html.Button(
+                            "🗑️ Сбросить все фильтры",
+                            id="reset-all-filters-btn",
+                            n_clicks=0,
+                            style={
+                                'padding': '8px 16px',
+                                'backgroundColor': '#f8f9fa',
+                                'border': '1px solid #dc3545',
+                                'borderRadius': '6px',
+                                'fontSize': '13px',
+                                'color': '#dc3545',
+                                'cursor': 'pointer',
+                                'display': 'flex',
+                                'alignItems': 'center',
+                                'gap': '8px',
+                                'transition': 'all 0.3s ease',
+                                'marginRight': '15px',
+                                'fontWeight': '500',
+                                'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+                            },
+                            title="Сбросить все фильтры (кроме галочки 'Только пустые')"
+                        ),
                         
-                        # Зона размещения
+                        # Галочка "Только пустые ячейки" (справа)
                         html.Div([
-                            html.Label("Зона размещения:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-locating-zone',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
+                            html.Label(
+                                html.Span("📦 Только пустые ячейки", 
+                                         style={'fontSize': '14px', 'color': '#333', 'marginLeft': '5px', 'fontWeight': '500'}),
+                                htmlFor='filter-only-empty',
+                                style={'display': 'flex', 'alignItems': 'center', 'cursor': 'pointer'}
+                            ),
+                            dcc.Checklist(
+                                id='filter-only-empty',
+                                options=[{'label': '', 'value': 'empty'}],
+                                value=[],
+                                style={'display': 'inline-block', 'marginLeft': '10px'},
+                                inputStyle={
+                                    'marginRight': '5px', 
+                                    'cursor': 'pointer',
+                                    'width': '18px',
+                                    'height': '18px',
+                                    'accentColor': '#2196F3'
+                                }
                             )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        ], style={
+                            'display': 'flex', 
+                            'alignItems': 'center',
+                            'padding': '8px 16px',
+                            'backgroundColor': '#e3f2fd',
+                            'borderRadius': '6px',
+                            'border': '1px solid #bbdefb',
+                            'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+                        })
+                    ], style={
+                        'display': 'flex', 
+                        'justifyContent': 'space-between', 
+                        'alignItems': 'center',
+                        'marginBottom': '20px',
+                        'padding': '10px',
+                        'backgroundColor': '#ffffff',
+                        'borderRadius': '8px',
+                        'border': '1px solid #e0e0e0'
+                    }),
+                    
+                    # Основные фильтры с кнопками сброса
+                    html.Div([
+                        # Тип хранения с кнопкой сброса
+                        html.Div([
+                            html.Div([
+                                html.Label("Тип хранения:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-storage-type',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-storage-type-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
                         
-                        # Зона резервирования
+                        # Зона размещения с кнопкой сброса
                         html.Div([
-                            html.Label("Зона резервирования:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-allocation-zone',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                            html.Div([
+                                html.Label("Зона размещения:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-locating-zone',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-locating-zone-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
                         
-                        # Тип МХ
+                        # Зона резервирования с кнопкой сброса
                         html.Div([
-                            html.Label("Тип МХ:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-location-type',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
-                        ], style={'flex': '1', 'marginRight': '10px'}),
+                            html.Div([
+                                html.Label("Зона резервирования:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-allocation-zone',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-allocation-zone-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
                         
-                        # Рабочая зона
+                        # Тип МХ с кнопкой сброса
                         html.Div([
-                            html.Label("Рабочая зона:", style={'display': 'block', 'marginBottom': '5px', 'fontSize': '12px', 'color': '#666'}),
-                            dcc.Dropdown(
-                                id='filter-work-zone',
-                                options=[{'label': 'Все', 'value': 'Все'}],
-                                value='Все',
-                                clearable=False,
-                                style={'fontSize': '12px'}
-                            )
+                            html.Div([
+                                html.Label("Тип МХ:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-location-type',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-location-type-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
+                        ], style={'flex': '1', 'marginRight': '15px'}),
+                        
+                        # Рабочая зона с кнопкой сброса
+                        html.Div([
+                            html.Div([
+                                html.Label("Рабочая зона:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '13px', 'color': '#333', 'fontWeight': '500'}),
+                                html.Div([
+                                    dcc.Dropdown(
+                                        id='filter-work-zone',
+                                        options=[{'label': 'Все', 'value': 'Все'}],
+                                        value='Все',
+                                        clearable=False,
+                                        style={'fontSize': '12px', 'flex': '1'}
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="reset-work-zone-btn",
+                                        n_clicks=0,
+                                        style={
+                                            'background': 'transparent',
+                                            'border': '1px solid #ced4da',
+                                            'borderRadius': '4px',
+                                            'width': '32px',
+                                            'height': '32px',
+                                            'display': 'flex',
+                                            'alignItems': 'center',
+                                            'justifyContent': 'center',
+                                            'cursor': 'pointer',
+                                            'color': '#6c757d',
+                                            'marginLeft': '8px',
+                                            'fontSize': '16px',
+                                            'transition': 'all 0.3s ease',
+                                            'padding': '0',
+                                            'boxShadow': '0 1px 2px rgba(0,0,0,0.05)'
+                                        },
+                                        title="Сбросить фильтр"
+                                    )
+                                ], style={'display': 'flex', 'alignItems': 'center'})
+                            ])
                         ], style={'flex': '1'})
-                    ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '20px'})
-                ], style={'marginBottom': '20px', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px'}),
+                    ], style={'display': 'flex', 'gap': '15px', 'marginBottom': '20px'})
+                ], style={
+                    'marginBottom': '20px', 
+                    'padding': '20px', 
+                    'backgroundColor': '#ffffff', 
+                    'borderRadius': '10px',
+                    'border': '1px solid #e0e0e0',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)'
+                }),
                 
                 # Секция с диаграммами
                 html.Div([
@@ -401,11 +556,482 @@ def create_storage_cells_modal():
                 
                 # Информация о фильтрах
                 html.Div([
-                    html.P("ℹ️ Фильтры взаимосвязаны: выбор значения в одном фильтре ограничивает доступные значения в других",
-                          style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'padding': '10px',
-                                'background': '#e3f2fd', 'borderRadius': '6px', 'border': '1px solid #bbdefb'})
+                    html.P("ℹ️ Фильтры взаимосвязаны: выбор значения в одном фильтре ограничивает доступные значения в других. Нажмите ✕ чтобы сбросить отдельный фильтр или 🗑️ чтобы сбросить все фильтры.",
+                          style={'color': '#666', 'fontSize': '12px', 'textAlign': 'center', 'padding': '12px',
+                                'background': '#f8f9fa', 'borderRadius': '8px', 'border': '1px solid #e9ecef'})
                 ], style={'marginTop': '20px'})
                 
             ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
         ], id="storage-modal-content", className="modal-content")
     ], id="storage-cells-modal", className="modal-hidden")
+
+def create_revision_detail_modal():
+    """Создание модального окна с детализацией ревизий по событию"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детализация ревизий по событию",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕",
+                    id="close-revision-detail-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # Таблица ревизий
+                html.Div([
+                    html.Div([
+                        html.H4("Таблица ревизий",
+                               style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                        html.Div([
+                            html.Button(
+                                "📥 Экспорт Excel",
+                                id="export-revision-csv-btn",
+                                style={
+                                    'padding': '8px 16px',
+                                    'backgroundColor': '#4CAF50',
+                                    'color': 'white',
+                                    'border': 'none',
+                                    'borderRadius': '6px',
+                                    'fontSize': '13px',
+                                    'cursor': 'pointer',
+                                    'fontWeight': 'bold',
+                                    'marginRight': '10px',
+                                    'transition': 'all 0.2s ease'
+                                }
+                            ),
+                            html.Button(
+                                "🖨️ Печать",
+                                id="print-revision-btn",
+                                style={
+                                    'padding': '8px 16px',
+                                    'backgroundColor': '#1976D2',
+                                    'color': 'white',
+                                    'border': 'none',
+                                    'borderRadius': '6px',
+                                    'fontSize': '13px',
+                                    'cursor': 'pointer',
+                                    'fontWeight': 'bold',
+                                    'transition': 'all 0.2s ease'
+                                }
+                            ),
+                        ], style={'display': 'flex', 'gap': '10px'})
+                    ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'}),
+                    html.Div([
+                        html.Table([
+                            html.Thead(html.Tr([
+                                html.Th("Номер ревизии", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Статус", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Код товара", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Описание", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Партия", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Локация", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Кол-во подсчитано", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Кол-во в системе", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Отклонение", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Выполнил", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("Дата подсчета", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'})
+                            ])),
+                            html.Tbody(id="revision-detail-table-body")
+                        ], style={'width': '100%', 'borderCollapse': 'collapse'})
+                    ], style={'maxHeight': '600px', 'overflowY': 'auto', 'border': '1px solid #eee', 'borderRadius': '8px'})
+                ], style={'marginTop': '20px'})
+
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="revision-detail-modal-content", className="modal-content"),
+        # Store для кэширования данных ревизий
+        dcc.Store(id="revision-detail-data-cache", data=[]),
+        # Store для URL печати
+        dcc.Store(id="print-revision-url-store", data=''),
+        # Триггер для открытия окна печати
+        html.Div(id="print-revision-trigger", style={'display': 'none'}),
+        # Компонент для скачивания
+        dcc.Download(id="download-revision-csv")
+    ], id="revision-detail-modal", className="modal-hidden")
+
+def create_rejected_lines_modal():
+    """Создание модального окна с таблицей отклоненных строк"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Детализация отклоненных строк в заказах",
+                        style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕",
+                    id="close-rejected-lines-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # KPI карточки
+                html.Div([
+                    html.Div([
+                        html.Div("Всего отклоненных строк", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="total-rejected-lines-kpi", style={'color': '#9C27B0', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Уникальных заказов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="unique-orders-kpi", style={'color': '#673AB7', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Уникальных товаров", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="unique-items-kpi", style={'color': '#3F51B5', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    html.Div([
+                        html.Div("Последнее отклонение", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="last-rejection-date", style={'color': '#666', 'fontSize': '20px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card')
+                ], className="analytics-kpi-row", style={'marginBottom': '20px', 'gridTemplateColumns': '1fr 1fr 1fr 1fr'}),
+                # Таблица отклоненных строк
+                html.Div([
+                    html.H4("Таблица отклоненных строк",
+                            style={'color': '#333', 'marginBottom': '15px', 'fontSize': '18px', 'fontWeight': 'bold'}),
+                    html.Div([
+                        html.Table([
+                            html.Thead(html.Tr([
+                                html.Th("SHIPMENT_ID", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ORDER_TYPE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ITEM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("ITEM_DESC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("REQUESTED_QTY", style={'padding': '12px', 'textAlign': 'right', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("QUANTITY_UM", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("PICK_LOC", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("PICK_ZONE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("DATE_TIME_STAMP", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap'}),
+                                html.Th("REJECTION_NOTE", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap', 'minWidth': '200px'}),
+                                # 🔑 НОВОЕ ПОЛЕ: ЗАГОЛОВОК STATUS
+                                html.Th("STATUS", style={'padding': '12px', 'textAlign': 'left', 'fontSize': '12px', 'borderBottom': '2px solid #eee', 'background': '#f8f9fa', 'whiteSpace': 'nowrap', 'fontWeight': 'bold'})
+                            ])),
+                            html.Tbody(id="rejected-lines-table-body")
+                        ], style={'width': '100%', 'borderCollapse': 'collapse'})
+                    ], style={'maxHeight': '500px', 'overflowY': 'auto', 'border': '1px solid #eee', 'borderRadius': '8px'})
+                ], style={'marginTop': '20px'})
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="rejected-lines-modal-content", className="modal-content")
+    ], id="rejected-lines-modal", className="modal-hidden")
+
+
+# ============================================================================
+# Модальное окно: Точность заказов (Топ-5 часов с ошибками + Топ-5 проблемных часов)
+# ============================================================================
+def create_order_accuracy_modal():
+    """Модальное окно с анализом точности заказов (обновленная версия)"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Точность заказов — детальный анализ",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '24px'}),
+                html.Button(
+                    "✕",
+                    id="close-order-accuracy-modal",
+                    style={
+                        'background': '#f0f0f0', 'border': 'none', 'fontSize': '28px',
+                        'cursor': 'pointer', 'color': '#666', 'width': '45px', 'height': '45px',
+                        'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center',
+                        'justifyContent': 'center', 'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
+                'padding': '25px', 'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # НОВЫЙ РЯД: KPI карточки
+                html.Div([
+                    # Карточка 1: Всего отборов
+                    html.Div([
+                        html.Div("📦 Всего отборов", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="total-picks-kpi", style={'color': '#1976d2', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    
+                    # Карточка 2: Ошибки по претензиям
+                    html.Div([
+                        html.Div("⚠️ Ошибки по претензиям", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="claim-errors-kpi", style={'color': '#ff9800', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                    
+                    # Карточка 3: Ошибки Short Pick
+                    html.Div([
+                        html.Div("🔍 Ошибки Short Pick", style={'color': '#666', 'fontSize': '14px', 'marginBottom': '8px', 'textAlign': 'center'}),
+                        html.Div(id="short-pick-errors-kpi", style={'color': '#f44336', 'fontSize': '28px', 'fontWeight': 'bold', 'textAlign': 'center'})
+                    ], className='analytics-kpi-card'),
+                ], className="analytics-kpi-row", style={'marginBottom': '30px', 'gridTemplateColumns': '1fr 1fr 1fr'}),
+                
+                # РЯД С ДИАГРАММАМИ (перемещены вниз)
+                html.Div([
+                    # Ряд 1: Топ-5 часов с ошибками
+                    html.Div([
+                        html.H4("📊 Топ-5 часов с ошибками(Претензии+ корректировки)",
+                               style={'color': '#333', 'marginBottom': '10px', 'fontSize': '18px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                        dash_echarts.DashECharts(
+                            id='error-hours-chart-modal',
+                            option={},
+                            style={'height': '350px', 'width': '100%'}
+                        )
+                    ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginRight': '4%'}),
+
+                    # Ряд 2: Топ-5 проблемных часов
+                    html.Div([
+                        html.H4("⚠️ Топ-5 проблемных часов",
+                               style={'color': '#333', 'marginBottom': '10px', 'fontSize': '18px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+                        dash_echarts.DashECharts(
+                            id='problematic-hours-chart-modal',
+                            option={},
+                            style={'height': '350px', 'width': '100%'}
+                        )
+                    ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'})
+                ], style={'marginTop': '20px'})
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="order-accuracy-modal-content", className="modal-content")
+    ], id="order-accuracy-modal", className="modal-hidden")
+
+
+# ============================================================================
+# Модальное окно: Своевременность заказов Клиент
+# ============================================================================
+def create_timely_orders_modal():
+    """Модальное окно с диаграммой своевременности заказов Клиент"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Своевременность заказов Клиент",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '24px'}),
+                html.Button(
+                    "✕",
+                    id="close-timely-orders-modal",
+                    style={
+                        'background': '#f0f0f0', 'border': 'none', 'fontSize': '28px',
+                        'cursor': 'pointer', 'color': '#666', 'width': '45px', 'height': '45px',
+                        'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center',
+                        'justifyContent': 'center', 'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
+                'padding': '25px', 'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                dash_echarts.DashECharts(
+                    id='timely-client-chart-modal',
+                    option={},
+                    style={'height': '500px', 'width': '100%'}
+                )
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="timely-orders-modal-content", className="modal-content")
+    ], id="timely-orders-modal", className="modal-hidden")
+
+
+# ============================================================================
+# Модальное окно: Просроченные заказы Клиент
+# ============================================================================
+def create_delayed_orders_modal():
+    """Модальное окно с диаграммой просроченных заказов Клиент"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Просроченные заказы Клиент",
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '24px'}),
+                html.Button(
+                    "✕",
+                    id="close-delayed-orders-modal",
+                    style={
+                        'background': '#f0f0f0', 'border': 'none', 'fontSize': '28px',
+                        'cursor': 'pointer', 'color': '#666', 'width': '45px', 'height': '45px',
+                        'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center',
+                        'justifyContent': 'center', 'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
+                'padding': '25px', 'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                dash_echarts.DashECharts(
+                    id='delayed-client-chart-modal',
+                    option={},
+                    style={'height': '500px', 'width': '100%'}
+                )
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="delayed-orders-modal-content", className="modal-content")
+    ], id="delayed-orders-modal", className="modal-hidden")
+
+# ============================================================================
+# Модальное окно: Лучшие сотрудники
+# ============================================================================
+def create_best_employees_modal():
+    """Создание модального окна для отображения лучших сотрудников"""
+    # Определяем предыдущий месяц для значений по умолчанию
+    from datetime import datetime
+    now = datetime.now()
+    if now.month == 1:
+        default_year = now.year - 1
+        default_month = 12
+    else:
+        default_year = now.year
+        default_month = now.month - 1
+    
+    # Список месяцев для выпадающего списка
+    months_options = [
+        {'label': 'Январь', 'value': 1},
+        {'label': 'Февраль', 'value': 2},
+        {'label': 'Март', 'value': 3},
+        {'label': 'Апрель', 'value': 4},
+        {'label': 'Май', 'value': 5},
+        {'label': 'Июнь', 'value': 6},
+        {'label': 'Июль', 'value': 7},
+        {'label': 'Август', 'value': 8},
+        {'label': 'Сентябрь', 'value': 9},
+        {'label': 'Октябрь', 'value': 10},
+        {'label': 'Ноябрь', 'value': 11},
+        {'label': 'Декабрь', 'value': 12}
+    ]
+    
+    # Список годов для выпадающего списка
+    years_options = [{'label': str(year), 'value': year} for year in range(2024, 2031)]
+    
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H3("Лучшие сотрудники", 
+                       style={'margin': '0', 'color': '#333', 'flex': '1', 'fontSize': '28px'}),
+                html.Button(
+                    "✕", 
+                    id="close-best-employees-modal",
+                    style={
+                        'background': '#f0f0f0',
+                        'border': 'none',
+                        'fontSize': '32px',
+                        'cursor': 'pointer',
+                        'color': '#666',
+                        'width': '50px',
+                        'height': '50px',
+                        'borderRadius': '50%',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center',
+                        'transition': 'all 0.2s ease'
+                    }
+                )
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
+                'padding': '30px',
+                'borderBottom': '2px solid #eee',
+                'background': 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            }),
+            html.Div([
+                # Фильтры: Год и Месяц
+                html.Div([
+                    html.Div([
+                        html.Label("Год:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '14px', 'color': '#333', 'fontWeight': '500'}),
+                        dcc.Dropdown(
+                            id='best-employees-year-dropdown',
+                            options=years_options,
+                            value=default_year,
+                            clearable=False,
+                            style={'width': '150px', 'fontSize': '14px'}
+                        )
+                    ], style={'marginRight': '20px'}),
+                    
+                    html.Div([
+                        html.Label("Месяц:", style={'display': 'block', 'marginBottom': '8px', 'fontSize': '14px', 'color': '#333', 'fontWeight': '500'}),
+                        dcc.Dropdown(
+                            id='best-employees-month-dropdown',
+                            options=months_options,
+                            value=default_month,
+                            clearable=False,
+                            style={'width': '200px', 'fontSize': '14px'}
+                        )
+                    ])
+                ], style={
+                    'display': 'flex', 
+                    'alignItems': 'center', 
+                    'marginBottom': '25px',
+                    'padding': '20px',
+                    'backgroundColor': '#f8f9fa',
+                    'borderRadius': '8px',
+                    'border': '1px solid #e0e0e0'
+                }),
+                
+                # Таблица с сотрудниками
+                html.Div([
+                    html.Div([
+                        html.Table([
+                            html.Thead(html.Tr([
+                                html.Th("ФИО сотрудника", style={
+                                    'padding': '12px', 
+                                    'textAlign': 'left', 
+                                    'fontSize': '14px',
+                                    'fontWeight': '600',
+                                    'borderBottom': '2px solid #eee', 
+                                    'background': '#f8f9fa',
+                                    'color': '#333'
+                                }),
+                                html.Th("Профессия", style={
+                                    'padding': '12px', 
+                                    'textAlign': 'left', 
+                                    'fontSize': '14px',
+                                    'fontWeight': '600',
+                                    'borderBottom': '2px solid #eee', 
+                                    'background': '#f8f9fa',
+                                    'color': '#333'
+                                })
+                            ])),
+                            html.Tbody(id='best-employees-table-body')
+                        ], style={'width': '100%', 'borderCollapse': 'collapse'})
+                    ], style={
+                        'maxHeight': '500px', 
+                        'overflowY': 'auto', 
+                        'border': '1px solid #eee', 
+                        'borderRadius': '8px',
+                        'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'
+                    })
+                ])
+            ], style={'padding': '25px', 'height': 'calc(100% - 100px)', 'overflowY': 'auto'})
+        ], id="best-employees-modal-content", className="modal-content")
+    ], id="best-employees-modal", className="modal-hidden")

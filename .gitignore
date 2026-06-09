@@ -19,3 +19,7 @@ secrets/
 config/local_config.py
 config/production_config.py
 config/clickhouse_config.py
+data/queries_mssql.py
+data/queries.py
+data/mssql_client.py
+data/clickhouse_client.py

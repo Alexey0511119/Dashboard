@@ -1,50 +1,65 @@
 from dash import html, dcc
-import dash_echarts
 
 def create_productivity_tab():
-    """Создание вкладки 'Производительность'"""
+    """Создание вкладки 'Производительность' (единая таблица с сортировкой)"""
+    sortable_header_style = {
+        'color': '#666', 'padding': '12px', 'textAlign': 'center', 'fontSize': '14px',
+        'borderBottom': '2px solid #eee', 'background': '#f8f9fa',
+        'cursor': 'pointer', 'userSelect': 'none'
+    }
+
+    def make_sortable_header(title, key):
+        return html.Th(
+            html.Div([
+                html.Span(title, style={'marginRight': '5px'}),
+                html.Span('⇅', id=f'prod-sort-{key}-icon', style={'marginLeft': '5px', 'fontSize': '12px', 'opacity': '0.5'})
+            ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
+            id=f'prod-sort-{key}-header',
+            style=sortable_header_style
+        )
+
     return html.Div([
+        html.Div([], className="kpi-row"),
         html.Div([
             html.Div([
+                # Кнопка "Лучшие сотрудники" в правом верхнем углу
                 html.Div([
-                    html.H3("Производительность сотрудников", 
-                           style={'color': '#333', 'margin': '0', 'fontSize': '20px', 'flex': '1', 'fontWeight': 'bold'}),
-                    html.Div([
-                        html.Button(
-                            "←",
-                            id="prev-table",
-                            className="nav-btn",
-                            style={'marginRight': '10px'}
-                        ),
-                        html.Div(id="table-title", 
-                                style={
-                                    'fontSize': '16px', 
-                                    'fontWeight': 'bold', 
-                                    'color': '#1976d2',
-                                    'minWidth': '120px',
-                                    'textAlign': 'center'
-                                }),
-                        html.Button(
-                            "→",
-                            id="next-table",
-                            className="nav-btn",
-                            style={'marginLeft': '10px'}
-                        )
-                    ], style={'display': 'flex', 'alignItems': 'center'})
+                    html.Button(
+                        "⭐ Лучшие сотрудники",
+                        id="open-best-employees-modal",
+                        n_clicks=0,
+                        style={
+                            'padding': '10px 24px', 'background': 'white', 'border': '2px solid #1976d2',
+                            'borderRadius': '8px', 'fontSize': '14px', 'color': '#1976d2', 'cursor': 'pointer',
+                            'fontWeight': '500', 'transition': 'all 0.3s ease', 'boxShadow': '0 2px 4px rgba(25, 118, 210, 0.1)'
+                        },
+                        title="Показать лучших сотрудников за месяц"
+                    )
+                ], style={'display': 'flex', 'justifyContent': 'flex-end', 'marginBottom': '15px'}),
+                
+                # Таблица производительности
+                html.Div([
+                    html.Table([
+                        html.Thead(html.Tr([
+                            # ✅ ТЕПЕРЬ ВСЕ ЗАГОЛОВКИ СОРТИРУЕМЫЕ
+                            make_sortable_header('Сотрудник', 'Сотрудник'),
+                            make_sortable_header('Должность', 'Должность'),
+                            make_sortable_header('Операции', 'Операции'),
+                            make_sortable_header('Объем (м³)', 'Объем'),
+                            make_sortable_header('Контейнеров', 'Контейнеров'),
+                            make_sortable_header('Ср. объем', 'Ср_объем'),
+                            make_sortable_header('Время', 'Время'),
+                            make_sortable_header('Оп/час', 'Оп/час'),
+                            make_sortable_header('Заработок', 'Заработок')
+                        ])),
+                        html.Tbody(id='productivity-table-body')
+                    ], style={'width': '100%', 'borderCollapse': 'collapse'})
                 ], style={
-                    'display': 'flex', 
-                    'justifyContent': 'space-between', 
-                    'alignItems': 'center',
-                    'background': 'white', 
-                    'padding': '20px', 
-                    'borderRadius': '12px 12px 0 0', 
-                    'margin': '0'
-                }),
-                html.Div([
-                    html.Div(id="table-all-employees", className="table-view active"),
-                    html.Div(id="table-top-best", className="table-view"),
-                    html.Div(id="table-top-worst", className="table-view")
-                ], className="table-container", id="productivity-table-container", style={'height': '700px'})
-            ], className="full-width-panel dashboard-element", style={'animationDelay': '0.6s', 'width': '100%'})
+                    'overflowX': 'auto', 'overflowY': 'auto', 'width': '100%', 'height': '100%'
+                })
+            ], className="full-width-panel dashboard-element", style={
+                'animationDelay': '0.6s', 'width': '100%', 'height': '760px',
+                'background': 'white', 'borderRadius': '12px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'
+            })
         ], className="main-content", style={'display': 'flex', 'gap': '20px', 'minHeight': '800px'})
     ], style={'padding': '10px'})
