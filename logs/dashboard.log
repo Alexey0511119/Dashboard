@@ -45654,3 +45654,160 @@ Dash is running on http://0.0.0.0:8050/
 2026-06-09 10:49:21,400 - data.queries_mssql - INFO - Данные успешно обновлены
 2026-06-09 10:49:21,811 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
 2026-06-09 10:49:21,817 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 10:53:59,480 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 10:53:59,480 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 10:53:59,733 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:53:59,742 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 10:54:00,212 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 10:54:00,214 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 10:54:00,215 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 10:54:00,215 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 10:54:00,578 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:54:00,582 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 10:58:25,474 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:58:25,497 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 10:58:25,498 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 10:58:25,678 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 10:58:25,685 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 10:58:26,185 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 10:58:26,186 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 10:58:26,188 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 10:58:26,188 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 10:58:26,233 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:58:26,437 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:01:22,452 - __main__ - INFO - Starting Dash server (attempt 1/10)
+Dash is running on http://0.0.0.0:8050/
+
+2026-06-09 11:01:22,452 - dash.dash - INFO - Dash is running on http://0.0.0.0:8050/
+
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-06-09 11:01:29,043 - data.queries_mssql - INFO - ✅ Загружено должностей: 56. Примеры: {'АКСЕНОВ ЕВГЕНИЙ МИХАЙЛОВИЧ': 'Водитель', 'АЛЕКСЕЕВ МАКСИМ СЕРГЕЕВИЧ': 'Контролёр', 'АРТАМОНОВ АЛЕКСАНДР ЮРЬЕВИЧ': 'Контролёр'}
+2026-06-09 11:01:29,066 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:01:29,066 - callbacks.main_callbacks - INFO - Initialized date_range to today: 2026-06-09
+2026-06-09 11:01:29,070 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:01:29,267 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:01:29,269 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:01:29,271 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:01:29,271 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:01:30,030 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:01:30,031 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:01:30,033 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:01:30,033 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:01:30,402 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:01:30,404 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:02:05,459 - callbacks.modal_callbacks - INFO - Открытие модального окна аналитики для: USER1283
+2026-06-09 11:06:28,786 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:06:28,788 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:06:28,794 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:06:28,818 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:06:28,818 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:06:29,510 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:06:29,512 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:06:29,513 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:06:29,513 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:06:29,565 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:06:29,772 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:11:29,544 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:11:29,668 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:11:29,668 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:11:29,946 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:11:29,947 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:11:30,461 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:11:30,467 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:11:30,477 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:11:30,477 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:11:30,902 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:11:30,905 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:14:23,096 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:14:23,096 - callbacks.main_callbacks - INFO - Initialized date_range to today: 2026-06-09
+2026-06-09 11:14:23,249 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:14:23,252 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:14:23,257 - data.mssql_client - ERROR - SQL Error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'dwh.fact_operation'. (208) (SQLExecDirectW)")
+2026-06-09 11:14:23,258 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:14:23,259 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:14:23,261 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:14:23,261 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:14:23,292 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:14:23,294 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:14:23,298 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:14:23,349 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:14:23,351 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:19:23,351 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:19:23,354 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:19:23,355 - data.mssql_client - ERROR - SQL Error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'dwh.fact_operation'. (208) (SQLExecDirectW)")
+2026-06-09 11:19:23,356 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:19:23,357 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:19:23,358 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:19:23,358 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:19:23,600 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:19:23,606 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:19:23,606 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:19:23,849 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:19:23,851 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:19:23,857 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:20:59,401 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:20:59,403 - callbacks.main_callbacks - INFO - Initialized date_range to today: 2026-06-09
+2026-06-09 11:20:59,541 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:21:00,628 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:21:00,631 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:21:00,633 - data.mssql_client - ERROR - SQL Error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'dwh.fact_operation'. (208) (SQLExecDirectW)")
+2026-06-09 11:21:00,633 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:21:00,634 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:21:00,636 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:21:00,636 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:21:00,748 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:21:00,809 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:21:01,053 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:21:01,063 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:25:59,276 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:25:59,276 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:25:59,278 - data.mssql_client - ERROR - SQL Error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'dwh.fact_operation'. (208) (SQLExecDirectW)")
+2026-06-09 11:25:59,278 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:25:59,280 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:25:59,281 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:25:59,281 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:25:59,499 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:25:59,501 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:25:59,506 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:25:59,538 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:25:59,539 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:25:59,540 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:30:59,241 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:30:59,242 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:30:59,243 - data.mssql_client - ERROR - SQL Error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'dwh.fact_operation'. (208) (SQLExecDirectW)")
+2026-06-09 11:30:59,251 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:30:59,252 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:30:59,253 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:30:59,253 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:30:59,513 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:30:59,935 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:31:00,917 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:31:00,919 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:31:00,943 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:31:00,945 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:35:59,271 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:35:59,271 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:35:59,273 - data.mssql_client - ERROR - SQL Error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'dwh.fact_operation'. (208) (SQLExecDirectW)")
+2026-06-09 11:35:59,273 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:35:59,275 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:35:59,276 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:35:59,276 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:35:59,529 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:35:59,536 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:35:59,692 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:35:59,696 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 11:40:49,544 - callbacks.modal_callbacks - INFO - Открытие модального окна аналитики для: USER1283
+2026-06-09 11:40:59,317 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 11:40:59,318 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 11:40:59,319 - data.mssql_client - ERROR - SQL Error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'dwh.fact_operation'. (208) (SQLExecDirectW)")
+2026-06-09 11:40:59,319 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 11:40:59,320 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 11:40:59,322 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 11:40:59,322 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 11:40:59,406 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:40:59,408 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:40:59,409 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 11:40:59,748 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 11:41:00,753 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 11:41:00,755 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
