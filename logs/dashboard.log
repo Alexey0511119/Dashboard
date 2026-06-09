@@ -45632,3 +45632,25 @@ Dash is running on http://0.0.0.0:8050/
 2026-06-09 10:39:21,146 - data.queries_mssql - INFO - Данные успешно обновлены
 2026-06-09 10:39:21,207 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
 2026-06-09 10:39:21,215 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 10:44:20,476 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 10:44:20,476 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 10:44:20,577 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:44:20,579 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 10:44:20,587 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 10:44:21,170 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 10:44:21,172 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 10:44:21,173 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 10:44:21,173 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 10:44:21,598 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:44:21,807 - callbacks.main_callbacks - INFO - Using valid client cache
+2026-06-09 10:49:20,640 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:49:20,643 - callbacks.main_callbacks - INFO - Loading fresh data from database...
+2026-06-09 10:49:20,651 - callbacks.main_callbacks - INFO - Fresh data loaded successfully
+2026-06-09 10:49:20,696 - data.queries_mssql - INFO - Обновление данных за период: 2026-06-09 - 2026-06-09
+2026-06-09 10:49:20,696 - data.queries_mssql - INFO - Данные производительности обновлены: 20 сотрудников
+2026-06-09 10:49:21,397 - data.queries_mssql - INFO - Данные сравнения смен обновлены
+2026-06-09 10:49:21,399 - data.queries_mssql - INFO - Данные проблемных часов обновлены: 5 записей
+2026-06-09 10:49:21,400 - data.queries_mssql - INFO - Данные часов с ошибками обновлены: 5 записей
+2026-06-09 10:49:21,400 - data.queries_mssql - INFO - Данные успешно обновлены
+2026-06-09 10:49:21,811 - callbacks.main_callbacks - INFO - Load dashboard data triggered by: global-date-range.data
+2026-06-09 10:49:21,817 - callbacks.main_callbacks - INFO - Using valid client cache
