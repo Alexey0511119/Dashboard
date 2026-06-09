@@ -49,20 +49,16 @@ def get_analytics_connection():
 
 
 def fetch_rejected_lines_from_ils(log):
-    """Загрузить отклонённые строки из ILS"""
-
+    """Загрузить отклонённые строки из ILS + ЖЁСТКАЯ ДЕДУПЛИКАЦИЯ"""
     conn = get_ils_connection()
     try:
         cursor = conn.cursor()
 
-        # Запрос с фильтрами (как в ТЗ)
-        # STATUS1 = '100' — отклонённые строки
-        # ДОБАВЛЕНО: Проверка REJECTION_NOTE IS NOT NULL для точного определения отклонений
-        # ДОБАВЛЕНО: Выбор полей REJECTION_NOTE и ORDER_TYPE из SHIPMENT_HEADER
+        # Убрали DISTINCT из SQL, перенесли логику в Python (на 100% надёжно)
         query = """
         SELECT
             sd.SHIPMENT_ID,
-            sh.ORDER_TYPE,  -- <-- НОВОЕ ПОЛЕ
+            sh.ORDER_TYPE,
             sd.ITEM,
             i.DESCRIPTION AS ITEM_DESC,
             sd.REQUESTED_QTY,
@@ -70,26 +66,41 @@ def fetch_rejected_lines_from_ils(log):
             sd.PICK_LOC,
             sd.PICK_ZONE,
             sd.DATE_TIME_STAMP,
-            sh.REJECTION_NOTE  -- <-- НОВОЕ ПОЛЕ
+            sh.REJECTION_NOTE
         FROM dbo.SHIPMENT_DETAIL sd WITH (NOLOCK)
         INNER JOIN dbo.SHIPMENT_HEADER sh WITH (NOLOCK)
-            ON sd.SHIPMENT_ID = sh.SHIPMENT_ID  -- Соединение по SHIPMENT_ID
+            ON sd.SHIPMENT_ID = sh.SHIPMENT_ID
         LEFT JOIN dbo.ITEM i WITH (NOLOCK)
             ON sd.ITEM COLLATE DATABASE_DEFAULT = i.ITEM COLLATE DATABASE_DEFAULT
         WHERE
             sd.STATUS1 = '100'
-            AND sh.REJECTION_NOTE IS NOT NULL  -- <-- Только строки с записью об отклонении
+            AND sh.REJECTION_NOTE IS NOT NULL
         ORDER BY sd.DATE_TIME_STAMP DESC
         """
 
-        log(f"📤 Запрос к ILS.dbo.SHIPMENT_DETAIL + SHIPMENT_HEADER...")
+        log("📤 Запрос к ILS.dbo.SHIPMENT_DETAIL + SHIPMENT_HEADER...")
         cursor.execute(query)
+        raw_rows = cursor.fetchall()
+        log(f"📦 Получено сырых строк из БД: {len(raw_rows)}")
 
+        # 🔑 ФИКС: Дедупликация через set (гарантированно убирает полные копии)
+        seen_keys = set()
+        unique_rows = []
+        for row in raw_rows:
+            # row - кортеж из 10 элементов. Превращаем в hashable-ключ
+            row_key = tuple(row)
+            if row_key not in seen_keys:
+                seen_keys.add(row_key)
+                unique_rows.append(row)
+
+        log(f"✅ После дедупликации осталось: {len(unique_rows)} уникальных строк")
+
+        # Преобразуем в список словарей (как было раньше)
         rows = []
-        for row in cursor.fetchall():
+        for row in unique_rows:
             rows.append({
                 'SHIPMENT_ID': row[0],
-                'ORDER_TYPE': row[1] if row[1] else '',  # <-- СОХРАНЯЕМ ORDER_TYPE
+                'ORDER_TYPE': row[1] if row[1] else '',
                 'ITEM': row[2],
                 'ITEM_DESC': row[3],
                 'REQUESTED_QTY': row[4],
@@ -97,10 +108,9 @@ def fetch_rejected_lines_from_ils(log):
                 'PICK_LOC': row[6],
                 'PICK_ZONE': row[7],
                 'DATE_TIME_STAMP': row[8],
-                'REJECTION_NOTE': row[9] if row[9] else ''  # <-- СОХРАНЯЕМ REJECTION_NOTE
+                'REJECTION_NOTE': row[9] if row[9] else ''
             })
 
-        log(f"✅ Найдено отклонённых строк: {len(rows)}")
         return rows
 
     finally:

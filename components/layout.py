@@ -2,7 +2,18 @@ import base64
 from dash import html, dcc
 from datetime import datetime, timedelta
 import dash_echarts
-from components.modals import create_analytics_modal, create_fines_modal, create_idle_detail_modal, create_storage_cells_modal, create_rejected_lines_modal, create_revision_detail_modal, create_order_accuracy_modal, create_timely_orders_modal, create_delayed_orders_modal
+from components.modals import (
+    create_analytics_modal,
+    create_fines_modal,
+    create_idle_detail_modal,
+    create_storage_cells_modal,
+    create_rejected_lines_modal,
+    create_revision_detail_modal,
+    create_order_accuracy_modal,
+    create_timely_orders_modal,
+    create_delayed_orders_modal,
+    create_best_employees_modal
+)
 from components.tabs.general_tab import create_general_tab
 from components.tabs.productivity_tab import create_productivity_tab
 from components.tabs.timeliness_tab import create_timeliness_tab
@@ -11,13 +22,6 @@ from components.tabs.fines_tab import create_fines_tab
 
 def create_layout():
     """Создание основного layout приложения"""
-
-    # # ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
-    # print("=== LAYOUT DEBUG ===")
-    # print("Проверка наличия функций:")
-    # print("- create_analytics_modal:", "create_analytics_modal" in globals())
-    # print("- create_fines_modal:", "create_fines_modal" in globals())
-    # print("- create_idle_detail_modal:", "create_idle_detail_modal" in globals())
 
     # Загрузка фонового изображения
     try:
@@ -46,6 +50,7 @@ def create_layout():
         create_order_accuracy_modal(),
         create_timely_orders_modal(),
         create_delayed_orders_modal(),
+        create_best_employees_modal(),
         
         # Store компоненты для хранения состояния
         dcc.Store(id='selected-employee', data=''),
@@ -66,12 +71,13 @@ def create_layout():
         dcc.Store(id='fines-period', data='week'),
         dcc.Store(id='selected-fines-employee', data=''),
         dcc.Store(id='shift-comparison-data', data={}),
-        dcc.Store(id='global-date-range', data={
-            'start_date': (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
-            'end_date': datetime.now().strftime('%Y-%m-%d')
-        }),
+        
+        # ✅ ИЗМЕНЕНО: Инициализация через None, значение задаётся колбэком
+        dcc.Store(id='global-date-range', data=None),
+        
         dcc.Store(id='orders-table-data', data=[]),
         dcc.Store(id='performance-data-cache', data=[]),
+        dcc.Store(id='prod-sort-state', data={'column': 'Заработок', 'direction': 'desc'}),
         dcc.Store(id='shift-comparison-cache', data=[]),
         dcc.Store(id='problematic-hours-cache', data=[]),
         dcc.Store(id='error-hours-cache', data=[]),
@@ -87,16 +93,30 @@ def create_layout():
         dcc.Interval(id='date-check-interval', interval=300000, n_intervals=0),
 
         # НОВЫЕ Store компоненты
-        dcc.Store(id='selected-idle-interval', data=''),  # Для хранения выбранного интервала простоя
-        dcc.Store(id='idle-detail-day', data=''),  # Для хранения выбранного дня
+        dcc.Store(id='selected-idle-interval', data=''),
+        dcc.Store(id='idle-detail-day', data=''),
+        
+        # ========== НОВЫЕ КОМПОНЕНТЫ ДЛЯ КЭШИРОВАНИЯ И ETL ==========
+        dcc.Store(id='client-cache-store', storage_type='local'),
+        dcc.Store(id='client-cache-timestamp', storage_type='local'),
+        dcc.Store(id='etl-status-store', storage_type='session'),
+        dcc.Store(id='productivity-data', data=[]),
+        
+        dcc.Interval(
+            id='etl-polling-interval',
+            interval=10000,
+            disabled=True
+        ),
+        
+        html.Div(id='data-refresh-trigger', style={'display': 'none'}),
+        # ============================================================
         
         # Основной контент с вкладками
         html.Div([
-            # Шапка с названием дашборда - НОВАЯ СТРУКТУРА
+            # Шапка с названием дашборда
             html.Div([
-                # ЛЕВАЯ ЧАСТЬ: Название дашборда (вверху) + логотип (внизу)
+                # ЛЕВАЯ ЧАСТЬ: Название дашборда + логотип
                 html.Div([
-                    # Название дашборда
                     html.H1("РЦ Новосибирск", 
                            style={
                                'color': 'black', 
@@ -107,7 +127,6 @@ def create_layout():
                                'lineHeight': '1.2'
                            }),
                     
-                    # Логотип под названием
                     html.Img(
                         src=logo_url,
                         style={
@@ -135,10 +154,12 @@ def create_layout():
                             }),
                     html.Div([
                         html.Label("С:", style={'color': '#333', 'fontSize': '11px', 'marginRight': '5px', 'alignSelf': 'center'}),
+                        
+                        # ✅ ИЗМЕНЕНО: value=None, задаётся колбэком
                         dcc.Input(
                             id='global-date-start',
                             type='date',
-                            value=(datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+                            value=None,
                             style={
                                 'padding': '4px 8px',
                                 'border': '1px solid #ddd',
@@ -147,17 +168,36 @@ def create_layout():
                                 'width': '130px'
                             }
                         ),
+                        
                         html.Label("По:", style={'color': '#333', 'fontSize': '11px', 'margin': '0 5px 0 10px', 'alignSelf': 'center'}),
+                        
+                        # ✅ ИЗМЕНЕНО: value=None, задаётся колбэком
                         dcc.Input(
                             id='global-date-end',
                             type='date',
-                            value=datetime.now().strftime('%Y-%m-%d'),
+                            value=None,
                             style={
                                 'padding': '4px 8px',
                                 'border': '1px solid #ddd',
                                 'borderRadius': '4px',
                                 'fontSize': '12px',
                                 'width': '130px'
+                            }
+                        ),
+                        
+                        html.Button(
+                            "🔄",
+                            id="refresh-button",
+                            style={
+                                'marginLeft': '10px',
+                                'padding': '4px 10px',
+                                'backgroundColor': '#1976d2',
+                                'color': 'white',
+                                'border': 'none',
+                                'borderRadius': '4px',
+                                'fontSize': '14px',
+                                'cursor': 'pointer',
+                                'fontWeight': 'bold'
                             }
                         )
                     ], style={'display': 'flex', 'alignItems': 'center'})
@@ -171,16 +211,16 @@ def create_layout():
                 'animationDelay': '0.1s', 
                 'padding': '15px 25px',
                 'position': 'relative',
-                'backgroundColor': '#808080',  # Серый цвет
+                'backgroundColor': '#808080',
                 'display': 'flex',
-                'justifyContent': 'space-between',  # Растягиваем по всей ширине
-                'alignItems': 'center',  # Выравниваем по центру вертикально
+                'justifyContent': 'space-between',
+                'alignItems': 'center',
                 'borderRadius': '12px 12px 0 0',
-                'minHeight': '80px',  # Оставляем стандартную высоту
-                'width': '100%'  # Занимает всю ширину
+                'minHeight': '80px',
+                'width': '100%'
             }),
             
-            # Вкладки (обновленный список с новой вкладкой Производительность)
+            # Вкладки
             dcc.Tabs(id="main-tabs", value='general', children=[
                 dcc.Tab(
                     label='Общая сводка',
@@ -210,13 +250,6 @@ def create_layout():
                     selected_className='custom-tab--selected',
                     children=[create_fines_tab()]
                 )
-                # dcc.Tab(
-                #     label='Сравнение смен',
-                #     value='shift-comparison',
-                #     className='custom-tab',
-                #     selected_className='custom-tab--selected',
-                #     children=[create_shift_tab()]
-                # )
             ], style={'marginBottom': '20px'})
         ], className="dashboard-container", id="dashboard-content")
     ], className="app-container")

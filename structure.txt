@@ -1,0 +1,279 @@
+.
+├── $null
+├── AGENTS.md
+├── app.py
+├── callbacks
+│   ├── __init__.py
+│   ├── main_callbacks_backup.py
+│   ├── main_callbacks_clean.py
+│   ├── main_callbacks.py
+│   ├── modal_callbacks.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-310.pyc
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── main_callbacks.cpython-310.pyc
+│   │   ├── main_callbacks.cpython-313.pyc
+│   │   ├── modal_callbacks.cpython-310.pyc
+│   │   ├── modal_callbacks.cpython-313.pyc
+│   │   ├── tab_callbacks.cpython-310.pyc
+│   │   └── tab_callbacks.cpython-313.pyc
+│   └── tab_callbacks.py
+├── check_collation.py
+├── check_labor_tables.py
+├── check_script_execution.py
+├── check_sdelka_january.py
+├── check_table_columns.py
+├── check_user_def_collation.py
+├── check_wiv_structure.py
+├── components
+│   ├── charts.py
+│   ├── __init__.py
+│   ├── layout.py
+│   ├── modals.py
+│   ├── __pycache__
+│   │   ├── charts.cpython-310.pyc
+│   │   ├── charts.cpython-313.pyc
+│   │   ├── __init__.cpython-310.pyc
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── layout.cpython-310.pyc
+│   │   ├── layout.cpython-313.pyc
+│   │   ├── modals.cpython-310.pyc
+│   │   ├── modals.cpython-313.pyc
+│   │   ├── tables.cpython-310.pyc
+│   │   └── tables.cpython-313.pyc
+│   ├── tables.py
+│   └── tabs
+│       ├── fines_tab.py
+│       ├── general_tab.py
+│       ├── __init__.py
+│       ├── productivity_tab.py
+│       ├── __pycache__
+│       ├── shift_tab.py
+│       └── timeliness_tab.py
+├── config
+│   ├── clickhouse_config.py
+│   ├── __init__.py
+│   ├── logging_config.py
+│   └── __pycache__
+│       ├── clickhouse_config.cpython-310.pyc
+│       ├── clickhouse_config.cpython-313.pyc
+│       ├── __init__.cpython-310.pyc
+│       ├── __init__.cpython-313.pyc
+│       ├── logging_config.cpython-310.pyc
+│       └── logging_config.cpython-313.pyc
+├── Dashboard_New
+│   ├── callbacks
+│   │   └── __pycache__
+│   ├── components
+│   │   └── __pycache__
+│   ├── data
+│   │   └── __pycache__
+│   └── __pycache__
+│       └── app.cpython-313.pyc
+├── data
+│   ├── clickhouse_client.py
+│   ├── __init__.py
+│   ├── mssql_client.py
+│   ├── __pycache__
+│   │   ├── clickhouse_client.cpython-310.pyc
+│   │   ├── clickhouse_client.cpython-313.pyc
+│   │   ├── __init__.cpython-310.pyc
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── mssql_client.cpython-310.pyc
+│   │   ├── mssql_client.cpython-313.pyc
+│   │   ├── mssql_queries.cpython-313.pyc
+│   │   ├── queries.cpython-310.pyc
+│   │   ├── queries.cpython-313.pyc
+│   │   ├── queries_mssql.cpython-310.pyc
+│   │   └── queries_mssql.cpython-313.pyc
+│   ├── queries_mssql.py
+│   └── queries.py
+├── DEBUG_DISABLED.md
+├── diagnose_server.py
+├── diagnostika_sdelki.py
+├── docker-compose.yml
+├── Dockerfile
+├── Done
+├── echo
+├── logo.png
+├── logs
+│   └── dashboard.log
+├── move
+├── PERFORMANCE_OPTIMIZATIONS.md
+├── __pycache__
+│   └── app.cpython-313.pyc
+├── ras
+│   └── Dashboard
+│       ├── $null
+│       ├── AGENTS.md
+│       ├── app.py
+│       ├── callbacks
+│       ├── check_collation.py
+│       ├── check_labor_tables.py
+│       ├── check_script_execution.py
+│       ├── check_sdelka_january.py
+│       ├── check_table_columns.py
+│       ├── check_user_def_collation.py
+│       ├── check_wiv_structure.py
+│       ├── components
+│       ├── config
+│       ├── Dashboard_New
+│       ├── data
+│       ├── DEBUG_DISABLED.md
+│       ├── diagnostika_sdelki.py
+│       ├── docker-compose.yml
+│       ├── Dockerfile
+│       ├── Done
+│       ├── echo
+│       ├── logo.png
+│       ├── move
+│       ├── __pycache__
+│       ├── requirements.txt
+│       ├── script
+│       ├── sravnenie_sdelka.py
+│       ├── test_basic_functions.py
+│       ├── test_optimized_caching.py
+│       ├── test_refresh_data.py
+│       ├── test_revision_storage.py
+│       ├── диагностика_сравнение_январь_2026.csv
+│       ├── Рисунок1.png
+│       └── Скрипты операций и суммы сделка
+├── requirements.txt
+├── script
+│   ├── 00_анализ_структуры.sql
+│   ├── 01_создание_таблицы_сотрудников.sql
+│   ├── 02_создание_view_сотрудников.sql
+│   ├── 03_создание_view_сотрудников_на_смене.sql
+│   ├── 03_создание_view_сотрудников_на_смене_v2.sql
+│   ├── 03_создание_процедуры_сотрудников.sql
+│   ├── 04_проверка_view.sql
+│   ├── add_rejection_note_field.sql
+│   ├── CHANGES_REMOVED.md
+│   ├── check_a_belash_records.sql
+│   ├── check_a_belash_summary.sql
+│   ├── check_current_state.sql
+│   ├── check_employee_names.sql
+│   ├── check_revision_view.sql
+│   ├── CREATED_FILES.md
+│   ├── create_employee_work_idle_table_fixed.sql
+│   ├── create_employee_work_idle_table.sql
+│   ├── create_indexes_3days.sql
+│   ├── create_indexes.sql
+│   ├── create_receipt_list_table.sql
+│   ├── create_revision_detail_view.sql
+│   ├── create_update_location_procedure.sql
+│   ├── DBEAVER_SSL_FIX.md
+│   ├── debug_table_data.sql
+│   ├── diagnose_3days_cycle.sql
+│   ├── diagnose_data_range.sql
+│   ├── diagnose_linked_server.sql
+│   ├── diagnose_user1283.sql
+│   ├── disable_indexes.sql
+│   ├── enable_indexes.sql
+│   ├── etl_optimized.py
+│   ├── FINAL_CHANGES.md
+│   ├── FINAL_INSTRUCTION.md
+│   ├── final_setup_work_idle_table.sql
+│   ├── Full
+│   ├── fuul script
+│   ├── incremental_location_raw.py
+│   ├── incremental_locations_dwh.py
+│   ├── incremental_locations_raw.py
+│   ├── INSTRUCTIONS.md
+│   ├── JTDS_DRIVER_SETUP.md
+│   ├── logs
+│   ├── old
+│   │   └── check_storage_data.sql
+│   ├── pipeline_3days.py
+│   ├── __pycache__
+│   │   ├── update_receipt_list.cpython-313.pyc
+│   │   └── update_rejected_lines.cpython-313.pyc
+│   ├── pys.py
+│   ├── QUICKSTART_INCREMENTAL.md
+│   ├── README_3DAYS_CYCLE.md
+│   ├── README_ETL_PIPELINE.md
+│   ├── README_FINAL.md
+│   ├── README_HOURLY_TABLES_FIX.md
+│   ├── README_INCREMENTAL_LOCATIONS.md
+│   ├── README_LINKED_SERVER.md
+│   ├── README_ORDERS_TIMELINESS_FIX.md
+│   ├── README_receipt_list.md
+│   ├── README_update_dwh.md
+│   ├── README_UPDATE_LOCATION.md
+│   ├── README_WATERMARK.md
+│   ├── README_work_idle_table.md
+│   ├── README_УСКОРЕНИЕ.md
+│   ├── REJECTED_LINES_IMPLEMENTATION.md
+│   ├── reload_3days_bulk.py
+│   ├── reload_3days_hash.py
+│   ├── reload_3days.py
+│   ├── reload_3days_watermark.py
+│   ├── reload_7days.py
+│   ├── reload_locations.py
+│   ├── reload_shipment_header_full_archive.py
+│   ├── reload_shipment_header_full.py
+│   ├── reload_transaction_history.py
+│   ├── reload_user_cadr_edit.py
+│   ├── restore_shipment_header_from_archive.py
+│   ├── run_incremental_dwh.bat
+│   ├── run_incremental_location_raw.bat
+│   ├── run_incremental_raw.bat
+│   ├── run_update_dwh.py
+│   ├── run_update_location.bat
+│   ├── run_update_locations_all.bat
+│   ├── setup_linked_server_dbeaver.sql
+│   ├── setup_linked_server_fixed.sql
+│   ├── setup_linked_server_jtds.sql
+│   ├── setup_linked_server_oledb.sql
+│   ├── setup_linked_server.sql
+│   ├── setup_sql_agent_job.sql
+│   ├── SSL_ERROR_FIX.md
+│   ├── temp
+│   ├── test_function.sql
+│   ├── test_incremental_locations.py
+│   ├── test_new_idle_table.sql
+│   ├── update_dwh_3days_linked.sql
+│   ├── update_dwh_3days_simple.sql
+│   ├── update_dwh_3days.sql
+│   ├── update_dwh_7days.sql
+│   ├── update_locations_all.py
+│   ├── update_location_snapshot.py
+│   ├── update_procedures_3days_full.sql
+│   ├── update_procedures_3days_linked.sql
+│   ├── update_procedures_3days.sql
+│   ├── update_receipt_list.py
+│   ├── update_rejected_lines.py
+│   ├── БЫСТРЫЙ_СТАРТ_DBEAVER.md
+│   ├── БЫСТРЫЙ_СТАРТ_LINKED_SERVER.md
+│   ├── БЫСТРЫЙ_СТАРТ.md
+│   ├── восстановление_transaction_history.py
+│   ├── Все поля дат для таблиц
+│   ├── ДОПОЛНИТЕЛЬНЫЕ_ПРЕДСТАВЛЕНИЯ.sql
+│   ├── Копия Сделка0101.csv
+│   ├── НАСТРОЙКА_ЧЕРЕZ_SSMS.md
+│   ├── НАСТРОЙКА_ЧЕРЕЗ_DBEAVER.md
+│   ├── Правильный скрипт
+│   ├── Процедуры
+│   ├── Сделка расчет
+│   ├── скрипт 1
+│   ├── скрипт 2
+│   ├── Скрипт 3
+│   ├── Скрипт 4
+│   ├── Скрипт выгрузки данных
+│   ├── Скрипт выгрузки справочников
+│   ├── скрипт выгрузки сырых данных
+│   ├── Скрипт для локаций
+│   ├── Старый скрипт
+│   └── файл для сверки
+├── SERVER_DIAGNOSTICS.md
+├── sravnenie_sdelka.py
+├── structure.txt
+├── test_basic_functions.py
+├── test_optimized_caching.py
+├── test_refresh_data.py
+├── test_revision_storage.py
+├── диагностика_сравнение_январь_2026.csv
+├── Рисунок1.png
+└── Скрипты операций и суммы сделка
+
+42 directories, 234 files

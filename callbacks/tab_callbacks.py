@@ -30,8 +30,24 @@ def _build_receipt_table_rows(receipt_list):
     if not receipt_list:
         return RECEIPT_TABLE_NO_DATA_ROW
 
+    # Сортировка по времени до просрочки (сначала те, что быстрее просрочатся)
+    def parse_overdue(item):
+        overdue = item.get('overdue_in', '')
+        if overdue == 'Просрочено':
+            return -1  # Просроченные — самые первые
+        try:
+            # Парсим "2ч 30м" → общее количество минут
+            parts = overdue.replace('м', '').replace('ч', '|').split('|')
+            hours = int(parts[0]) if parts[0] else 0
+            minutes = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+            return hours * 60 + minutes
+        except (ValueError, IndexError):
+            return 999999  # Неизвестные значения — в конец
+
+    receipt_list_sorted = sorted(receipt_list, key=parse_overdue)
+
     table_rows = []
-    for item in receipt_list:
+    for item in receipt_list_sorted:
         status_color = RECEIPT_STATUS_COLORS.get(item.get('status', ''), DEFAULT_STATUS_COLOR)
 
         creation_date = item.get('creation_date')
@@ -263,39 +279,42 @@ def update_fines_data(date_range):
     """Обновление данных штрафов"""
     if not date_range:
         return {}, [], "Нет данных", "0 шт", "Нет данных", "0 руб", "0", "0 руб"
-    
     start_date = date_range['start_date']
     end_date = date_range['end_date']
-    
     try:
         fines_data = get_fines_data(start_date, end_date)
-        
         if not fines_data:
             return {}, [], "Нет данных", "0 шт", "Нет данных", "0 руб", "0", "0 руб"
         
         summary_data = fines_data.get('summary_data', [])
         table_rows = []
-        for idx, item in enumerate(sorted(summary_data, key=lambda x: x.get('Количество_штрафов', 0), reverse=True)):
+        
+        # Сортируем данные заранее
+        sorted_summary = sorted(summary_data, key=lambda x: x.get('Количество_штрафов', 0), reverse=True)
+        
+        for item in sorted_summary:
+            employee_name = item.get('Сотрудник', 'Неизвестно')
+            
             table_rows.append(
                 html.Tr([
                     html.Td(
                         html.A(
-                            item.get('Сотрудник', 'Неизвестно'),
+                            employee_name,
                             href='#',
-                            id={'type': 'fines-employee', 'index': idx},
+                            # ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: передаем ФИО как индекс
+                            id={'type': 'fines-employee', 'index': employee_name},
                             className='fines-employee-link'
                         ),
                         style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px'}
                     ),
                     html.Td(str(item.get('Количество_штрафов', 0)),
-                           style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#1976D2'}),
+                        style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#1976D2'}),
                     html.Td(f"{item.get('Сумма_штрафов', 0):,.0f} руб",
-                           style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#1565C0'})
+                        style={'padding': '12px', 'borderBottom': '1px solid #eee', 'fontSize': '14px', 'fontWeight': 'bold', 'color': '#1565C0'})
                 ])
             )
         
         kpi = fines_data.get('kpi_data', {})
-        
         return (
             fines_data,
             table_rows,

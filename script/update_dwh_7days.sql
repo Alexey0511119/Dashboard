@@ -524,53 +524,28 @@ PRINT '  ✅ cube_shipment_detail за период: ' + CAST(@cnt AS NVARCHAR) 
 PRINT 'Пересоздание dwh.receipts_status...';
 TRUNCATE TABLE dwh.receipts_status;
 
-WITH headers AS (
-    SELECT
-        RECEIPT_ID,
-        MIN(CAST(CREATION_DATE_TIME_STAMP AS DATETIME2(0))) AS date_created,
-        MAX(CAST(CLOSE_DATE AS DATETIME2(0))) AS date_closed,
-        MAX(RECEIPT_TYPE) AS receipt_type,
-        CAST(MIN(CAST(CREATION_DATE_TIME_STAMP AS DATETIME2(0))) AS DATE) AS date_key
-    FROM raw_.UPLOAD_RECEIPT_HEADER
-    WHERE CREATION_DATE_TIME_STAMP IS NOT NULL
-    GROUP BY RECEIPT_ID
-),
-details AS (
-    SELECT
-        RECEIPT_ID,
-        MIN(CASE WHEN INTERFACE_CONDITION = 'End' THEN CAST(DATE_TIME_STAMP AS DATETIME2(0)) END) AS date_started,
-        COUNT(*) AS items_total,
-        COUNT(CASE WHEN INTERFACE_CONDITION = 'End' THEN 1 END) AS items_completed
-    FROM raw_.UPLOAD_RECEIPT_DETAIL
-    WHERE RECEIPT_ID IS NOT NULL AND DATE_TIME_STAMP IS NOT NULL
-    GROUP BY RECEIPT_ID
-)
 INSERT INTO dwh.receipts_status
 SELECT
-    h.RECEIPT_ID,
-    h.receipt_type,
-    h.date_created,
-    d.date_started,
-    h.date_closed,
-    DATEADD(HOUR, 24, h.date_created) AS deadline,
-    h.date_key,
-    COALESCE(d.items_total, 0) AS items_total,
-    COALESCE(d.items_completed, 0) AS items_completed,
+    RECEIPT_ID,
+    RECEIPT_TYPE AS receipt_type,
+    CAST(CREATION_DATE_TIME_STAMP AS DATETIME2(0)) AS date_created,
+    CAST(NULL AS DATETIME2(0)) AS date_started,
+    CAST(CLOSE_DATE AS DATETIME2(0)) AS date_closed,
+    DATEADD(HOUR, 24, CAST(CREATION_DATE_TIME_STAMP AS DATETIME2(0))) AS deadline,
+    CAST(CREATION_DATE_TIME_STAMP AS DATE) AS date_key,
+    0 AS items_total,
+    0 AS items_completed,
     CASE
-        WHEN h.date_closed IS NOT NULL THEN
-            CASE WHEN h.date_closed <= DATEADD(HOUR, 24, h.date_created) THEN '✅ Сделано вовремя' ELSE '❌ Просрочено' END
-        WHEN d.items_completed > 0 THEN '🛠 В работе'
-        WHEN d.items_completed = 0 OR d.items_completed IS NULL THEN
-            CASE
-                WHEN GETDATE() >= DATEADD(HOUR, 24, h.date_created) THEN '🔴 Просрочена (не начата)'
-                WHEN GETDATE() >= DATEADD(HOUR, 22, h.date_created) THEN '⚠️ Просрочится через ≤2 часа'
-                ELSE '⏳ Ожидает приёма'
+        WHEN CLOSE_DATE IS NOT NULL THEN
+            CASE WHEN CAST(CLOSE_DATE AS DATETIME2(0)) <= DATEADD(HOUR, 24, CAST(CREATION_DATE_TIME_STAMP AS DATETIME2(0)))
+                THEN '✅ Сделано вовремя'
+                ELSE '❌ Просрочено'
             END
-        ELSE 'Неизвестно'
+        ELSE '⏳ В процессе'
     END AS status
-FROM headers h
-LEFT JOIN details d ON h.RECEIPT_ID = d.RECEIPT_ID
-WHERE h.date_created IS NOT NULL;
+FROM raw_.UPLOAD_RECEIPT_HEADER
+WHERE CREATION_DATE_TIME_STAMP IS NOT NULL
+  AND RECEIPT_TYPE IN ('Закупка', 'Кросс-докинг');
 
 SELECT @cnt = COUNT(*) FROM dwh.receipts_status;
 PRINT '  ✅ receipts_status: ' + CAST(@cnt AS NVARCHAR) + ' строк';
